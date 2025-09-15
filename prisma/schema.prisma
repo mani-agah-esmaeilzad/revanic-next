@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  email        String         @unique
+  name         String?
+  password     String
+  bio          String?
+  articles     Article[]
+  likes        Like[]
+  comments     Comment[]
+  bookmarks    Bookmark[]
+  following    Follow[]       @relation("UserFollows")
+  followers    Follow[]       @relation("UserFollowedBy")
+  subscription Subscription?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model Article {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String
+  published  Boolean   @default(false)
+  author     User      @relation(fields: [authorId], references: [id])
+  authorId   Int
+  categories Category[]@relation("ArticleToCategory")
+  likes      Like[]
+  comments   Comment[]
+  bookmarks  Bookmark[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  articles Article[] @relation("ArticleToCategory")
+}
+
+model Follow {
+  followerId  Int
+  followingId Int
+  follower    User @relation("UserFollowedBy", fields: [followerId], references: [id])
+  following   User @relation("UserFollows", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+}
+
+model Like {
+  userId    Int
+  articleId Int
+  user      User    @relation(fields: [userId], references: [id])
+  article   Article @relation(fields: [articleId], references: [id])
+
+  @@id([userId, articleId])
+}
+
+model Bookmark {
+  userId    Int
+  articleId Int
+  user      User    @relation(fields: [userId], references: [id])
+  article   Article @relation(fields: [articleId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@id([userId, articleId])
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  userId    Int
+  articleId Int
+  user      User     @relation(fields: [userId], references: [id])
+  article   Article  @relation(fields: [articleId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  tier      String   // e.g., "FREE", "GOLD"
+  status    String   // e.g., "ACTIVE", "CANCELED"
+  endDate   DateTime?
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}

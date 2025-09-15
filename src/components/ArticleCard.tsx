@@ -1,0 +1,103 @@
+import Link from "next/link";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Clock, Heart, MessageCircle } from "lucide-react";
+
+interface ArticleCardProps {
+  id: string;
+  title: string;
+  excerpt: string;
+  author: {
+    name: string;
+    avatar?: string;
+  };
+  readTime: number;
+  publishDate: string;
+  likes: number;
+  comments: number;
+  category: string;
+  image?: string;
+}
+
+const ArticleCard = ({
+  id,
+  title,
+  excerpt,
+  author,
+  readTime,
+  publishDate,
+  likes,
+  comments,
+  category,
+  image
+}: ArticleCardProps) => {
+  return (
+    <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft">
+      <CardContent className="p-6">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            {/* Category */}
+            <div className="text-xs font-medium text-journal-orange mb-2">
+              {category}
+            </div>
+
+            {/* Title */}
+            <Link href={`/articles/${id}`}>
+              <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2 line-clamp-2">
+                {title}
+              </h3>
+            </Link>
+
+            {/* Excerpt */}
+            <p className="text-journal-light text-sm leading-relaxed mb-4 line-clamp-3">
+              {excerpt}
+            </p>
+
+            {/* Author & Meta */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={author.avatar} />
+                  <AvatarFallback className="text-xs bg-journal-green text-white">
+                    {author.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-journal-light">{author.name}</span>
+                <span className="text-xs text-journal-light">•</span>
+                <span className="text-xs text-journal-light">{publishDate}</span>
+              </div>
+
+              <div className="flex items-center gap-4 text-xs text-journal-light">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {readTime} دقیقه
+                </div>
+                <div className="flex items-center gap-1">
+                  <Heart className="h-3 w-3" />
+                  {likes}
+                </div>
+                <div className="flex items-center gap-1">
+                  <MessageCircle className="h-3 w-3" />
+                  {comments}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Image */}
+          {image && (
+            <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
+              <img
+                src={image}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default ArticleCard;
