@@ -29,8 +29,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const Tiptap = dynamic(() => import('@/components/editor/Tiptap'), {
-    ssr: false,
-    loading: () => <Skeleton className="min-h-[400px] w-full" />,
+  ssr: false,
+  loading: () => <Skeleton className="min-h-[400px] w-full" />,
 });
 
 interface Category {
@@ -64,11 +64,11 @@ const WritePage = () => {
   // 1. هنگام بارگذاری صفحه، چک کن آیا پیش‌نویس ذخیره شده‌ای وجود دارد
   useEffect(() => {
     if (isInitialLoad.current) {
-        const savedDraft = localStorage.getItem(DRAFT_KEY);
-        if (savedDraft) {
-            setShowRestoreDialog(true);
-        }
-        isInitialLoad.current = false;
+      const savedDraft = localStorage.getItem(DRAFT_KEY);
+      if (savedDraft) {
+        setShowRestoreDialog(true);
+      }
+      isInitialLoad.current = false;
     }
   }, []);
 
@@ -76,27 +76,27 @@ const WritePage = () => {
   useEffect(() => {
     // در بارگذاری اولیه ذخیره نکن تا پیش‌نویس خالی جایگزین نشود
     if (!isInitialLoad.current) {
-        const draft = JSON.stringify({ title, content });
-        localStorage.setItem(DRAFT_KEY, draft);
+      const draft = JSON.stringify({ title, content });
+      localStorage.setItem(DRAFT_KEY, draft);
     }
   }, [title, content]);
 
 
   const handleRestore = () => {
-      const savedDraft = localStorage.getItem(DRAFT_KEY);
-      if (savedDraft) {
-          const { title: savedTitle, content: savedContent } = JSON.parse(savedDraft);
-          setTitle(savedTitle);
-          setContent(savedContent);
-      }
-      setShowRestoreDialog(false);
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      const { title: savedTitle, content: savedContent } = JSON.parse(savedDraft);
+      setTitle(savedTitle);
+      setContent(savedContent);
+    }
+    setShowRestoreDialog(false);
   };
 
   const handleDiscard = () => {
-      localStorage.removeItem(DRAFT_KEY);
-      setShowRestoreDialog(false);
+    localStorage.removeItem(DRAFT_KEY);
+    setShowRestoreDialog(false);
   };
-  
+
   // پاک کردن پیش‌نویس بعد از ارسال موفق
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_KEY);
@@ -111,166 +111,186 @@ const WritePage = () => {
     // ...
   };
 
-
   const handleSubmit = async (published: boolean) => {
-    // ...
+    setIsLoading(published ? "publish" : "save");
+    setMessage(null);
+
+    const isUpdating = articleId !== null;
+    const url = isUpdating ? `/api/articles/${articleId}` : "/api/articles";
+    const method = isUpdating ? "PUT" : "POST";
+
     try {
       const response = await fetch(url, {
-        // ...
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content,
+          published,
+          categoryIds: categoryId ? [parseInt(categoryId)] : [],
+          tags: tags, // ارسال برچسب‌ها به API
+        }),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        clearDraft(); // <-- پاک کردن پیش‌نویس بعد از ارسال
-        // ...
+        if (published) {
+          setMessage({ type: "success", text: "مقاله شما برای بازبینی ارسال شد." });
+          setTimeout(() => router.push('/profile'), 2000);
+        } else {
+          setArticleId(result.id);
+          setMessage({ type: "success", text: "پیش‌نویس با موفقیت ذخیره شد." });
+        }
       } else {
-        // ...
+        setMessage({ type: "error", text: result.message || "خطایی رخ داد." });
       }
     } catch (err) {
-      // ...
+      setMessage({ type: "error", text: "خطای شبکه. لطفاً دوباره تلاش کنید." });
     } finally {
-      // ...
+      setIsLoading(false);
     }
   };
 
   return (
     <>
-        {/* دیالوگ بازیابی پیش‌نویس */}
-        <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>بازیابی پیش‌نویس ذخیره شده</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        به نظر می‌رسد یک پیش‌نویس ذخیره شده دارید. آیا مایل به بازیابی آن هستید؟ در غیر این صورت، پیش‌نویس فعلی حذف خواهد شد.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel onClick={handleDiscard}>حذف پیش‌نویس</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleRestore}>بله، بازیابی کن</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+      {/* دیالوگ بازیابی پیش‌نویس */}
+      <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>بازیابی پیش‌نویس ذخیره شده</AlertDialogTitle>
+            <AlertDialogDescription>
+              به نظر می‌رسد یک پیش‌نویس ذخیره شده دارید. آیا مایل به بازیابی آن هستید؟ در غیر این صورت، پیش‌نویس فعلی حذف خواهد شد.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscard}>حذف پیش‌نویس</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRestore}>بله، بازیابی کن</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
 
-        <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
-            <div className="max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between mb-8">
-                <div>
+              <div>
                 <h1 className="text-3xl font-bold text-journal">نوشتن مقاله</h1>
                 <p className="text-journal-light mt-2">
-                    {articleId
+                  {articleId
                     ? `در حال ویرایش پیش‌نویس...`
                     : "داستان خود را با جهان به اشتراک بگذارید"}
                 </p>
-                </div>
-                <div className="flex gap-2">
+              </div>
+              <div className="flex gap-2">
                 <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSubmit(false)}
-                    disabled={!!isLoading || isUploading}
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSubmit(false)}
+                  disabled={!!isLoading || isUploading}
                 >
-                    {isLoading === "save" ? (
+                  {isLoading === "save" ? (
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    ) : (
+                  ) : (
                     <Save className="ml-2 h-4 w-4" />
-                    )}
-                    ذخیره پیش‌نویس
+                  )}
+                  ذخیره پیش‌نویس
                 </Button>
                 <Button
-                    type="submit"
-                    className="bg-journal-green text-white hover:bg-journal-green-light"
-                    disabled={!!isLoading || isUploading}
-                    onClick={() => handleSubmit(true)}
+                  type="submit"
+                  className="bg-journal-green text-white hover:bg-journal-green-light"
+                  disabled={!!isLoading || isUploading}
+                  onClick={() => handleSubmit(true)}
                 >
-                    {isLoading === "publish" ? (
+                  {isLoading === "publish" ? (
                     <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    ) : (
+                  ) : (
                     <Send className="ml-2 h-4 w-4" />
-                    )}
-                    ارسال برای بازبینی
+                  )}
+                  ارسال برای بازبینی
                 </Button>
-                </div>
+              </div>
             </div>
 
             {message && (
-                <div
+              <div
                 className={`p-4 mb-4 text-center rounded-lg ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-                >
+              >
                 {message.text}
-                </div>
+              </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-6">
                 <Card>
-                    <CardContent className="pt-6">
+                  <CardContent className="pt-6">
                     <Input
-                        placeholder="عنوان مقاله..."
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="text-2xl font-bold border-0 shadow-none p-0 h-auto placeholder:text-journal-light/50"
-                        required
+                      placeholder="عنوان مقاله..."
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="text-2xl font-bold border-0 shadow-none p-0 h-auto placeholder:text-journal-light/50"
+                      required
                     />
-                    </CardContent>
+                  </CardContent>
                 </Card>
                 <Tiptap content={content} onChange={(newContent) => setContent(newContent)} />
-                </div>
-                <div className="space-y-6">
+              </div>
+              <div className="space-y-6">
                 <Card>
-                    <CardHeader>
+                  <CardHeader>
                     <CardTitle className="text-lg">تنظیمات انتشار</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div>
-                        <label className="text-sm font-medium text-journal mb-2 block">
+                      <label className="text-sm font-medium text-journal mb-2 block">
                         تصویر شاخص
+                      </label>
+                      {coverImageUrl ? (
+                        <div className="relative">
+                          <Image src={coverImageUrl} alt="Cover preview" width={400} height={200} className="rounded-md w-full object-cover" />
+                          <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setCoverImageUrl(null)}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label htmlFor="cover-upload" className="cursor-pointer flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
+                          {isUploading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : <ImageIcon className="h-8 w-8 text-muted-foreground" />}
+                          <span className="text-sm text-muted-foreground mt-2">آپلود تصویر</span>
+                          <Input id="cover-upload" type="file" className="hidden" onChange={handleCoverImageUpload} accept="image/*" />
                         </label>
-                        {coverImageUrl ? (
-                            <div className="relative">
-                                <Image src={coverImageUrl} alt="Cover preview" width={400} height={200} className="rounded-md w-full object-cover"/>
-                                <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setCoverImageUrl(null)}>
-                                    <X className="h-4 w-4"/>
-                                </Button>
-                            </div>
-                        ) : (
-                            <label htmlFor="cover-upload" className="cursor-pointer flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
-                                {isUploading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground"/> : <ImageIcon className="h-8 w-8 text-muted-foreground"/>}
-                                <span className="text-sm text-muted-foreground mt-2">آپلود تصویر</span>
-                                <Input id="cover-upload" type="file" className="hidden" onChange={handleCoverImageUpload} accept="image/*"/>
-                            </label>
-                        )}
+                      )}
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-journal mb-2 block">
+                      <label className="text-sm font-medium text-journal mb-2 block">
                         دسته‌بندی
-                        </label>
-                        <Select value={categoryId} onValueChange={setCategoryId}>
+                      </label>
+                      <Select value={categoryId} onValueChange={setCategoryId}>
                         <SelectTrigger>
-                            <SelectValue placeholder="انتخاب دسته‌بندی" />
+                          <SelectValue placeholder="انتخاب دسته‌بندی" />
                         </SelectTrigger>
                         <SelectContent>
-                            {categories.map((cat) => (
+                          {categories.map((cat) => (
                             <SelectItem key={cat.id} value={String(cat.id)}>
-                                {cat.name}
+                              {cat.name}
                             </SelectItem>
-                            ))}
+                          ))}
                         </SelectContent>
-                        </Select>
+                      </Select>
                     </div>
                     <div>
-                        <label className="text-sm font-medium text-journal mb-2 block">
+                      <label className="text-sm font-medium text-journal mb-2 block">
                         برچسب‌ها
-                        </label>
-                        <TagInput tags={tags} setTags={setTags} />
+                      </label>
+                      <TagInput tags={tags} setTags={setTags} />
                     </div>
-                    </CardContent>
+                  </CardContent>
                 </Card>
-                </div>
+              </div>
             </div>
-            </div>
+          </div>
         </div>
-        </div>
+      </div>
     </>
   );
 };
