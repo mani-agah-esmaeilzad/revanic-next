@@ -1,30 +1,38 @@
+// src/app/api/articles/route.ts
 import { NextResponse, NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { z } from 'zod';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
-import { prisma } from "@/lib/prisma";
 
-interface JwtPayload {
-  userId: number;
-}
+const articleSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  content: z.string().min(1, 'Content is required'),
+  published: z.boolean(),
+  categoryIds: z.array(z.number()).optional(),
+  tags: z.array(z.string()).optional(),
+  coverImageUrl: z.string().optional().nullable(),
+});
 
-// GET articles with optional search and category filters
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search");
   const category = searchParams.get("category");
 
-  const where: any = { published: true };
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "6", 10);
+  const skip = (page - 1) * limit;
+
+  const where: any = { status: 'APPROVED' };
 
   if (search) {
     where.OR = [
-      { title: { contains: search, mode: "insensitive" } },
-      { content: { contains: search, mode: "insensitive" } },
+      { title: { contains: search } }, // <-- FIX: 'mode' removed
+      { content: { contains: search } }, // <-- FIX: 'mode' removed
     ];
   }
 
-  // Note: This assumes category is a string on the article, not a relation.
-  // If it were a relation, the query would be: { categories: { some: { name: category } } }
-  // Based on the schema, it IS a relation, so let's query it correctly.
   if (category && category.toLowerCase() !== "همه") {
     where.categories = {
       some: { name: category },
@@ -34,6 +42,8 @@ export async function GET(req: NextRequest) {
   try {
     const articles = await prisma.article.findMany({
       where,
+      skip,
+      take: limit,
       include: {
         author: { select: { name: true } },
         _count: { select: { likes: true, comments: true } },
@@ -43,7 +53,20 @@ export async function GET(req: NextRequest) {
         createdAt: "desc",
       },
     });
-    return NextResponse.json(articles);
+
+    const totalArticles = await prisma.article.count({ where });
+    const totalPages = Math.ceil(totalArticles / limit);
+
+    return NextResponse.json({
+        articles,
+        pagination: {
+            page,
+            limit,
+            totalArticles,
+            totalPages,
+        }
+    });
+
   } catch (error) {
     console.error("GET_ARTICLES_ERROR", error);
     return new NextResponse("Internal Server Error", { status: 500 });
@@ -61,31 +84,48 @@ export async function POST(req: Request) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
+    if (!userId) {
+        return new NextResponse('Invalid token payload', { status: 401 });
+    }
 
     const body = await req.json();
-    const { title, content, published = false } = body;
+    const validation = articleSchema.safeParse(body);
 
-    if (!title || !content) {
-      return new NextResponse("Title and content are required", {
-        status: 400,
-      });
+    if (!validation.success) {
+      console.error("Zod validation failed:", validation.error.issues);
+      return new NextResponse(validation.error.message, { status: 400 });
     }
+
+    const { title, content, categoryIds, tags = [], coverImageUrl } = validation.data;
+
+    const tagOperations = tags.map(tagName =>
+      prisma.tag.upsert({
+        where: { name: tagName.trim() },
+        update: {},
+        create: { name: tagName.trim() },
+      })
+    );
+    const createdOrFoundTags = await prisma.$transaction(tagOperations);
 
     const newArticle = await prisma.article.create({
       data: {
         title,
         content,
-        published,
+        coverImageUrl,
+        status: 'PENDING',
         authorId: userId,
+        categories: categoryIds ? { connect: categoryIds.map((id) => ({ id })) } : undefined,
+        tags: {
+          create: createdOrFoundTags.map(tag => ({
+            tag: { connect: { id: tag.id } }
+          }))
+        }
       },
     });
 
     return NextResponse.json(newArticle, { status: 201 });
   } catch (error) {
-    if (error instanceof Error && error.name === "JWTExpired") {
-      return new NextResponse("Token expired", { status: 401 });
-    }
     console.error("ARTICLE_CREATION_ERROR", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }

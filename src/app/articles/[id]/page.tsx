@@ -1,3 +1,4 @@
+// src/app/articles/[id]/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
@@ -6,11 +7,12 @@ import { jwtVerify } from "jose";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageCircle, Share2, Bookmark } from "lucide-react";
+import { MessageCircle, Share2 } from "lucide-react";
 import { LikeButton } from "@/components/LikeButton";
 import { CommentsSection } from "@/components/CommentsSection";
 import { FollowButton } from "@/components/FollowButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
+import Image from "next/image";
 
 interface JwtPayload {
   userId: number;
@@ -22,12 +24,21 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
   if (isNaN(articleId)) {
     notFound();
   }
-
+  
+  // --- ثبت بازدید مقاله ---
+  // این کار را به صورت non-blocking انجام می‌دهیم تا رندر صفحه را کند نکند
+  prisma.articleView.create({
+      data: {
+          articleId: articleId
+      }
+  }).catch(console.error); // در صورت بروز خطا، فقط در کنسول لاگ می‌اندازیم
+  
+  // دریافت اطلاعات مقاله
   const article = await prisma.article.findUnique({
-    where: { id: articleId, published: true },
+    where: { id: articleId, status: 'APPROVED' },
     include: {
       author: true,
-      _count: { select: { likes: true, comments: true } },
+      _count: { select: { likes: true, comments: true, views: true } },
     },
   });
 
@@ -35,6 +46,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
+  // بررسی وضعیت کاربر (لاگین کرده یا نه)
   let currentUserId: number | null = null;
   let userLikedArticle = false;
   let userIsFollowingAuthor = false;
@@ -47,34 +59,17 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
-      currentUserId = (payload as JwtPayload).userId;
+      currentUserId = payload.userId as number;
 
       if (currentUserId) {
-        // Check for like
-        const like = await prisma.like.findUnique({
-          where: {
-            userId_articleId: { userId: currentUserId, articleId: article.id },
-          },
-        });
+        // چک کردن لایک، فالو و بوکمارک
+        const [like, follow, bookmark] = await Promise.all([
+          prisma.like.findUnique({ where: { userId_articleId: { userId: currentUserId, articleId: article.id } } }),
+          prisma.follow.findUnique({ where: { followerId_followingId: { followerId: currentUserId, followingId: article.author.id } } }),
+          prisma.bookmark.findUnique({ where: { userId_articleId: { userId: currentUserId, articleId: article.id } } })
+        ]);
         userLikedArticle = !!like;
-
-        // Check for follow
-        const follow = await prisma.follow.findUnique({
-          where: {
-            followerId_followingId: {
-              followerId: currentUserId,
-              followingId: article.author.id,
-            },
-          },
-        });
         userIsFollowingAuthor = !!follow;
-
-        // Check for bookmark
-        const bookmark = await prisma.bookmark.findUnique({
-          where: {
-            userId_articleId: { userId: currentUserId, articleId: article.id },
-          },
-        });
         userBookmarkedArticle = !!bookmark;
       }
     } catch (e) {
@@ -88,6 +83,20 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
     <article className="py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
+
+          {/* تصویر شاخص */}
+          {article.coverImageUrl && (
+            <div className="relative w-full h-64 md:h-80 mb-8 rounded-lg overflow-hidden">
+                <Image
+                    src={article.coverImageUrl}
+                    alt={article.title}
+                    fill
+                    className="object-cover"
+                    priority
+                />
+            </div>
+          )}
+
           <header className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-journal mb-6 leading-tight">
               {article.title}
@@ -111,9 +120,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
                   </Link>
                   <div className="text-sm text-journal-light mt-1">
                     <span>
-                      {new Intl.DateTimeFormat("fa-IR").format(
-                        article.createdAt,
-                      )}
+                      {new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                     </span>
                     <span className="mx-2">·</span>
                     <span>
@@ -131,22 +138,23 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
                 <Button variant="outline">
                   <Share2 className="h-5 w-5 text-journal-light" />
                 </Button>
-                <Button variant="outline">
-                  <Bookmark className="h-5 w-5 text-journal-light" />
-                </Button>
+                <BookmarkButton
+                    articleId={article.id}
+                    initialBookmarked={userBookmarkedArticle}
+                />
               </div>
             </div>
           </header>
 
+          {/* محتوای مقاله */}
           <div
-            className="prose prose-lg max-w-none mb-12 text-journal-light"
+            className="prose dark:prose-invert max-w-none text-journal-light mb-12"
             style={{ lineHeight: "1.8", fontSize: "1.1rem" }}
-            dangerouslySetInnerHTML={{
-              __html: article.content.replace(/\n/g, "<br />"),
-            }}
+            dangerouslySetInnerHTML={{ __html: article.content }}
           />
 
-          <Card className="mb-12 shadow-soft border-0">
+          {/* کارت نویسنده */}
+          <Card className="my-12 shadow-soft border-0">
             <CardContent className="p-6">
               <div className="flex gap-4 items-center">
                 <Avatar className="h-16 w-16">
@@ -159,7 +167,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
                   <h3 className="text-xl font-bold text-journal mb-2">
                     {article.author.name}
                   </h3>
-                  {/* Placeholder for bio */}
+                  <p className="text-sm text-journal-light">{article.author.bio}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Link href={`/authors/${article.author.id}`}>
@@ -178,6 +186,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </CardContent>
           </Card>
 
+          {/* بخش کامنت‌ها */}
           <Card className="shadow-soft border-0">
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-6">

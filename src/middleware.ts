@@ -1,31 +1,40 @@
+// src/middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-// This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
-  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-
   const { pathname } = request.nextUrl;
 
-  if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  const protectedRoutes = ['/profile', '/write', '/admin', '/api/admin'];
+
+  // اگر مسیر نیاز به احراز هویت دارد
+  if (protectedRoutes.some(p => pathname.startsWith(p))) {
+    if (!token) {
+      // اگر توکن وجود ندارد، به صفحه لاگین هدایت کن
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    try {
+      // فقط اعتبار توکن را بررسی کن، بدون اتصال به دیتابیس
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      await jwtVerify(token, secret);
+      // اگر توکن معتبر بود، اجازه دسترسی بده
+      return NextResponse.next();
+    } catch (error) {
+      console.error("JWT Verification Error in Middleware:", error);
+      // اگر توکن نامعتبر بود، آن را پاک کن و به صفحه لاگین هدایت کن
+      const response = NextResponse.redirect(new URL('/login', request.url));
+      response.cookies.delete('token');
+      return response;
+    }
   }
 
-  try {
-    await jwtVerify(token, secret);
-    return NextResponse.next();
-  } catch (error) {
-    console.error("JWT Verification Error:", error);
-    // Clear the invalid token
-    const response = NextResponse.redirect(new URL('/login', request.url));
-    response.cookies.delete('token');
-    return response;
-  }
+  return NextResponse.next();
 }
 
-// See "Matching Paths" below to learn more
+// matcher را آپدیت می‌کنیم تا شامل مسیرهای admin هم بشود
 export const config = {
-  matcher: ['/profile/:path*', '/write/:path*'],
+  matcher: ['/profile/:path*', '/write/:path*', '/admin/:path*'],
 };

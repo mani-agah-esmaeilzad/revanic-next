@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,35 +10,79 @@ datasource db {
 }
 
 model User {
-  id           Int            @id @default(autoincrement())
-  email        String         @unique
-  name         String?
-  password     String
-  bio          String?
-  articles     Article[]
-  likes        Like[]
-  comments     Comment[]
-  bookmarks    Bookmark[]
-  following    Follow[]       @relation("UserFollows")
-  followers    Follow[]       @relation("UserFollowedBy")
-  subscription Subscription?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id                     Int            @id @default(autoincrement())
+  email                  String         @unique
+  name                   String?
+  password               String
+  bio                    String?
+  role                   String         @default("USER")
+  articles               Article[]
+  likes                  Like[]
+  comments               Comment[]
+  bookmarks              Bookmark[]
+  following              Follow[]       @relation("UserFollows")
+  followers              Follow[]       @relation("UserFollowedBy")
+  notifications          Notification[] @relation("UserNotifications")
+  triggeredNotifications Notification[] @relation("ActorNotifications")
+  subscription           Subscription?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
 }
 
 model Article {
-  id         Int       @id @default(autoincrement())
-  title      String
-  content    String
-  published  Boolean   @default(false)
-  author     User      @relation(fields: [authorId], references: [id])
-  authorId   Int
-  categories Category[]@relation("ArticleToCategory")
-  likes      Like[]
-  comments   Comment[]
-  bookmarks  Bookmark[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id            Int            @id @default(autoincrement())
+  title         String
+  content       String
+  coverImageUrl String?
+  status        String         @default("PENDING")
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId      Int
+  categories    Category[]     @relation("ArticleToCategory")
+  tags          TagsOnArticles[]
+  likes         Like[]
+  comments      Comment[]
+  bookmarks     Bookmark[]
+  notifications Notification[]
+  views         ArticleView[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// مدل برای ثبت بازدید مقالات
+model ArticleView {
+  id        Int      @id @default(autoincrement())
+  articleId Int
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  type      String
+  message   String
+  isRead    Boolean  @default(false)
+  user      User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  actor     User?    @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: Cascade)
+  actorId   Int?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int?
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id       Int              @id @default(autoincrement())
+  name     String           @unique
+  articles TagsOnArticles[]
+}
+
+model TagsOnArticles {
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId     Int
+
+  @@id([articleId, tagId])
 }
 
 model Category {
@@ -48,8 +94,8 @@ model Category {
 model Follow {
   followerId  Int
   followingId Int
-  follower    User @relation("UserFollowedBy", fields: [followerId], references: [id])
-  following   User @relation("UserFollows", fields: [followingId], references: [id])
+  follower    User @relation("UserFollowedBy", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User @relation("UserFollows", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
 }
@@ -57,8 +103,8 @@ model Follow {
 model Like {
   userId    Int
   articleId Int
-  user      User    @relation(fields: [userId], references: [id])
-  article   Article @relation(fields: [articleId], references: [id])
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@id([userId, articleId])
 }
@@ -66,8 +112,8 @@ model Like {
 model Bookmark {
   userId    Int
   articleId Int
-  user      User    @relation(fields: [userId], references: [id])
-  article   Article @relation(fields: [articleId], references: [id])
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@id([userId, articleId])
@@ -78,17 +124,17 @@ model Comment {
   text      String
   userId    Int
   articleId Int
-  user      User     @relation(fields: [userId], references: [id])
-  article   Article  @relation(fields: [articleId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }
 
 model Subscription {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
-  tier      String   // e.g., "FREE", "GOLD"
-  status    String   // e.g., "ACTIVE", "CANCELED"
+  tier      String
+  status    String
   endDate   DateTime?
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 }

@@ -1,11 +1,8 @@
+// src/app/api/me/following/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-interface JwtPayload {
-  userId: number;
-}
 
 // GET IDs of users the current user is following
 export async function GET(req: Request) {
@@ -19,7 +16,7 @@ export async function GET(req: Request) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
 
     const follows = await prisma.follow.findMany({
       where: { followerId: userId },

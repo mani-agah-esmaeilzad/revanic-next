@@ -1,11 +1,8 @@
+// src/app/api/me/profile/route.ts
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
-
-interface JwtPayload {
-  userId: number;
-}
 
 export async function PUT(req: Request) {
   const cookieStore = cookies();
@@ -18,7 +15,7 @@ export async function PUT(req: Request) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
 
     const body = await req.json();
     const { name, bio } = body;
@@ -32,7 +29,7 @@ export async function PUT(req: Request) {
       where: { id: userId },
       data: {
         name: name.trim(),
-        bio: bio, // We need to add bio to the schema first
+        bio: bio,
       },
     });
 

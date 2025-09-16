@@ -1,7 +1,9 @@
+// src/components/ArticleCard.tsx
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Clock, Heart, MessageCircle } from "lucide-react";
+import Image from "next/image"; // <-- استفاده از کامپوننت Image برای بهینه‌سازی
 
 interface ArticleCardProps {
   id: string;
@@ -16,7 +18,7 @@ interface ArticleCardProps {
   likes: number;
   comments: number;
   category: string;
-  image?: string;
+  image?: string | null; // <-- پراپرتی تصویر شاخص
 }
 
 const ArticleCard = ({
@@ -29,12 +31,12 @@ const ArticleCard = ({
   likes,
   comments,
   category,
-  image
+  image // <-- دریافت پراپرتی تصویر
 }: ArticleCardProps) => {
   return (
     <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft">
-      <CardContent className="p-6">
-        <div className="flex gap-4">
+      <CardContent className="p-0">
+        <Link href={`/articles/${id}`} className="flex gap-4 p-6">
           <div className="flex-1">
             {/* Category */}
             <div className="text-xs font-medium text-journal-orange mb-2">
@@ -42,11 +44,9 @@ const ArticleCard = ({
             </div>
 
             {/* Title */}
-            <Link href={`/articles/${id}`}>
-              <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2 line-clamp-2">
-                {title}
-              </h3>
-            </Link>
+            <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2 line-clamp-2">
+              {title}
+            </h3>
 
             {/* Excerpt */}
             <p className="text-journal-light text-sm leading-relaxed mb-4 line-clamp-3">
@@ -86,15 +86,16 @@ const ArticleCard = ({
 
           {/* Image */}
           {image && (
-            <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-              <img
+            <div className="w-28 h-28 md:w-32 md:h-32 rounded-lg overflow-hidden flex-shrink-0 relative">
+              <Image
                 src={image}
                 alt={title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
           )}
-        </div>
+        </Link>
       </CardContent>
     </Card>
   );

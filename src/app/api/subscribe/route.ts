@@ -1,11 +1,13 @@
+// src/app/api/subscribe/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { z } from 'zod';
 
-interface JwtPayload {
-  userId: number;
-}
+const subscribeSchema = z.object({
+  tier: z.enum(['TRIAL', 'MONTHLY', 'YEARLY', 'STUDENT']),
+});
 
 export async function POST(req: Request) {
   const cookieStore = cookies();
@@ -18,18 +20,39 @@ export async function POST(req: Request) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
 
     const body = await req.json();
-    const { tier } = body; // e.g., "GOLD", "PREMIUM"
+    const validation = subscribeSchema.safeParse(body);
 
-    if (!tier) {
-      return new NextResponse('Subscription tier is required', { status: 400 });
+    if (!validation.success) {
+      return new NextResponse(validation.error.message, { status: 400 });
     }
 
+    const { tier } = validation.data;
+
     const currentDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(currentDate.getDate() + 30); // Subscription valid for 30 days
+    let endDate: Date | null = new Date();
+
+    switch (tier) {
+      case 'TRIAL':
+        endDate.setDate(currentDate.getDate() + 7);
+        break;
+      case 'MONTHLY':
+        endDate.setMonth(currentDate.getMonth() + 1);
+        break;
+      case 'YEARLY':
+        endDate.setFullYear(currentDate.getFullYear() + 1);
+        break;
+      case 'STUDENT':
+        // For student, you might want a manual verification process.
+        // For now, we'll give them a year.
+        endDate.setFullYear(currentDate.getFullYear() + 1);
+        break;
+      default:
+        endDate = null;
+        break;
+    }
 
     await prisma.subscription.upsert({
       where: { userId },

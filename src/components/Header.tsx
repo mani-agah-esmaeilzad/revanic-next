@@ -1,21 +1,21 @@
-"use client"; // Header needs to be a client component if it has interactive elements or hooks in the future, like a mobile menu state.
+// src/components/Header.tsx
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Search, PenTool, User, Menu } from "lucide-react";
 import Logo from "@/components/Logo";
 import Link from "next/link";
+import { Notifications } from "./Notifications"; // <-- ایمپورت کامپوننت جدید
 
 const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href={`/`} className="flex items-center">
             <Logo size="xl" />
           </Link>
 
-          {/* Navigation */}
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/articles" className="text-journal-light hover:text-journal transition-colors">
               مقالات
@@ -31,12 +31,12 @@ const Header = () => {
             </Link>
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="hidden sm:flex">
-              <Search className="h-4 w-4 ml-2" />
-              جستجو
-            </Button>
+          <div className="flex items-center gap-1">
+            <Link href="/search">
+              <Button variant="ghost" size="icon" className="hidden sm:flex">
+                <Search className="h-5 w-5" />
+              </Button>
+            </Link>
 
             <Link href="/write">
               <Button variant="outline" size="sm" className="hidden sm:flex">
@@ -45,10 +45,12 @@ const Header = () => {
               </Button>
             </Link>
 
+            {/* --- اضافه کردن کامپوننت نوتیفیکیشن‌ها --- */}
+            <Notifications />
+
             <Link href="/profile">
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4 ml-2" />
-                پروفایل
+              <Button variant="ghost" size="icon">
+                <User className="h-5 w-5" />
               </Button>
             </Link>
 

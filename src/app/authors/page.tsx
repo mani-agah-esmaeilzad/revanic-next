@@ -1,13 +1,23 @@
+// src/app/authors/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Users, Star } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { FollowButton } from "@/components/FollowButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
 
 interface Author {
   id: number;
@@ -18,16 +28,23 @@ interface Author {
   };
 }
 
+interface PaginationInfo {
+  page: number;
+  totalPages: number;
+}
+
 const AuthorsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [authors, setAuthors] = useState<Author[]>([]);
   const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (page = 1) => {
     setIsLoading(true);
     try {
-      const usersPromise = fetch(`/api/users?search=${searchQuery}`);
+      // Fetch users and following status in parallel
+      const usersPromise = fetch(`/api/users?search=${searchQuery}&page=${page}`);
       const followingPromise = fetch("/api/me/following");
 
       const [usersResponse, followingResponse] = await Promise.all([
@@ -37,7 +54,8 @@ const AuthorsPage = () => {
 
       if (usersResponse.ok) {
         const usersData = await usersResponse.json();
-        setAuthors(usersData);
+        setAuthors(usersData.users);
+        setPagination(usersData.pagination);
       }
 
       if (followingResponse.ok) {
@@ -53,11 +71,17 @@ const AuthorsPage = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData();
-    }, 300); // Debounce search
+      fetchData(1); // Reset to page 1 on new search
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [fetchData]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= (pagination?.totalPages || 1)) {
+      fetchData(newPage);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -93,47 +117,75 @@ const AuthorsPage = () => {
                 ))}
               </div>
             ) : authors.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {authors.map((author) => (
-                  <Card
-                    key={author.id}
-                    className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft"
-                  >
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <Avatar className="h-20 w-20 mx-auto mb-4">
-                          <AvatarFallback className="text-xl bg-journal-green text-white">
-                            {author.name?.charAt(0) || "؟"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <Link href={`/authors/${author.id}`}>
-                          <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2">
-                            {author.name}
-                          </h3>
-                        </Link>
-                        <div className="flex justify-around text-sm text-journal-light my-4">
-                          <div className="text-center">
-                            <div className="font-semibold text-journal">
-                              {author._count.followers}
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {authors.map((author) => (
+                    <Card
+                      key={author.id}
+                      className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft"
+                    >
+                      <CardContent className="p-6">
+                        <div className="text-center">
+                          <Avatar className="h-20 w-20 mx-auto mb-4">
+                            <AvatarFallback className="text-xl bg-journal-green text-white">
+                              {author.name?.charAt(0) || "؟"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <Link href={`/authors/${author.id}`}>
+                            <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2">
+                              {author.name}
+                            </h3>
+                          </Link>
+                          <div className="flex justify-around text-sm text-journal-light my-4">
+                            <div className="text-center">
+                              <div className="font-semibold text-journal">
+                                {author._count.followers}
+                              </div>
+                              <div>دنبال‌کننده</div>
                             </div>
-                            <div>دنبال‌کننده</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-semibold text-journal">
-                              {author._count.articles}
+                            <div className="text-center">
+                              <div className="font-semibold text-journal">
+                                {author._count.articles}
+                              </div>
+                              <div>مقاله</div>
                             </div>
-                            <div>مقاله</div>
                           </div>
+                          <FollowButton
+                            targetUserId={author.id}
+                            initialFollowing={followingIds.has(author.id)}
+                          />
                         </div>
-                        <FollowButton
-                          targetUserId={author.id}
-                          initialFollowing={followingIds.has(author.id)}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Pagination Component */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="mt-12">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious onClick={() => handlePageChange(pagination.page - 1)} />
+                        </PaginationItem>
+                        {[...Array(pagination.totalPages)].map((_, i) => (
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              isActive={pagination.page === i + 1}
+                              onClick={() => handlePageChange(i + 1)}
+                            >
+                              {i + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext onClick={() => handlePageChange(pagination.page + 1)} />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-journal-light text-lg">

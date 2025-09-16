@@ -1,3 +1,4 @@
+// src/app/register/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -40,7 +41,8 @@ const Register = () => {
       });
 
       if (response.ok) {
-        router.push("/login");
+        // --- FIX: Redirect to subscription page ---
+        router.push("/subscription");
       } else {
         const data = await response.text();
         setError(data || "خطایی در ثبت نام رخ داد.");

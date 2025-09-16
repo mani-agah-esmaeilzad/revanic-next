@@ -1,11 +1,8 @@
+// src/app/api/articles/[id]/like/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-interface JwtPayload {
-  userId: number;
-}
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies();
@@ -18,43 +15,53 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
     const articleId = parseInt(params.id, 10);
 
     if (isNaN(articleId)) {
       return new NextResponse('Invalid article ID', { status: 400 });
     }
 
-    // Check if the like already exists
+    const article = await prisma.article.findUnique({
+      where: { id: articleId },
+      select: { authorId: true }
+    });
+
+    if (!article) {
+      return new NextResponse('Article not found', { status: 404 });
+    }
+
     const existingLike = await prisma.like.findUnique({
-      where: {
-        userId_articleId: {
-          userId,
-          articleId,
-        },
-      },
+      where: { userId_articleId: { userId, articleId } },
     });
 
     if (existingLike) {
-      // User has already liked, so unlike it
       await prisma.like.delete({
-        where: {
-          userId_articleId: {
-            userId,
-            articleId,
-          },
-        },
+        where: { userId_articleId: { userId, articleId } },
       });
+      // (Optional) You could also delete the notification here
       const newLikeCount = await prisma.like.count({ where: { articleId } });
       return NextResponse.json({ liked: false, likes: newLikeCount });
     } else {
-      // User has not liked yet, so like it
       await prisma.like.create({
-        data: {
-          userId,
-          articleId,
-        },
+        data: { userId, articleId },
       });
+
+      // --- Create Notification ---
+      // Only notify if someone other than the author likes the post
+      if (userId !== article.authorId) {
+        const liker = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+        await prisma.notification.create({
+          data: {
+            type: 'LIKE',
+            message: `${liker?.name || 'یک کاربر'} مقاله شما را پسندید.`,
+            userId: article.authorId, // Notify the article author
+            actorId: userId, // The user who performed the action
+            articleId: articleId,
+          }
+        });
+      }
+
       const newLikeCount = await prisma.like.count({ where: { articleId } });
       return NextResponse.json({ liked: true, likes: newLikeCount });
     }

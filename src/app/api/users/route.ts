@@ -1,9 +1,15 @@
+// src/app/api/users/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search');
+
+  // --- Pagination Logic ---
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "9", 10); // 9 authors per page (for a 3x3 grid)
+  const skip = (page - 1) * limit;
 
   const where: any = {};
 
@@ -17,11 +23,13 @@ export async function GET(req: NextRequest) {
   try {
     const users = await prisma.user.findMany({
       where,
+      skip,
+      take: limit,
       include: {
         _count: {
           select: {
             followers: true,
-            articles: { where: { published: true } }
+            articles: { where: { status: 'APPROVED' } }
           }
         },
       },
@@ -32,10 +40,18 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // For now, we are not handling the isFollowing status for each author in this list API
-    // to keep it simple. Each FollowButton will be responsible for its own state.
+    const totalUsers = await prisma.user.count({ where });
+    const totalPages = Math.ceil(totalUsers / limit);
 
-    return NextResponse.json(users);
+    return NextResponse.json({
+      users,
+      pagination: {
+        page,
+        limit,
+        totalUsers,
+        totalPages,
+      }
+    });
   } catch (error) {
     console.error("GET_USERS_ERROR", error);
     return new NextResponse('Internal Server Error', { status: 500 });

@@ -1,20 +1,35 @@
+// src/app/articles/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, TrendingUp } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 // Define a type for the article object received from the API
 interface FetchedArticle {
   id: number;
   title: string;
   content: string;
+  coverImageUrl: string | null; // <-- این فیلد اضافه شد
   author: { name: string | null };
   createdAt: string;
   _count: { likes: number; comments: number };
   categories: { name: string }[];
+}
+
+interface PaginationInfo {
+  page: number;
+  totalPages: number;
 }
 
 const ArticlesPage = () => {
@@ -22,22 +37,13 @@ const ArticlesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState("همه");
   const [articles, setArticles] = useState<FetchedArticle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
   const categories = [
-    "همه",
-    "فناوری",
-    "تاریخ",
-    "هنر و معماری",
-    "علم",
-    "فرهنگ",
-    "سیاست",
-    "اقتصاد",
-    "ورزش",
-    "سلامت",
-    "محیط زیست",
+    "همه", "فناوری", "تاریخ", "هنر و معماری", "علم", "فرهنگ", "سیاست", "اقتصاد", "ورزش", "سلامت", "محیط زیست",
   ];
 
-  const fetchArticles = useCallback(async () => {
+  const fetchArticles = useCallback(async (page = 1) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -45,11 +51,14 @@ const ArticlesPage = () => {
       if (selectedCategory && selectedCategory !== "همه") {
         params.append("category", selectedCategory);
       }
+      params.append("page", String(page));
+      params.append("limit", "6"); // نمایش ۶ مقاله در هر صفحه
 
       const response = await fetch(`/api/articles?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
-        setArticles(data);
+        setArticles(data.articles);
+        setPagination(data.pagination);
       }
     } catch (error) {
       console.error("Failed to fetch articles:", error);
@@ -60,11 +69,18 @@ const ArticlesPage = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchArticles();
+      fetchArticles(1); // همیشه با جستجوی جدید به صفحه اول برگرد
     }, 300); // Debounce requests
 
     return () => clearTimeout(timer);
   }, [fetchArticles]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage > 0 && newPage <= (pagination?.totalPages || 1)) {
+      fetchArticles(newPage);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,9 +118,7 @@ const ArticlesPage = () => {
                 {categories.map((category) => (
                   <Button
                     key={category}
-                    variant={
-                      selectedCategory === category ? "default" : "outline"
-                    }
+                    variant={selectedCategory === category ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSelectedCategory(category)}
                     className={
@@ -121,29 +135,58 @@ const ArticlesPage = () => {
 
             {isLoading ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {[...Array(4)].map((_, i) => (
+                {[...Array(6)].map((_, i) => (
                   <Skeleton key={i} className="h-40 w-full" />
                 ))}
               </div>
             ) : articles.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {articles.map((article) => (
-                  <ArticleCard
-                    key={article.id}
-                    id={article.id.toString()}
-                    title={article.title}
-                    excerpt={article.content.substring(0, 150) + "..."}
-                    author={{ name: article.author.name || "ناشناس" }}
-                    readTime={Math.ceil(article.content.length / 1000)}
-                    publishDate={new Intl.DateTimeFormat("fa-IR").format(
-                      new Date(article.createdAt),
-                    )}
-                    likes={article._count.likes}
-                    comments={article._count.comments}
-                    category={article.categories[0]?.name || "عمومی"}
-                  />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {articles.map((article) => (
+                    <ArticleCard
+                      key={article.id}
+                      id={article.id.toString()}
+                      title={article.title}
+                      excerpt={article.content.substring(0, 150) + "..."}
+                      author={{ name: article.author.name || "ناشناس" }}
+                      readTime={Math.ceil(article.content.length / 1000)}
+                      publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                        new Date(article.createdAt),
+                      )}
+                      likes={article._count.likes}
+                      comments={article._count.comments}
+                      category={article.categories[0]?.name || "عمومی"}
+                      image={article.coverImageUrl} // <-- پاس دادن آدرس تصویر
+                    />
+                  ))}
+                </div>
+
+                {/* Pagination Component */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="mt-12">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious onClick={() => handlePageChange(pagination.page - 1)} />
+                        </PaginationItem>
+                        {[...Array(pagination.totalPages)].map((_, i) => (
+                          <PaginationItem key={i}>
+                            <PaginationLink
+                              isActive={pagination.page === i + 1}
+                              onClick={() => handlePageChange(i + 1)}
+                            >
+                              {i + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext onClick={() => handlePageChange(pagination.page + 1)} />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-journal-light text-lg mb-4">

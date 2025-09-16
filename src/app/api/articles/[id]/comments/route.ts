@@ -1,11 +1,8 @@
+// src/app/api/articles/[id]/comments/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-interface JwtPayload {
-  userId: number;
-}
 
 // POST a new comment
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -19,11 +16,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
     const articleId = parseInt(params.id, 10);
 
     if (isNaN(articleId)) {
       return new NextResponse('Invalid article ID', { status: 400 });
+    }
+
+    const article = await prisma.article.findUnique({
+        where: { id: articleId },
+        select: { authorId: true }
+    });
+
+    if (!article) {
+        return new NextResponse('Article not found', { status: 404 });
     }
 
     const body = await req.json();
@@ -40,7 +46,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         articleId,
       },
       include: {
-        user: { // Include user details in the response
+        user: { 
           select: {
             id: true,
             name: true,
@@ -48,6 +54,20 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         }
       }
     });
+    
+    // --- Create Notification ---
+    if (userId !== article.authorId) {
+        const commenter = newComment.user;
+        await prisma.notification.create({
+            data: {
+                type: 'COMMENT',
+                message: `${commenter.name || 'یک کاربر'} برای مقاله شما نظری ثبت کرد.`,
+                userId: article.authorId, // Notify the article author
+                actorId: userId,
+                articleId: articleId,
+            }
+        });
+    }
 
     return NextResponse.json(newComment, { status: 201 });
 

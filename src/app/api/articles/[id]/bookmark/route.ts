@@ -1,11 +1,8 @@
+// src/app/api/articles/[id]/bookmark/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-
-interface JwtPayload {
-  userId: number;
-}
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies();
@@ -18,7 +15,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = (payload as JwtPayload).userId;
+    const userId = payload.userId as number;
     const articleId = parseInt(params.id, 10);
 
     if (isNaN(articleId)) {
