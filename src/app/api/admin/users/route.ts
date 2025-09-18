@@ -51,7 +51,7 @@ export async function DELETE(req: Request) {
             return new NextResponse('User ID is required', { status: 400 });
         }
         const userId = Number(id);
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx:any) => {
             await tx.like.deleteMany({ where: { userId } });
             await tx.bookmark.deleteMany({ where: { userId } });
             await tx.comment.deleteMany({ where: { userId } });

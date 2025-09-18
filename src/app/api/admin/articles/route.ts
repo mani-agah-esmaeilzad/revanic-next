@@ -47,7 +47,7 @@ export async function DELETE(req: Request) {
         }
         const articleId = Number(id);
 
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx:any) => {
             // تمام رکوردهای وابسته حذف می‌شوند چون onDelete: Cascade است
             // اما برای اطمینان می‌توان به صورت دستی هم حذف کرد
             await tx.clap.deleteMany({ where: { articleId } }); // <-- اصلاح شد

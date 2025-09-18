@@ -32,6 +32,7 @@ model User {
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
   publications           UsersOnPublications[]
+  highlights             Highlight[]
 }
 
 model Article {
@@ -53,6 +54,7 @@ model Article {
   updatedAt     DateTime       @updatedAt
   publication   Publication?   @relation(fields: [publicationId], references: [id], onDelete: SetNull)
   publicationId Int?
+  highlights    Highlight[]
 }
 
 model Publication {
@@ -173,4 +175,26 @@ model Subscription {
   endDate           DateTime?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())
+}
+
+model Highlight {
+  id        Int      @id @default(autoincrement())
+  
+  // برای ذخیره متن دقیق هایلایت شده
+  text      String   
+  
+  // برای ذخیره اطلاعات مکان هایلایت در متن
+  // ما از یک شناساگر منحصر به فرد (UUID) که در فرانت‌اند تولید می‌شود استفاده خواهیم کرد
+  domId     String   @unique
+
+  // روابط
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([userId])
 }
