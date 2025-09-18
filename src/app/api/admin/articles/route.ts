@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
                     select: { name: true, email: true },
                 },
                 _count: {
-                    select: { likes: true, comments: true },
+                    select: { claps: true, comments: true }, // <-- *** اصلاح شد ***
                 },
             },
         });
@@ -47,23 +47,21 @@ export async function DELETE(req: Request) {
         }
         const articleId = Number(id);
 
-        // In a transaction, delete all related data first
         await prisma.$transaction(async (tx) => {
-            await tx.like.deleteMany({ where: { articleId } });
+            // تمام رکوردهای وابسته حذف می‌شوند چون onDelete: Cascade است
+            // اما برای اطمینان می‌توان به صورت دستی هم حذف کرد
+            await tx.clap.deleteMany({ where: { articleId } }); // <-- اصلاح شد
             await tx.comment.deleteMany({ where: { articleId } });
             await tx.bookmark.deleteMany({ where: { articleId } });
 
-            // Disconnect categories before deleting the article
             await tx.article.update({
                 where: { id: articleId },
                 data: {
-                    categories: {
-                        set: []
-                    }
+                    categories: { set: [] },
+                    tags: { deleteMany: {} }
                 }
             });
 
-            // Finally, delete the article itself
             await tx.article.delete({ where: { id: articleId } });
         });
 

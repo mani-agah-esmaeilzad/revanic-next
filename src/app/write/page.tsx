@@ -29,40 +29,51 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
 
-// لود کردن دینامیک ادیتور برای جلوگیری از خطای SSR
+// =======================================================================
+//  1. لود کردن دینامیک ادیتور Tiptap
+// =======================================================================
+// چون Tiptap با DOM کار می‌کند، باید آن را فقط در سمت کلاینت لود کنیم تا از خطاهای SSR جلوگیری شود.
 const Tiptap = dynamic(() => import('@/components/editor/Tiptap'), {
   ssr: false,
-  loading: () => <Skeleton className="min-h-[400px] w-full" />,
+  loading: () => <Skeleton className="min-h-[400px] w-full rounded-lg" />,
 });
 
-// تعریف تایپ‌ها
+// =======================================================================
+//  2. تعریف تایپ‌ها و توابع دریافت داده
+// =======================================================================
 interface Category {
   id: number;
   name: string;
 }
+
 interface Publication {
     id: number;
     name: string;
 }
 
-const DRAFT_KEY = 'revanic_article_draft';
+const DRAFT_KEY = 'revanic_article_draft'; // کلید برای ذخیره پیش‌نویس در localStorage
 
-// توابع دریافت داده برای React Query
+// تابع برای دریافت انتشارات کاربر (برای React Query)
 const fetchUserPublications = async (): Promise<Publication[]> => {
     const res = await fetch('/api/me/publications');
     if (!res.ok) throw new Error('Failed to fetch publications');
     return res.json();
 }
+
+// تابع برای دریافت دسته‌بندی‌ها (برای React Query)
 const fetchCategories = async (): Promise<Category[]> => {
     const res = await fetch('/api/categories');
     if(!res.ok) throw new Error('Failed to fetch categories');
     return res.json();
 }
 
+// =======================================================================
+//  3. کامپوننت اصلی صفحه
+// =======================================================================
 const WritePage = () => {
   const router = useRouter();
   
-  // State های کامپوننت
+  // State های مربوط به فرم و داده‌های مقاله
   const [articleId, setArticleId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -70,21 +81,25 @@ const WritePage = () => {
   const [tags, setTags] = useState<string[]>([]);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [publicationId, setPublicationId] = useState<string>("personal");
+  
+  // State های مربوط به وضعیت UI (لودینگ، پیام‌ها و ...)
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState<"save" | "publish" | false>(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string; } | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const isInitialLoad = useRef(true);
 
-  // دریافت داده‌های اولیه با React Query
+  // دریافت داده‌های لازم (دسته‌بندی‌ها و انتشارات) با استفاده از React Query
   const { data: categories = [], isError: isCategoriesError } = useQuery<Category[]>({ queryKey: ['categories'], queryFn: fetchCategories });
   const { data: publications = [], isError: isPublicationsError } = useQuery<Publication[]>({ queryKey: ['userPublications'], queryFn: fetchUserPublications });
 
-  // منطق ذخیره و بازیابی خودکار پیش‌نویس
+  // منطق ذخیره و بازیابی خودکار پیش‌نویس از localStorage
   useEffect(() => {
     if (isInitialLoad.current) {
       const savedDraft = localStorage.getItem(DRAFT_KEY);
-      if (savedDraft) setShowRestoreDialog(true);
+      if (savedDraft) {
+        setShowRestoreDialog(true);
+      }
       isInitialLoad.current = false;
     }
   }, []);
@@ -114,13 +129,84 @@ const WritePage = () => {
     setShowRestoreDialog(false);
   };
   const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
-
+  
+  // تابع برای آپلود تصویر شاخص
   const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // ... (این تابع بدون تغییر باقی می‌ماند)
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setMessage(null);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCoverImageUrl(data.url);
+      } else {
+        setMessage({ type: 'error', text: 'خطا در آپلود تصویر.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'خطای شبکه هنگام آپلود.' });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
+  // تابع اصلی برای ارسال فرم (ذخیره پیش‌نویس یا ارسال برای انتشار)
   const handleSubmit = async (published: boolean) => {
-    // ... (این تابع هم بدون تغییر باقی می‌ماند)
+    if (!title.trim() || !content.trim() || content === '<p></p>') {
+      setMessage({ type: 'error', text: 'عنوان و محتوای مقاله نمی‌توانند خالی باشند.' });
+      return;
+    }
+
+    setIsLoading(published ? "publish" : "save");
+    setMessage(null);
+
+    const isUpdating = articleId !== null;
+    const url = isUpdating ? `/api/articles/${articleId}` : "/api/articles";
+    const method = isUpdating ? "PUT" : "POST";
+
+    try {
+      const articleData = {
+        title,
+        content,
+        published,
+        categoryIds: categoryId ? [parseInt(categoryId)] : [],
+        tags,
+        coverImageUrl,
+        publicationId: publicationId !== 'personal' ? parseInt(publicationId) : null,
+      };
+
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(articleData),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result) {
+        clearDraft();
+        setMessage({ type: "success", text: "مقاله شما برای بازبینی ارسال شد. در حال انتقال..." });
+        setTimeout(() => router.push('/profile'), 2000);
+      } else {
+        const errorMessage = result?.message || "یک خطای ناشناخته رخ داد. لطفاً دوباره تلاش کنید.";
+        setMessage({ type: "error", text: errorMessage });
+        console.error("Submit failed:", { status: response.status, body: result });
+      }
+    } catch (err) {
+      console.error("Network or parsing error:", err);
+      setMessage({ type: "error", text: "خطای شبکه. آیا به اینترنت متصل هستید؟" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -172,7 +258,7 @@ const WritePage = () => {
               <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardContent className="pt-6">
-                    <Input placeholder="عنوان مقاله..." value={title} onChange={(e) => setTitle(e.target.value)} className="text-2xl font-bold border-0 shadow-none p-0 h-auto"/>
+                    <Input placeholder="عنوان مقاله..." value={title} onChange={(e) => setTitle(e.target.value)} className="text-2xl font-bold border-0 shadow-none p-0 h-auto placeholder:text-journal-light/50"/>
                   </CardContent>
                 </Card>
                 <Tiptap content={content} onChange={(newContent) => setContent(newContent)} />
@@ -196,7 +282,22 @@ const WritePage = () => {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-journal mb-2 block">تصویر شاخص</label>
-                      {/* ... کد آپلود تصویر ... */}
+                      {coverImageUrl ? (
+                        <div className="relative">
+                          <Image src={coverImageUrl} alt="Cover" width={400} height={200} className="rounded-md object-cover"/>
+                          <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => setCoverImageUrl(null)}>
+                            <X className="h-4 w-4"/>
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <Input id="cover-image" type="file" className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" onChange={handleCoverImageUpload} accept="image/*"/>
+                          <label htmlFor="cover-image" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent">
+                            {isUploading ? <Loader2 className="h-8 w-8 animate-spin"/> : <ImageIcon className="h-8 w-8 text-muted-foreground"/>}
+                            <span className="text-sm text-muted-foreground mt-2">انتخاب تصویر</span>
+                          </label>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="text-sm font-medium text-journal mb-2 block">دسته‌بندی</label>
