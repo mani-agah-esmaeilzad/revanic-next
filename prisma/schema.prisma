@@ -48,7 +48,6 @@ model Article {
   updatedAt     DateTime       @updatedAt
 }
 
-// مدل برای ثبت بازدید مقالات
 model ArticleView {
   id        Int      @id @default(autoincrement())
   articleId Int
@@ -130,11 +129,12 @@ model Comment {
 }
 
 model Subscription {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @unique
-  tier      String
-  status    String
-  endDate   DateTime?
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id                Int      @id @default(autoincrement())
+  userId            Int      @unique
+  tier              String   // e.g., "TRIAL", "MONTHLY", "YEARLY", "STUDENT"
+  status            String   // e.g., "ACTIVE", "CANCELED", "PENDING_VERIFICATION", "REJECTED"
+  studentIdCardUrl  String?  // <-- فیلد جدید برای ذخیره آدرس کارت دانشجویی
+  endDate           DateTime?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
 }

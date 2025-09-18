@@ -3,16 +3,18 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminUsersTab } from './AdminUsersTab';
-import { AdminArticlesTab } from './AdminArticlesTab'; // <-- ایمپورت جدید
-import { AdminCommentsTab } from './AdminCommentsTab'; // <-- ایمپورت جدید
+import { AdminArticlesTab } from './AdminArticlesTab';
+import { AdminCommentsTab } from './AdminCommentsTab';
+import { AdminSubscriptionsTab } from './AdminSubscriptionsTab'; // <-- ایمپورت جدید
 
 export const AdminDashboard = () => {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="users">کاربران</TabsTrigger>
         <TabsTrigger value="articles">مقالات</TabsTrigger>
         <TabsTrigger value="comments">نظرات</TabsTrigger>
+        <TabsTrigger value="subscriptions">اشتراک‌ها</TabsTrigger> {/* <-- تب جدید */}
       </TabsList>
       <TabsContent value="users">
         <AdminUsersTab />
@@ -22,6 +24,9 @@ export const AdminDashboard = () => {
       </TabsContent>
       <TabsContent value="comments">
         <AdminCommentsTab />
+      </TabsContent>
+      <TabsContent value="subscriptions">
+        <AdminSubscriptionsTab /> {/* <-- محتوای تب جدید */}
       </TabsContent>
     </Tabs>
   );

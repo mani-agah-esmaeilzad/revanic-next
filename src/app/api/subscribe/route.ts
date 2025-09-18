@@ -7,12 +7,11 @@ import { z } from 'zod';
 
 const subscribeSchema = z.object({
   tier: z.enum(['TRIAL', 'MONTHLY', 'YEARLY', 'STUDENT']),
+  studentIdCardUrl: z.string().url().optional().nullable(), // <-- ورودی جدید
 });
 
 export async function POST(req: Request) {
-  const cookieStore = cookies();
-  const token = cookieStore.get('token')?.value;
-
+  const token = cookies().get('token')?.value;
   if (!token) {
     return new NextResponse('Authentication token not found', { status: 401 });
   }
@@ -24,15 +23,16 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const validation = subscribeSchema.safeParse(body);
-
+    
     if (!validation.success) {
       return new NextResponse(validation.error.message, { status: 400 });
     }
 
-    const { tier } = validation.data;
+    const { tier, studentIdCardUrl } = validation.data;
 
     const currentDate = new Date();
     let endDate: Date | null = new Date();
+    let status = 'ACTIVE';
 
     switch (tier) {
       case 'TRIAL':
@@ -45,9 +45,11 @@ export async function POST(req: Request) {
         endDate.setFullYear(currentDate.getFullYear() + 1);
         break;
       case 'STUDENT':
-        // For student, you might want a manual verification process.
-        // For now, we'll give them a year.
-        endDate.setFullYear(currentDate.getFullYear() + 1);
+        status = 'PENDING_VERIFICATION';
+        endDate = null; // تاریخ انقضا بعد از تایید مشخص می‌شود
+        if (!studentIdCardUrl) {
+            return new NextResponse('Student ID card URL is required for student plan', { status: 400 });
+        }
         break;
       default:
         endDate = null;
@@ -56,20 +58,11 @@ export async function POST(req: Request) {
 
     await prisma.subscription.upsert({
       where: { userId },
-      update: {
-        tier,
-        status: 'ACTIVE',
-        endDate,
-      },
-      create: {
-        userId,
-        tier,
-        status: 'ACTIVE',
-        endDate,
-      },
+      update: { tier, status, endDate, studentIdCardUrl },
+      create: { userId, tier, status, endDate, studentIdCardUrl },
     });
 
-    return NextResponse.json({ message: `Successfully subscribed to ${tier} tier.` });
+    return NextResponse.json({ message: `Subscription request for ${tier} received.` });
 
   } catch (error) {
     console.error('SUBSCRIPTION_ERROR', error);

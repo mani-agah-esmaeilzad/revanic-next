@@ -13,6 +13,7 @@ import { CommentsSection } from "@/components/CommentsSection";
 import { FollowButton } from "@/components/FollowButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
 interface JwtPayload {
   userId: number;
@@ -24,7 +25,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
   if (isNaN(articleId)) {
     notFound();
   }
-  
+
   // --- ثبت بازدید مقاله ---
   // این کار را به صورت non-blocking انجام می‌دهیم تا رندر صفحه را کند نکند
   prisma.articleView.create({
@@ -32,13 +33,14 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
           articleId: articleId
       }
   }).catch(console.error); // در صورت بروز خطا، فقط در کنسول لاگ می‌اندازیم
-  
+
   // دریافت اطلاعات مقاله
   const article = await prisma.article.findUnique({
     where: { id: articleId, status: 'APPROVED' },
     include: {
       author: true,
       _count: { select: { likes: true, comments: true, views: true } },
+      tags: { include: { tag: true } }, // دریافت اطلاعات برچسب‌ها
     },
   });
 
@@ -62,7 +64,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
       currentUserId = payload.userId as number;
 
       if (currentUserId) {
-        // چک کردن لایک، فالو و بوکمارک
+        // چک کردن لایک، فالو و بوکمارک به صورت همزمان برای بهینه‌سازی
         const [like, follow, bookmark] = await Promise.all([
           prisma.like.findUnique({ where: { userId_articleId: { userId: currentUserId, articleId: article.id } } }),
           prisma.follow.findUnique({ where: { followerId_followingId: { followerId: currentUserId, followingId: article.author.id } } }),
@@ -152,6 +154,21 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             style={{ lineHeight: "1.8", fontSize: "1.1rem" }}
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
+
+          {/* بخش نمایش برچسب‌ها */}
+          {article.tags.length > 0 && (
+            <div className="mb-12">
+                <div className="flex flex-wrap gap-2">
+                    {article.tags.map(({ tag }) => (
+                        <Link key={tag.id} href={`/tags/${encodeURIComponent(tag.name)}`}>
+                            <Badge variant="outline" className="cursor-pointer hover:bg-accent">
+                                # {tag.name}
+                            </Badge>
+                        </Link>
+                    ))}
+                </div>
+            </div>
+          )}
 
           {/* کارت نویسنده */}
           <Card className="my-12 shadow-soft border-0">

@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Save, Send, Loader2, Image as ImageIcon, X, History } from "lucide-react";
+import { Save, Send, Loader2, Image as ImageIcon, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TagInput } from "@/components/TagInput";
 import Image from 'next/image';
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// ویرایشگر متن به صورت دینامیک لود می‌شود تا از خطای SSR جلوگیری شود
 const Tiptap = dynamic(() => import('@/components/editor/Tiptap'), {
   ssr: false,
   loading: () => <Skeleton className="min-h-[400px] w-full" />,
@@ -56,8 +57,7 @@ const WritePage = () => {
     text: string;
   } | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
-  const isInitialLoad = useRef(true);
-
+  const isInitialLoad = useRef(true); // برای جلوگیری از ذخیره خودکار در بارگذاری اولیه
 
   // --- منطق ذخیره و بازیابی خودکار ---
 
@@ -74,20 +74,21 @@ const WritePage = () => {
 
   // 2. هر زمان عنوان یا محتوا تغییر کرد، آن را در localStorage ذخیره کن
   useEffect(() => {
-    // در بارگذاری اولیه ذخیره نکن تا پیش‌نویس خالی جایگزین نشود
     if (!isInitialLoad.current) {
-      const draft = JSON.stringify({ title, content });
+      const draft = JSON.stringify({ title, content, coverImageUrl, categoryId, tags });
       localStorage.setItem(DRAFT_KEY, draft);
     }
-  }, [title, content]);
-
+  }, [title, content, coverImageUrl, categoryId, tags]);
 
   const handleRestore = () => {
     const savedDraft = localStorage.getItem(DRAFT_KEY);
     if (savedDraft) {
-      const { title: savedTitle, content: savedContent } = JSON.parse(savedDraft);
-      setTitle(savedTitle);
-      setContent(savedContent);
+      const { title, content, coverImageUrl, categoryId, tags } = JSON.parse(savedDraft);
+      setTitle(title);
+      setContent(content);
+      setCoverImageUrl(coverImageUrl);
+      setCategoryId(categoryId);
+      setTags(tags);
     }
     setShowRestoreDialog(false);
   };
@@ -97,21 +98,63 @@ const WritePage = () => {
     setShowRestoreDialog(false);
   };
 
-  // پاک کردن پیش‌نویس بعد از ارسال موفق
   const clearDraft = () => {
     localStorage.removeItem(DRAFT_KEY);
   };
 
-
   useEffect(() => {
-    // ... تابع fetchCategories
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        if (response.ok) {
+          const data = await response.json();
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      }
+    };
+    fetchCategories();
   }, []);
 
   const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // ...
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setMessage(null);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCoverImageUrl(data.url);
+      } else {
+        setMessage({ type: 'error', text: 'خطا در آپلود تصویر.' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'خطای شبکه هنگام آپلود.' });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (published: boolean) => {
+    if (!title.trim()) {
+      setMessage({ type: 'error', text: 'عنوان مقاله نمی‌تواند خالی باشد.' });
+      return;
+    }
+    if (!content.trim() || content === '<p></p>') {
+      setMessage({ type: 'error', text: 'محتوای مقاله نمی‌تواند خالی باشد.' });
+      return;
+    }
+
     setIsLoading(published ? "publish" : "save");
     setMessage(null);
 
@@ -128,13 +171,15 @@ const WritePage = () => {
           content,
           published,
           categoryIds: categoryId ? [parseInt(categoryId)] : [],
-          tags: tags, // ارسال برچسب‌ها به API
+          tags,
+          coverImageUrl,
         }),
       });
 
       const result = await response.json();
 
       if (response.ok) {
+        clearDraft(); // پاک کردن پیش‌نویس بعد از ارسال موفق
         if (published) {
           setMessage({ type: "success", text: "مقاله شما برای بازبینی ارسال شد." });
           setTimeout(() => router.push('/profile'), 2000);
@@ -154,13 +199,12 @@ const WritePage = () => {
 
   return (
     <>
-      {/* دیالوگ بازیابی پیش‌نویس */}
       <AlertDialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>بازیابی پیش‌نویس ذخیره شده</AlertDialogTitle>
             <AlertDialogDescription>
-              به نظر می‌رسد یک پیش‌نویس ذخیره شده دارید. آیا مایل به بازیابی آن هستید؟ در غیر این صورت، پیش‌نویس فعلی حذف خواهد شد.
+              به نظر می‌رسد یک پیش‌نویس ناتمام دارید. آیا مایل به بازیابی آن هستید؟
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -169,7 +213,6 @@ const WritePage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
 
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -190,11 +233,7 @@ const WritePage = () => {
                   onClick={() => handleSubmit(false)}
                   disabled={!!isLoading || isUploading}
                 >
-                  {isLoading === "save" ? (
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="ml-2 h-4 w-4" />
-                  )}
+                  {isLoading === "save" ? (<Loader2 className="ml-2 h-4 w-4 animate-spin" />) : (<Save className="ml-2 h-4 w-4" />)}
                   ذخیره پیش‌نویس
                 </Button>
                 <Button
@@ -203,20 +242,14 @@ const WritePage = () => {
                   disabled={!!isLoading || isUploading}
                   onClick={() => handleSubmit(true)}
                 >
-                  {isLoading === "publish" ? (
-                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="ml-2 h-4 w-4" />
-                  )}
+                  {isLoading === "publish" ? (<Loader2 className="ml-2 h-4 w-4 animate-spin" />) : (<Send className="ml-2 h-4 w-4" />)}
                   ارسال برای بازبینی
                 </Button>
               </div>
             </div>
 
             {message && (
-              <div
-                className={`p-4 mb-4 text-center rounded-lg ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-              >
+              <div className={`p-4 mb-4 text-center rounded-lg ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                 {message.text}
               </div>
             )}
@@ -230,7 +263,6 @@ const WritePage = () => {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="text-2xl font-bold border-0 shadow-none p-0 h-auto placeholder:text-journal-light/50"
-                      required
                     />
                   </CardContent>
                 </Card>
@@ -238,14 +270,10 @@ const WritePage = () => {
               </div>
               <div className="space-y-6">
                 <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">تنظیمات انتشار</CardTitle>
-                  </CardHeader>
+                  <CardHeader><CardTitle className="text-lg">تنظیمات انتشار</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium text-journal mb-2 block">
-                        تصویر شاخص
-                      </label>
+                      <label className="text-sm font-medium text-journal mb-2 block">تصویر شاخص</label>
                       {coverImageUrl ? (
                         <div className="relative">
                           <Image src={coverImageUrl} alt="Cover preview" width={400} height={200} className="rounded-md w-full object-cover" />
@@ -262,26 +290,18 @@ const WritePage = () => {
                       )}
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-journal mb-2 block">
-                        دسته‌بندی
-                      </label>
+                      <label className="text-sm font-medium text-journal mb-2 block">دسته‌بندی</label>
                       <Select value={categoryId} onValueChange={setCategoryId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="انتخاب دسته‌بندی" />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="انتخاب دسته‌بندی" /></SelectTrigger>
                         <SelectContent>
                           {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={String(cat.id)}>
-                              {cat.name}
-                            </SelectItem>
+                            <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-journal mb-2 block">
-                        برچسب‌ها
-                      </label>
+                      <label className="text-sm font-medium text-journal mb-2 block">برچسب‌ها</label>
                       <TagInput tags={tags} setTags={setTags} />
                     </div>
                   </CardContent>

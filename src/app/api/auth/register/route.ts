@@ -3,6 +3,12 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { Resend } from 'resend';
+import { WelcomeEmail } from '@/emails/WelcomeEmail';
+import { SignJWT } from 'jose'; // <-- ایمپورت جدید
+import { cookies } from 'next/headers'; // <-- ایمپورت جدید
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const registerSchema = z.object({
   name: z.string().min(3, 'Name must be at least 3 characters long').optional(),
@@ -38,6 +44,33 @@ export async function POST(req: Request) {
         password: hashedPassword,
         name,
       },
+    });
+
+    // --- ارسال ایمیل خوش‌آمدگویی ---
+    try {
+      await resend.emails.send({
+        from: 'Revanic <onboarding@resend.dev>',
+        to: [user.email],
+        subject: 'به روانیک خوش آمدید!',
+        react: WelcomeEmail({ name: user.name || '' }),
+      });
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+    }
+
+    // --- لاگین خودکار کاربر ---
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const token = await new SignJWT({ userId: user.id, userEmail: user.email })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("1d") // توکن برای ۱ روز معتبر است
+      .sign(secret);
+
+    cookies().set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 60 * 60 * 24, // 1 روز
     });
 
     const { password: _, ...userWithoutPassword } = user;

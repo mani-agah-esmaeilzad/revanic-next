@@ -2,6 +2,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { Resend } from 'resend';
+import { ArticleStatusEmail } from '@/emails/ArticleStatusEmail';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const statusUpdateSchema = z.object({
     status: z.enum(['APPROVED', 'REJECTED']),
@@ -26,18 +30,36 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const updatedArticle = await prisma.article.update({
             where: { id: articleId },
             data: { status },
+            include: { author: true }, // برای دسترسی به ایمیل و نام نویسنده
         });
 
-        // --- Create Notification ---
+        // ایجاد نوتیفیکیشن در سایت
         await prisma.notification.create({
             data: {
                 type: status === 'APPROVED' ? 'ARTICLE_APPROVED' : 'ARTICLE_REJECTED',
                 message: `مقاله شما با عنوان "${updatedArticle.title}" ${status === 'APPROVED' ? 'تایید و منتشر شد' : 'رد شد'}.`,
-                userId: updatedArticle.authorId, // Notify the article author
+                userId: updatedArticle.authorId,
                 articleId: articleId,
-                // actorId is null because the admin is the actor
             }
         });
+
+        // --- ارسال ایمیل وضعیت مقاله ---
+        try {
+            await resend.emails.send({
+                from: 'Revanic <alerts@resend.dev>',
+                to: [updatedArticle.author.email],
+                subject: `وضعیت مقاله شما: ${updatedArticle.title}`,
+                react: ArticleStatusEmail({
+                    authorName: updatedArticle.author.name || '',
+                    articleTitle: updatedArticle.title,
+                    status: status,
+                    articleId: updatedArticle.id
+                }),
+            });
+        } catch (emailError) {
+            console.error("Failed to send article status email:", emailError);
+        }
+
 
         return NextResponse.json(updatedArticle);
     } catch (error) {

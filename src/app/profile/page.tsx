@@ -26,26 +26,23 @@ const ProfilePage = async () => {
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     include: {
+      subscription: true, // دریافت اطلاعات اشتراک کاربر
       articles: {
         orderBy: { createdAt: "desc" },
-        // --- FIX START ---
-        // اطلاعات کامل هر مقاله را برای تطابق با تایپ‌ها دریافت می‌کنیم
         include: {
           author: { select: { name: true } },
-          _count: { select: { likes: true, comments: true } },
+          _count: { select: { likes: true, comments: true, views: true } },
           categories: { select: { name: true } },
         },
-        // --- FIX END ---
       },
     },
   });
 
   if (!dbUser) {
-    // This could happen if the user was deleted after the token was issued
+    // اگر کاربر در دیتابیس پیدا نشد (مثلاً حذف شده باشد)
     redirect("/login");
   }
 
-  // حالا نوع داده dbUser با نوع UserData مورد انتظار در ProfileClient مطابقت دارد
   return <ProfileClient user={dbUser} />;
 };
 
