@@ -9,15 +9,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Enum حذف شد چون SQLite از آن پشتیبانی نمی‌کند
+
+// ================== MODELS ==================
+
 model User {
   id                     Int            @id @default(autoincrement())
   email                  String         @unique
   name                   String?
   password               String
   bio                    String?
-  role                   String         @default("USER")
+  role                   String         @default("USER") // 'USER' or 'ADMIN'
   articles               Article[]
-  likes                  Like[]
+  claps                  Clap[]
   comments               Comment[]
   bookmarks              Bookmark[]
   following              Follow[]       @relation("UserFollows")
@@ -27,6 +31,7 @@ model User {
   subscription           Subscription?
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
+  publications           UsersOnPublications[]
 }
 
 model Article {
@@ -34,19 +39,46 @@ model Article {
   title         String
   content       String
   coverImageUrl String?
-  status        String         @default("PENDING")
+  status        String         @default("PENDING") // 'PENDING', 'APPROVED', 'REJECTED'
   author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId      Int
   categories    Category[]     @relation("ArticleToCategory")
   tags          TagsOnArticles[]
-  likes         Like[]
+  claps         Clap[]
   comments      Comment[]
   bookmarks     Bookmark[]
   notifications Notification[]
   views         ArticleView[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  publication   Publication?   @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publicationId Int?
 }
+
+model Publication {
+  id          Int                   @id @default(autoincrement())
+  name        String                @unique
+  slug        String                @unique
+  description String?
+  avatarUrl   String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  articles    Article[]
+  members     UsersOnPublications[]
+}
+
+model UsersOnPublications {
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  publication   Publication       @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  publicationId Int
+  role          String            @default("WRITER") // <-- تغییر از PublicationRole به String
+  assignedAt    DateTime          @default(now())
+
+  @@id([userId, publicationId])
+}
+
+// ... بقیه مدل‌ها بدون هیچ تغییری باقی می‌مانند ...
 
 model ArticleView {
   id        Int      @id @default(autoincrement())
@@ -99,13 +131,17 @@ model Follow {
   @@id([followerId, followingId])
 }
 
-model Like {
+model Clap {
+  id        Int      @id @default(autoincrement())
+  count     Int      @default(1)
   userId    Int
   articleId Int
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@id([userId, articleId])
+  @@unique([userId, articleId])
 }
 
 model Bookmark {
@@ -131,9 +167,9 @@ model Comment {
 model Subscription {
   id                Int      @id @default(autoincrement())
   userId            Int      @unique
-  tier              String   // e.g., "TRIAL", "MONTHLY", "YEARLY", "STUDENT"
-  status            String   // e.g., "ACTIVE", "CANCELED", "PENDING_VERIFICATION", "REJECTED"
-  studentIdCardUrl  String?  // <-- فیلد جدید برای ذخیره آدرس کارت دانشجویی
+  tier              String
+  status            String
+  studentIdCardUrl  String?
   endDate           DateTime?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt         DateTime @default(now())

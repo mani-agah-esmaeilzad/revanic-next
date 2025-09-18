@@ -4,6 +4,13 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod'; // <-- ایمپورت Zod
+
+// تعریف اسکیمای اعتبارسنجی
+const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, { message: "رمز عبور فعلی الزامی است." }),
+  newPassword: z.string().min(6, { message: "رمز عبور جدید باید حداقل ۶ کاراکتر باشد." }),
+});
 
 export async function PUT(req: Request) {
   const cookieStore = cookies();
@@ -19,11 +26,14 @@ export async function PUT(req: Request) {
     const userId = payload.userId as number;
 
     const body = await req.json();
-    const { currentPassword, newPassword } = body;
 
-    if (!currentPassword || !newPassword) {
-      return new NextResponse('Both current and new passwords are required', { status: 400 });
+    // اعتبارسنجی داده‌های ورودی با Zod
+    const validation = passwordChangeSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json({ message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });
     }
+
+    const { currentPassword, newPassword } = validation.data;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
@@ -34,7 +44,7 @@ export async function PUT(req: Request) {
     const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
 
     if (!isPasswordValid) {
-      return new NextResponse('Invalid current password', { status: 403 });
+      return new NextResponse('رمز عبور فعلی نامعتبر است', { status: 403 });
     }
 
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
@@ -44,7 +54,7 @@ export async function PUT(req: Request) {
       data: { password: hashedNewPassword },
     });
 
-    return NextResponse.json({ message: 'Password updated successfully' });
+    return NextResponse.json({ message: 'رمز عبور با موفقیت تغییر کرد' });
 
   } catch (error) {
     console.error('PASSWORD_UPDATE_ERROR', error);

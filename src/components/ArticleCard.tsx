@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, Heart, MessageCircle } from "lucide-react";
-import Image from "next/image"; // <-- استفاده از کامپوننت Image برای بهینه‌سازی
+import { Clock, Hand, MessageCircle } from "lucide-react"; // <-- Heart به Hand تغییر کرد
+import Image from "next/image";
 
 interface ArticleCardProps {
   id: string;
@@ -15,10 +15,10 @@ interface ArticleCardProps {
   };
   readTime: number;
   publishDate: string;
-  likes: number;
+  claps: number; // <-- اصلاح شد
   comments: number;
   category: string;
-  image?: string | null; // <-- پراپرتی تصویر شاخص
+  image?: string | null;
 }
 
 const ArticleCard = ({
@@ -28,32 +28,25 @@ const ArticleCard = ({
   author,
   readTime,
   publishDate,
-  likes,
+  claps, // <-- اصلاح شد
   comments,
   category,
-  image // <-- دریافت پراپرتی تصویر
+  image
 }: ArticleCardProps) => {
   return (
     <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft">
       <CardContent className="p-0">
         <Link href={`/articles/${id}`} className="flex gap-4 p-6">
           <div className="flex-1">
-            {/* Category */}
             <div className="text-xs font-medium text-journal-orange mb-2">
               {category}
             </div>
-
-            {/* Title */}
             <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2 line-clamp-2">
               {title}
             </h3>
-
-            {/* Excerpt */}
             <p className="text-journal-light text-sm leading-relaxed mb-4 line-clamp-3">
               {excerpt}
             </p>
-
-            {/* Author & Meta */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
@@ -66,15 +59,14 @@ const ArticleCard = ({
                 <span className="text-xs text-journal-light">•</span>
                 <span className="text-xs text-journal-light">{publishDate}</span>
               </div>
-
               <div className="flex items-center gap-4 text-xs text-journal-light">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {readTime} دقیقه
                 </div>
                 <div className="flex items-center gap-1">
-                  <Heart className="h-3 w-3" />
-                  {likes}
+                  <Hand className="h-3 w-3" /> {/* <-- اصلاح شد */}
+                  {claps} {/* <-- اصلاح شد */}
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageCircle className="h-3 w-3" />
@@ -83,8 +75,6 @@ const ArticleCard = ({
               </div>
             </div>
           </div>
-
-          {/* Image */}
           {image && (
             <div className="w-28 h-28 md:w-32 md:h-32 rounded-lg overflow-hidden flex-shrink-0 relative">
               <Image

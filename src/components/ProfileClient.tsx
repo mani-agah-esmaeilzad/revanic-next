@@ -1,7 +1,7 @@
 // src/components/ProfileClient.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -14,10 +14,16 @@ import { ProfileSettings } from "./ProfileSettings";
 import { DeleteArticleButton } from "./DeleteArticleButton";
 import { Skeleton } from "./ui/skeleton";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { useQuery } from "@tanstack/react-query";
+
+// =======================================================================
+//  1. تعریف تایپ‌ها (Types)
+// =======================================================================
+// این تایپ‌ها به ما کمک می‌کنند تا ساختار داده‌هایی که از سرور دریافت می‌کنیم
+// مشخص باشد و تایپ‌اسکریپت بتواند خطاهای احتمالی را پیدا کند.
 
 type ArticleStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
-// تعریف نوع داده‌ها برای هماهنگی کامل با بک‌اند
 interface Subscription {
   tier: string;
   status: string;
@@ -31,7 +37,7 @@ interface Article {
   status: ArticleStatus;
   coverImageUrl: string | null;
   author: { name: string | null };
-  _count: { likes: number; comments: number };
+  _count: { claps: number; comments: number }; // <-- از likes به claps تغییر کرد
   categories: { name: string }[];
 }
 
@@ -48,6 +54,32 @@ interface UserData {
 interface ProfileClientProps {
   user: UserData;
 }
+
+// =======================================================================
+//  2. توابع دریافت داده (Data Fetching Functions)
+// =======================================================================
+// این توابع به صورت async تعریف شده‌اند تا بتوانیم از آن‌ها در React Query استفاده کنیم.
+
+const fetchSavedArticles = async (): Promise<Article[]> => {
+    const response = await fetch('/api/me/bookmarks');
+    if (!response.ok) {
+        throw new Error('Failed to fetch saved articles');
+    }
+    return response.json();
+};
+
+const fetchClappedArticles = async (): Promise<Article[]> => {
+    const response = await fetch('/api/me/claps'); // <-- آدرس API آپدیت شد
+    if (!response.ok) {
+        throw new Error('Failed to fetch clapped articles');
+    }
+    return response.json();
+};
+
+
+// =======================================================================
+//  3. کامپوننت‌های کوچک و کمکی (Helper Components)
+// =======================================================================
 
 const LogoutButton = () => {
   const router = useRouter();
@@ -81,7 +113,6 @@ const ArticleStatusBadge = ({ status }: { status: ArticleStatus }) => {
 
 const getSubscriptionText = (subscription: Subscription | null): string => {
   if (!subscription) return "رایگان";
-
   switch (subscription.tier) {
     case 'STUDENT':
       if (subscription.status === 'ACTIVE') return "دانشجویی";
@@ -94,46 +125,28 @@ const getSubscriptionText = (subscription: Subscription | null): string => {
   }
 };
 
+
+// =======================================================================
+//  4. کامپوننت اصلی (Main Component)
+// =======================================================================
+
 export const ProfileClient = ({ user }: ProfileClientProps) => {
   const joinDate = new Intl.DateTimeFormat("fa-IR").format(new Date(user.createdAt));
-  const [savedArticles, setSavedArticles] = useState<Article[]>([]);
-  const [likedArticles, setLikedArticles] = useState<Article[]>([]);
-  const [isLoading, setIsLoading] = useState({ saved: true, liked: true });
+  const [activeTab, setActiveTab] = useState("articles");
 
-  const fetchSavedArticles = async () => {
-    setIsLoading(prev => ({ ...prev, saved: true }));
-    try {
-      const response = await fetch('/api/me/bookmarks');
-      if (response.ok) {
-        const data = await response.json();
-        setSavedArticles(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch saved articles", error);
-    } finally {
-      setIsLoading(prev => ({ ...prev, saved: false }));
-    }
-  }
-
-  const fetchLikedArticles = async () => {
-    setIsLoading(prev => ({ ...prev, liked: true }));
-    try {
-      const response = await fetch('/api/me/likes');
-      if (response.ok) {
-        const data = await response.json();
-        setLikedArticles(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch liked articles", error);
-    } finally {
-      setIsLoading(prev => ({ ...prev, liked: false }));
-    }
-  }
-
-  const onTabChange = (value: string) => {
-    if (value === 'saved' && savedArticles.length === 0) fetchSavedArticles();
-    if (value === 'liked' && likedArticles.length === 0) fetchLikedArticles();
-  };
+  // استفاده از useQuery برای دریافت داده‌های تب "ذخیره شده"
+  const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<Article[]>({
+    queryKey: ['savedArticles'],
+    queryFn: fetchSavedArticles,
+    enabled: activeTab === 'saved', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
+  });
+  
+  // استفاده از useQuery برای دریافت داده‌های تب "تشویق شده"
+  const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<Article[]>({
+    queryKey: ['clappedArticles'],
+    queryFn: fetchClappedArticles,
+    enabled: activeTab === 'clapped', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,12 +203,12 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-journal">0</div>
-                        <div className="text-sm text-journal-light">پسند</div>
+                        <div className="text-sm text-journal-light">دنبال‌کننده</div>
                       </div>
                       <div className="text-center">
                         <div className="text-2xl font-bold text-journal">0</div>
                         <div className="text-sm text-journal-light">
-                          دنبال‌کننده
+                          دنبال‌شونده
                         </div>
                       </div>
                     </div>
@@ -205,12 +218,12 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
             </Card>
 
             {/* تب‌ها */}
-            <Tabs defaultValue="articles" className="w-full" onValueChange={onTabChange}>
+            <Tabs defaultValue="articles" className="w-full" onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-5 mb-8">
                 <TabsTrigger value="articles">مقالات من</TabsTrigger>
                 <TabsTrigger value="analytics">آمار</TabsTrigger>
                 <TabsTrigger value="saved">ذخیره شده</TabsTrigger>
-                <TabsTrigger value="liked">پسندیده</TabsTrigger>
+                <TabsTrigger value="clapped">تشویق شده</TabsTrigger>
                 <TabsTrigger value="settings">تنظیمات</TabsTrigger>
               </TabsList>
 
@@ -231,17 +244,10 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                                 title={article.title}
                                 excerpt={article.content.substring(0, 150) + "..."}
                                 image={article.coverImageUrl}
-                                author={{
-                                  name: user.name || "Unknown",
-                                  avatar: "",
-                                }}
-                                readTime={Math.ceil(
-                                  article.content.length / 1000,
-                                )}
-                                publishDate={new Intl.DateTimeFormat(
-                                  "fa-IR",
-                                ).format(new Date(article.createdAt))}
-                                likes={article._count.likes}
+                                author={{ name: user.name || "Unknown" }}
+                                readTime={Math.ceil(article.content.length / 1000)}
+                                publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
+                                claps={article._count.claps} // <-- اصلاح شد
                                 comments={article._count.comments}
                                 category={article.categories[0]?.name || "عمومی"}
                               />
@@ -268,12 +274,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                 <Card className="shadow-soft border-0">
                   <CardHeader><CardTitle>مقالات ذخیره شده</CardTitle></CardHeader>
                   <CardContent>
-                    {isLoading.saved ? (
+                    {isLoadingSaved ? (
                       <div className="space-y-4">
                         <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-24 w-full" />
                       </div>
-                    ) : savedArticles.length > 0 ? (
+                    ) : isErrorSaved ? (
+                      <p className="text-red-500">خطا در دریافت مقالات ذخیره شده.</p>
+                    ) : savedArticles && savedArticles.length > 0 ? (
                       <div className="space-y-6">
                         {savedArticles.map((article) => (
                           <ArticleCard
@@ -285,7 +293,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                             author={{ name: article.author.name || "ناشناس" }}
                             readTime={Math.ceil(article.content.length / 1000)}
                             publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
-                            likes={article._count.likes}
+                            claps={article._count.claps}
                             comments={article._count.comments}
                             category={article.categories[0]?.name || "عمومی"}
                           />
@@ -298,18 +306,20 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="liked">
+              <TabsContent value="clapped">
                 <Card className="shadow-soft border-0">
-                  <CardHeader><CardTitle>مقالات پسندیده</CardTitle></CardHeader>
+                  <CardHeader><CardTitle>مقالات تشویق شده</CardTitle></CardHeader>
                   <CardContent>
-                    {isLoading.liked ? (
+                    {isLoadingClapped ? (
                       <div className="space-y-4">
                         <Skeleton className="h-24 w-full" />
                         <Skeleton className="h-24 w-full" />
                       </div>
-                    ) : likedArticles.length > 0 ? (
+                    ) : isErrorClapped ? (
+                        <p className="text-red-500">خطا در دریافت مقالات تشویق شده.</p>
+                    ) : clappedArticles && clappedArticles.length > 0 ? (
                       <div className="space-y-6">
-                        {likedArticles.map((article) => (
+                        {clappedArticles.map((article) => (
                           <ArticleCard
                             key={article.id}
                             id={article.id.toString()}
@@ -319,14 +329,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                             author={{ name: article.author.name || "ناشناس" }}
                             readTime={Math.ceil(article.content.length / 1000)}
                             publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
-                            likes={article._count.likes}
+                            claps={article._count.claps}
                             comments={article._count.comments}
                             category={article.categories[0]?.name || "عمومی"}
                           />
                         ))}
                       </div>
                     ) : (
-                      <p>شما هنوز هیچ مقاله‌ای را نپسندیده‌اید.</p>
+                      <p>شما هنوز هیچ مقاله‌ای را تشویق نکرده‌اید.</p>
                     )}
                   </CardContent>
                 </Card>

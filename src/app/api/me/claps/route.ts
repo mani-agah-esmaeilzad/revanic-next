@@ -1,4 +1,4 @@
-// src/app/api/me/likes/route.ts
+// src/app/api/me/claps/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -15,32 +15,33 @@ export async function GET() {
     try {
         const secret = new TextEncoder().encode(process.env.JWT_SECRET);
         const { payload } = await jwtVerify(token, secret);
-
-        // --- FIX ---
         const userId = payload.userId as number;
+
         if (!userId) {
             return new NextResponse('Invalid token payload', { status: 401 });
         }
-        // --- END FIX ---
 
-        const likes = await prisma.like.findMany({
+        const claps = await prisma.clap.findMany({
             where: { userId },
             select: {
                 article: {
                     include: {
                         author: { select: { name: true } },
-                        _count: { select: { likes: true, comments: true } },
+                        _count: { select: { claps: true, comments: true } }, // <-- اصلاح شد
                         categories: { select: { name: true } },
                     },
                 },
             },
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
-        const likedArticles = likes.map(l => l.article);
+        const clappedArticles = claps.map(c => c.article);
 
-        return NextResponse.json(likedArticles);
+        return NextResponse.json(clappedArticles);
     } catch (error) {
-        console.error('GET_LIKES_ERROR', error);
+        console.error('GET_CLAPS_ERROR', error);
         return new NextResponse('Internal Server Error', { status: 500 });
     }
 }

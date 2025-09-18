@@ -8,7 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, Share2 } from "lucide-react";
-import { LikeButton } from "@/components/LikeButton";
+import { ClapButton } from "@/components/ClapButton"; // <-- کامپوننت جدید
 import { CommentsSection } from "@/components/CommentsSection";
 import { FollowButton } from "@/components/FollowButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
@@ -26,31 +26,29 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
-  // --- ثبت بازدید مقاله ---
-  // این کار را به صورت non-blocking انجام می‌دهیم تا رندر صفحه را کند نکند
   prisma.articleView.create({
-      data: {
-          articleId: articleId
-      }
-  }).catch(console.error); // در صورت بروز خطا، فقط در کنسول لاگ می‌اندازیم
+      data: { articleId: articleId }
+  }).catch(console.error);
 
-  // دریافت اطلاعات مقاله
   const article = await prisma.article.findUnique({
     where: { id: articleId, status: 'APPROVED' },
     include: {
       author: true,
-      _count: { select: { likes: true, comments: true, views: true } },
-      tags: { include: { tag: true } }, // دریافت اطلاعات برچسب‌ها
+      claps: true, // <-- دریافت اطلاعات تشویق‌ها
+      _count: { select: { comments: true, views: true } },
+      tags: { include: { tag: true } },
     },
   });
 
   if (!article) {
     notFound();
   }
+  
+  // محاسبه مجموع تشویق‌ها
+  const totalClaps = article.claps.reduce((sum, clap) => sum + clap.count, 0);
 
-  // بررسی وضعیت کاربر (لاگین کرده یا نه)
   let currentUserId: number | null = null;
-  let userLikedArticle = false;
+  let userClaps = 0;
   let userIsFollowingAuthor = false;
   let userBookmarkedArticle = false;
 
@@ -64,13 +62,13 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
       currentUserId = payload.userId as number;
 
       if (currentUserId) {
-        // چک کردن لایک، فالو و بوکمارک به صورت همزمان برای بهینه‌سازی
-        const [like, follow, bookmark] = await Promise.all([
-          prisma.like.findUnique({ where: { userId_articleId: { userId: currentUserId, articleId: article.id } } }),
+        const userClap = article.claps.find(c => c.userId === currentUserId);
+        userClaps = userClap ? userClap.count : 0;
+
+        const [follow, bookmark] = await Promise.all([
           prisma.follow.findUnique({ where: { followerId_followingId: { followerId: currentUserId, followingId: article.author.id } } }),
           prisma.bookmark.findUnique({ where: { userId_articleId: { userId: currentUserId, articleId: article.id } } })
         ]);
-        userLikedArticle = !!like;
         userIsFollowingAuthor = !!follow;
         userBookmarkedArticle = !!bookmark;
       }
@@ -86,7 +84,6 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
 
-          {/* تصویر شاخص */}
           {article.coverImageUrl && (
             <div className="relative w-full h-64 md:h-80 mb-8 rounded-lg overflow-hidden">
                 <Image
@@ -132,10 +129,10 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <LikeButton
+                <ClapButton
                   articleId={article.id}
-                  initialLikes={article._count.likes}
-                  initialLiked={userLikedArticle}
+                  initialTotalClaps={totalClaps}
+                  initialUserClaps={userClaps}
                 />
                 <Button variant="outline">
                   <Share2 className="h-5 w-5 text-journal-light" />
@@ -148,14 +145,12 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </div>
           </header>
 
-          {/* محتوای مقاله */}
           <div
             className="prose dark:prose-invert max-w-none text-journal-light mb-12"
             style={{ lineHeight: "1.8", fontSize: "1.1rem" }}
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
 
-          {/* بخش نمایش برچسب‌ها */}
           {article.tags.length > 0 && (
             <div className="mb-12">
                 <div className="flex flex-wrap gap-2">
@@ -170,7 +165,6 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </div>
           )}
 
-          {/* کارت نویسنده */}
           <Card className="my-12 shadow-soft border-0">
             <CardContent className="p-6">
               <div className="flex gap-4 items-center">
@@ -203,7 +197,6 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </CardContent>
           </Card>
 
-          {/* بخش کامنت‌ها */}
           <Card className="shadow-soft border-0">
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-6">

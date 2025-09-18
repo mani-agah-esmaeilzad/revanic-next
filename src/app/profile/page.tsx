@@ -31,7 +31,7 @@ const ProfilePage = async () => {
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { name: true } },
-          _count: { select: { likes: true, comments: true, views: true } },
+          _count: { select: { claps: true, comments: true, views: true } }, // <-- *** اصلاح نهایی انجام شد ***
           categories: { select: { name: true } },
         },
       },
