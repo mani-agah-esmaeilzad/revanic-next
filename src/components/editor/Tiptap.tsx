@@ -1,39 +1,57 @@
 // src/components/editor/Tiptap.tsx
-'use client';
-
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { Toolbar } from './Toolbar';
+"use client";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import { Toolbar } from "./Toolbar";
+import Heading from "@tiptap/extension-heading";
+import Blockquote from "@tiptap/extension-blockquote";
+import CodeBlock from "@tiptap/extension-code-block";
+import Link from "@tiptap/extension-link";
+import Image from '@tiptap/extension-image';
 
 interface TiptapProps {
-    content: string;
-    onChange: (richText: string) => void;
+  content: string;
+  onChange: (richText: string) => void;
 }
 
 const Tiptap = ({ content, onChange }: TiptapProps) => {
-    const editor = useEditor({
-        extensions: [StarterKit.configure({})],
-        content: content,
-        // --- FIX START ---
-        // This prevents the editor from rendering on the server and causing a hydration mismatch.
-        immediatelyRender: false,
-        // --- FIX END ---
-        editorProps: {
-            attributes: {
-                class: 'rounded-md border-input bg-background px-3 py-2 text-sm ring-offset-background min-h-[400px] border prose dark:prose-invert max-w-none',
-            },
-        },
-        onUpdate({ editor }) {
-            onChange(editor.getHTML());
-        },
-    });
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Heading.configure({
+        levels: [1, 2, 3],
+      }),
+      Blockquote,
+      CodeBlock,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+      }),
+      Image,
+    ],
+    content: content,
+    editorProps: {
+      attributes: {
+        class: "prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl m-5 focus:outline-none min-h-[400px] border rounded-b-md p-4",
+      },
+    },
+    onUpdate({ editor }) {
+      onChange(editor.getHTML());
+    },
+    // --- *** اصلاح اصلی برای حل خطای SSR *** ---
+    immediatelyRender: false,
+  });
 
-    return (
-        <div className="flex flex-col justify-stretch gap-2">
-            <Toolbar editor={editor} />
-            <EditorContent editor={editor} />
-        </div>
-    );
+  if (!editor) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col">
+      <Toolbar editor={editor} />
+      <EditorContent editor={editor} />
+    </div>
+  );
 };
 
 export default Tiptap;
