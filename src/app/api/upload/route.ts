@@ -1,54 +1,40 @@
-// src/app/api/upload/route.ts
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import sharp from 'sharp';
 
 export async function POST(req: Request) {
-  // 1. احراز هویت کاربر (بدون تغییر)
-  const token = cookies().get('token')?.value;
-  if (!token) {
-    return new NextResponse('Authentication token not found', { status: 401 });
-  }
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    await jwtVerify(token, secret);
-  } catch (error) {
-    return new NextResponse('Invalid token', { status: 401 });
+  const data = await req.formData();
+  const file: File | null = data.get('file') as unknown as File;
+
+  if (!file) {
+    return NextResponse.json({ success: false, error: "No file found" }, { status: 400 });
   }
 
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    if (!file) {
-      return new NextResponse('No file provided', { status: 400 });
-    }
+    // تبدیل تصویر به JPEG
+    const jpegBuffer = await sharp(buffer)
+      .jpeg({ quality: 80 })
+      .toBuffer();
 
-    // تبدیل فایل به بافر
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    // ایجاد یک نام منحصر به فرد برای فایل
-    const filename = `${Date.now()}_${file.name.replaceAll(' ', '_')}`;
-    const uploadDir = path.join(process.cwd(), 'public/uploads');
+    // نام فایل جدید
+    const originalName = file.name.split('.').slice(0, -1).join('.') || 'image';
+    const newFilename = `${Date.now()}_${originalName}.jpeg`;
 
-    // اطمینان از وجود پوشه آپلود
-    try {
-      await fs.access(uploadDir);
-    } catch (error) {
-      await fs.mkdir(uploadDir, { recursive: true });
-    }
+    const uploadsDir = join(process.cwd(), 'public/uploads');
+    await mkdir(uploadsDir, { recursive: true });
 
-    // ذخیره فایل در مسیر نهایی
-    await fs.writeFile(path.join(uploadDir, filename), buffer);
+    const filePath = join(uploadsDir, newFilename);
+    await writeFile(filePath, jpegBuffer);
 
-    // بازگرداندن آدرس عمومی فایل
-    const publicUrl = `/uploads/${filename}`;
-    
-    return NextResponse.json({ url: publicUrl });
+    const publicUrl = `/uploads/${newFilename}`;
+    return NextResponse.json({ success: true, url: publicUrl });
+
   } catch (error) {
-    console.error('File upload error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    console.error('Upload failed:', error);
+    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
   }
 }
