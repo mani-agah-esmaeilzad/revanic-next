@@ -7,13 +7,14 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ['/profile', '/write', '/admin', '/api/admin'];
+  // مسیرهای مقالات به لیست مسیرهای محافظت‌شده اضافه شد
+  const protectedRoutes = ['/profile', '/write', '/admin', '/api/admin', '/articles'];
 
   // اگر مسیر نیاز به احراز هویت دارد
   if (protectedRoutes.some(p => pathname.startsWith(p))) {
     if (!token) {
-      // اگر توکن وجود ندارد، به صفحه لاگین هدایت کن
-      return NextResponse.redirect(new URL('/login', request.url));
+      // اگر توکن وجود ندارد، به صفحه ثبت‌نام هدایت کن
+      return NextResponse.redirect(new URL('/register', request.url));
     }
 
     try {
@@ -24,8 +25,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     } catch (error) {
       console.error("JWT Verification Error in Middleware:", error);
-      // اگر توکن نامعتبر بود، آن را پاک کن و به صفحه لاگین هدایت کن
-      const response = NextResponse.redirect(new URL('/login', request.url));
+      // اگر توکن نامعتبر بود، آن را پاک کن و به صفحه ثبت‌نام هدایت کن
+      const response = NextResponse.redirect(new URL('/register', request.url));
       response.cookies.delete('token');
       return response;
     }
@@ -34,7 +35,7 @@ export async function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// matcher را آپدیت می‌کنیم تا شامل مسیرهای admin هم بشود
+// matcher را آپدیت می‌کنیم تا شامل مسیرهای مقالات هم بشود
 export const config = {
-  matcher: ['/profile/:path*', '/write/:path*', '/admin/:path*'],
+  matcher: ['/profile/:path*', '/write/:path*', '/admin/:path*', '/articles/:path*'],
 };
