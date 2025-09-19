@@ -139,7 +139,7 @@ const Index = () => {
             <h2 className="text-3xl font-bold mb-6">
               آماده‌اید داستان خود را بگویید؟
             </h2>
-            <p className="text-xl mb-8 opacity-90">
+            <p className="text-xl mb-2 opacity-90">
               به جامعه نویسندگان و خوانندگان فارسی‌زبان بپیوندید و صدای خود را به گوش جهان برسانید
             </p>
           </div>
