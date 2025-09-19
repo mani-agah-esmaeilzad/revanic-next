@@ -5,6 +5,10 @@ import { z } from 'zod';
 import { Resend } from 'resend';
 import { ArticleStatusEmail } from '@/emails/ArticleStatusEmail';
 
+// --- FIX START: Tell Next.js to treat this route as dynamic ---
+export const dynamic = 'force-dynamic';
+// --- FIX END ---
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const statusUpdateSchema = z.object({
@@ -30,10 +34,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const updatedArticle = await prisma.article.update({
             where: { id: articleId },
             data: { status },
-            include: { author: true }, // برای دسترسی به ایمیل و نام نویسنده
+            include: { author: true }, // To access author's email and name
         });
 
-        // ایجاد نوتیفیکیشن در سایت
+        // Create an in-site notification
         await prisma.notification.create({
             data: {
                 type: status === 'APPROVED' ? 'ARTICLE_APPROVED' : 'ARTICLE_REJECTED',
@@ -43,7 +47,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             }
         });
 
-        // --- ارسال ایمیل وضعیت مقاله ---
+        // --- Send article status email ---
         try {
             await resend.emails.send({
                 from: 'Revanic <alerts@resend.dev>',
