@@ -142,12 +142,6 @@ const Index = () => {
             <p className="text-xl mb-8 opacity-90">
               به جامعه نویسندگان و خوانندگان فارسی‌زبان بپیوندید و صدای خود را به گوش جهان برسانید
             </p>
-              <Link href="/register">
-                <Button size="lg" variant="secondary" className="bg-white text-journal-green hover:bg-journal-cream">
-                  <Users className="ml-2 h-5 w-5" />
-                  عضویت رایگان
-                </Button>
-              </Link>
           </div>
         </div>
       </section>
