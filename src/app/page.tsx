@@ -1,10 +1,9 @@
+// src/app/page.tsx
 import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
-
-// کامپوننت‌های Header و Footer از اینجا حذف شدند
 
 const Index = () => {
   // Sample articles data
@@ -16,7 +15,7 @@ const Index = () => {
       author: { name: "علی رضایی", avatar: "" },
       readTime: 8,
       publishDate: "۳ روز پیش",
-      likes: 124,
+      claps: 124, // <-- تغییر از likes به claps
       comments: 23,
       category: "فناوری",
       image: ""
@@ -28,7 +27,7 @@ const Index = () => {
       author: { name: "مریم احمدی", avatar: "" },
       readTime: 12,
       publishDate: "یک هفته پیش",
-      likes: 89,
+      claps: 89, // <-- تغییر از likes به claps
       comments: 15,
       category: "تاریخ",
       image: ""
@@ -40,14 +39,13 @@ const Index = () => {
       author: { name: "محمد حسینی", avatar: "" },
       readTime: 6,
       publishDate: "۲ هفته پیش",
-      likes: 67,
+      claps: 67, // <-- تغییر از likes به claps
       comments: 8,
       category: "هنر و معماری",
       image: ""
     }
   ];
 
-  // div اصلی که Header و Footer را در بر می‌گرفت حذف شد
   return (
     <>
       {/* Hero Section */}

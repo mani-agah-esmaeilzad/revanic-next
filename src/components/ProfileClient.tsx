@@ -15,41 +15,32 @@ import { DeleteArticleButton } from "./DeleteArticleButton";
 import { Skeleton } from "./ui/skeleton";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { useQuery } from "@tanstack/react-query";
+import { Prisma } from "@prisma/client";
 
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
 // =======================================================================
-// این تایپ‌ها به ما کمک می‌کنند تا ساختار داده‌هایی که از سرور دریافت می‌کنیم
-// مشخص باشد و تایپ‌اسکریپت بتواند خطاهای احتمالی را پیدا کند.
 
-type ArticleStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+// A helper type to get the full user object with relations from Prisma
+type UserPayload = Prisma.UserGetPayload<{
+  include: {
+    subscription: true,
+    articles: {
+      include: {
+        author: { select: { name: true } },
+        _count: { select: { claps: true, comments: true, views: true } },
+        categories: { select: { name: true } },
+      },
+    },
+  },
+}>;
 
-interface Subscription {
-  tier: string;
-  status: string;
-}
+// The main UserData type now uses the Prisma payload
+type UserData = UserPayload;
 
-interface Article {
-  id: number;
-  title: string;
-  content: string;
-  createdAt: Date;
-  status: ArticleStatus;
-  coverImageUrl: string | null;
-  author: { name: string | null };
-  _count: { claps: number; comments: number }; // <-- از likes به claps تغییر کرد
-  categories: { name: string }[];
-}
-
-interface UserData {
-  id: number;
-  name: string | null;
-  email: string;
-  bio: string | null;
-  articles: Article[];
-  createdAt: Date;
-  subscription: Subscription | null;
-}
+type Article = UserData['articles'][0];
+type Subscription = UserData['subscription'];
+type ArticleStatus = Article['status'];
 
 interface ProfileClientProps {
   user: UserData;
@@ -58,7 +49,6 @@ interface ProfileClientProps {
 // =======================================================================
 //  2. توابع دریافت داده (Data Fetching Functions)
 // =======================================================================
-// این توابع به صورت async تعریف شده‌اند تا بتوانیم از آن‌ها در React Query استفاده کنیم.
 
 const fetchSavedArticles = async (): Promise<Article[]> => {
     const response = await fetch('/api/me/bookmarks');
@@ -69,7 +59,7 @@ const fetchSavedArticles = async (): Promise<Article[]> => {
 };
 
 const fetchClappedArticles = async (): Promise<Article[]> => {
-    const response = await fetch('/api/me/claps'); // <-- آدرس API آپدیت شد
+    const response = await fetch('/api/me/claps');
     if (!response.ok) {
         throw new Error('Failed to fetch clapped articles');
     }
@@ -247,13 +237,13 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                                 author={{ name: user.name || "Unknown" }}
                                 readTime={Math.ceil(article.content.length / 1000)}
                                 publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
-                                claps={article._count.claps} // <-- اصلاح شد
+                                claps={article._count.claps}
                                 comments={article._count.comments}
                                 category={article.categories[0]?.name || "عمومی"}
                               />
                             </div>
                             <div className="flex flex-col items-center gap-2">
-                              <ArticleStatusBadge status={article.status} />
+                              <ArticleStatusBadge status={article.status as ArticleStatus} />
                               <DeleteArticleButton articleId={article.id} />
                             </div>
                           </div>

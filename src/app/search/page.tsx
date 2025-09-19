@@ -30,7 +30,7 @@ interface FetchedArticle {
   coverImageUrl: string | null;
   author: { name: string | null };
   createdAt: string;
-  _count: { likes: number; comments: number };
+  _count: { claps: number; comments: number }; // <-- اصلاح شد: از likes به claps
   categories: { name: string }[];
 }
 
@@ -97,7 +97,6 @@ const SearchPage = () => {
         setHasSearched(true);
         const params = new URLSearchParams();
         if (query) params.append('q', query);
-        // --- FIX: Check for 'all' before appending ---
         if (selectedAuthor && selectedAuthor !== 'all') params.append('authorId', selectedAuthor);
         if (selectedCategory && selectedCategory !== 'all') params.append('categoryId', selectedCategory);
         params.append('page', String(page));
@@ -141,7 +140,6 @@ const SearchPage = () => {
                                     <Select value={selectedAuthor} onValueChange={setSelectedAuthor}>
                                         <SelectTrigger><SelectValue placeholder="همه" /></SelectTrigger>
                                         <SelectContent>
-                                            {/* --- FIX: Use 'all' as value --- */}
                                             <SelectItem value="all">همه</SelectItem>
                                             {authors.map(author => author.name && <SelectItem key={author.id} value={String(author.id)}>{author.name}</SelectItem>)}
                                         </SelectContent>
@@ -152,7 +150,6 @@ const SearchPage = () => {
                                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                         <SelectTrigger><SelectValue placeholder="همه" /></SelectTrigger>
                                         <SelectContent>
-                                            {/* --- FIX: Use 'all' as value --- */}
                                             <SelectItem value="all">همه</SelectItem>
                                             {categories.map(cat => <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>)}
                                         </SelectContent>
@@ -183,7 +180,19 @@ const SearchPage = () => {
                                 <h2 className="text-2xl font-bold text-journal mb-6">نتایج جستجو</h2>
                                 <div className="space-y-6">
                                     {results.map(article => (
-                                        <ArticleCard key={article.id} id={String(article.id)} title={article.title} excerpt={article.content.substring(0,150) + "..."} author={article.author} readTime={5} publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(article.createdAt))} likes={article._count.likes} comments={article._count.comments} category={article.categories[0]?.name || ''} image={article.coverImageUrl} />
+                                        <ArticleCard
+                                            key={article.id}
+                                            id={String(article.id)}
+                                            title={article.title}
+                                            excerpt={article.content.substring(0,150) + "..."}
+                                            author={{ name: article.author.name || "ناشناس" }} // <-- اصلاح شد
+                                            readTime={5}
+                                            publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(article.createdAt))}
+                                            claps={article._count.claps} // <-- اصلاح شد
+                                            comments={article._count.comments}
+                                            category={article.categories[0]?.name || ''}
+                                            image={article.coverImageUrl}
+                                        />
                                     ))}
                                 </div>
                                 {pagination && pagination.totalPages > 1 && (
