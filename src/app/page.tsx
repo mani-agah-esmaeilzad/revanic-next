@@ -136,12 +136,18 @@ const Index = () => {
       <section className="py-20 bg-gradient-hero">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto text-white">
-            <h2 className="text-3xl font-bold mb-6">
+            <h2 className="text-3xl font-bold mb-6 text-journal">
               آماده‌اید داستان خود را بگویید؟
             </h2>
-            <p className="text-xl mb-2 opacity-90">
+            <p className="text-xl mb-8 opacity-90 text-journal">
               به جامعه نویسندگان و خوانندگان فارسی‌زبان بپیوندید و صدای خود را به گوش جهان برسانید
             </p>
+              <Link href="/register">
+                <Button size="lg" variant="secondary" className="bg-white text-journal-green hover:bg-journal-cream">
+                  <Users className="ml-2 h-5 w-5" />
+                  عضویت رایگان
+                </Button>
+              </Link>
           </div>
         </div>
       </section>
