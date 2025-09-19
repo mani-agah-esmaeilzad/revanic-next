@@ -98,7 +98,7 @@ const TagPage = () => {
                                             author={{ name: article.author.name || "ناشناس" }}
                                             readTime={Math.ceil(article.content.length / 1000)}
                                             publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
-                                            likes={article._count.likes}
+                                            claps={article._count.likes}
                                             comments={article._count.comments}
                                             category={article.categories[0]?.name || "عمومی"}
                                             image={article.coverImageUrl}

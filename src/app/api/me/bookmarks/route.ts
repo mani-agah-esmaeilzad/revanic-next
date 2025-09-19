@@ -29,7 +29,7 @@ export async function GET() {
                 article: {
                     include: {
                         author: { select: { name: true } },
-                        _count: { select: { likes: true, comments: true } },
+                        _count: { select: { claps: true, comments: true } },
                         categories: { select: { name: true } },
                     },
                 },

@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
             take: limit,
             include: {
                 author: { select: { name: true } },
-                _count: { select: { likes: true, comments: true } },
+                _count: { select: { claps: true, comments: true } },
                 categories: { select: { name: true } },
             },
             orderBy: {

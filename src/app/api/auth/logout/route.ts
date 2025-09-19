@@ -3,12 +3,11 @@ import { cookies } from 'next/headers';
 
 export async function POST() {
   try {
-    // Clear the token cookie
     cookies().set('token', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      maxAge: -1, // Expire the cookie immediately
+      maxAge: -1, 
     });
 
     return NextResponse.json({ message: 'Logged out successfully' });

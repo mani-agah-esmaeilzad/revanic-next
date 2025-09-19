@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
+import { jwtVerify, JWTPayload } from "jose";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import ArticleCard from "@/components/ArticleCard";
+import ArticleCard from "@/components/ArticleCard"; // *** اصلاح شد: ایمپورت به صورت default ***
 import { FollowButton } from "@/components/FollowButton";
+import Link from "next/link";
 
-interface JwtPayload {
+// تعریف تایپ صحیح برای payload توکن
+interface JwtPayload extends JWTPayload {
   userId: number;
 }
 
@@ -22,10 +24,11 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     where: { id: authorId },
     include: {
       articles: {
-        where: { published: true },
+        where: { status: 'APPROVED' }, // *** اصلاح شد: استفاده از status ***
         orderBy: { createdAt: 'desc' },
         include: {
-          _count: { select: { likes: true, comments: true } },
+          author: { select: { name: true } }, // اضافه شد تا ArticleCard نویسنده را داشته باشد
+          _count: { select: { claps: true, comments: true } },
           categories: { select: { name: true } }
         }
       },
@@ -47,7 +50,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
-      currentUserId = (payload as JwtPayload).userId;
+      currentUserId = (payload as JwtPayload).userId; // *** اصلاح شد: استفاده از تایپ صحیح ***
 
       if (currentUserId) {
         const follow = await prisma.follow.findUnique({
@@ -67,28 +70,29 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
       <div className="py-8">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <Card className="mb-8 shadow-soft border-0">
+            <Card className="mb-8 shadow-sm border">
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row items-center gap-6">
-                  <Avatar className="h-32 w-32 mb-4 md:mb-0">
+                  <Avatar className="h-32 w-32 mb-4 md:mb-0 border">
                     <AvatarImage src={undefined} />
-                    <AvatarFallback className="bg-journal-green text-white font-bold text-4xl">
+                    <AvatarFallback className="bg-muted text-muted-foreground font-bold text-4xl">
                       {author.name?.charAt(0) || 'A'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-center md:text-right">
-                    <h1 className="text-3xl font-bold text-journal mb-2">{author.name}</h1>
-                    <div className="flex justify-center md:justify-start gap-6 text-journal-light mb-4">
+                    <h1 className="text-3xl font-bold text-foreground mb-2">{author.name}</h1>
+                    <p className="text-muted-foreground mb-4">{author.bio}</p>
+                    <div className="flex justify-center md:justify-start gap-6 text-muted-foreground mb-4">
                       <div className="text-center">
-                        <div className="font-bold text-lg text-journal">{author.articles.length}</div>
+                        <div className="font-bold text-lg text-foreground">{author.articles.length}</div>
                         <div>مقاله</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-lg text-journal">{author._count.followers}</div>
+                        <div className="font-bold text-lg text-foreground">{author._count.followers}</div>
                         <div>دنبال‌کننده</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-bold text-lg text-journal">{author._count.following}</div>
+                        <div className="font-bold text-lg text-foreground">{author._count.following}</div>
                         <div>دنبال‌شونده</div>
                       </div>
                     </div>
@@ -100,25 +104,26 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
               </CardContent>
             </Card>
 
-            <h2 className="text-2xl font-bold text-journal mb-6">مقالات منتشر شده توسط {author.name}</h2>
-            <div className="grid grid-cols-1 gap-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">مقالات منتشر شده توسط {author.name}</h2>
+            <div className="space-y-6">
               {author.articles.length > 0 ? (
                 author.articles.map((article) => (
                   <ArticleCard
                     key={article.id}
                     id={article.id.toString()}
                     title={article.title}
-                    excerpt={article.content.substring(0, 200) + '...'}
-                    author={{ name: author.name || 'ناشناس' }}
+                    excerpt={article.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
+                    author={{ name: article.author.name || 'ناشناس' }}
                     readTime={Math.ceil(article.content.length / 1000)}
                     publishDate={new Intl.DateTimeFormat('fa-IR').format(article.createdAt)}
-                    likes={article._count.likes}
+                    claps={article._count.claps} // *** اصلاح شد: استفاده از claps به جای likes ***
                     comments={article._count.comments}
                     category={article.categories[0]?.name || 'عمومی'}
+                    image={article.coverImageUrl}
                   />
                 ))
               ) : (
-                <p className="text-center text-journal-light py-8">این نویسنده هنوز مقاله‌ای منتشر نکرده است.</p>
+                <p className="text-center text-muted-foreground py-8">این نویسنده هنوز مقاله‌ای منتشر نکرده است.</p>
               )}
             </div>
           </div>

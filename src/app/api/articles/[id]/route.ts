@@ -96,7 +96,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       // --- FIX START: Use a transaction to delete dependencies first ---
       await prisma.$transaction(async (tx) => {
         // حذف تمام رکوردهای وابسته
-        await tx.like.deleteMany({ where: { articleId } });
+        await tx.clap.deleteMany({ where: { articleId } });
         await tx.comment.deleteMany({ where: { articleId } });
         await tx.bookmark.deleteMany({ where: { articleId } });
         await tx.tagsOnArticles.deleteMany({ where: { articleId } });

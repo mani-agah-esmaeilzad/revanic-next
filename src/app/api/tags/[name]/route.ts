@@ -1,64 +1,59 @@
-// src/app/api/tags/[name]/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(req: NextRequest, { params }: { params: { name: string } }) {
+export async function GET(
+    req: NextRequest,
+    { params }: { params: { name: string } }
+) {
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const skip = (page - 1) * limit;
+
     try {
         const tagName = decodeURIComponent(params.name);
-        const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get("page") || "1", 10);
-        const limit = parseInt(searchParams.get("limit") || "10", 10);
-        const skip = (page - 1) * limit;
 
-        const tag = await prisma.tag.findUnique({
-            where: { name: tagName },
-            include: {
-                articles: {
-                    skip,
-                    take: limit,
-                    where: { article: { status: 'APPROVED' } },
-                    include: {
-                        article: {
-                            include: {
-                                author: { select: { name: true } },
-                                _count: { select: { likes: true, comments: true } },
-                                categories: { select: { name: true } },
-                            },
-                        },
-                    },
-                    orderBy: {
-                        article: {
-                            createdAt: 'desc',
-                        },
+        // *** کوئری اصلاح‌شده ***
+        // ما مقالاتی را پیدا می‌کنیم که حداقل یکی از تگ‌هایشان
+        // نامی برابر با tagName داشته باشد.
+        const whereClause = {
+            tags: {
+                some: {
+                    tag: {
+                        name: tagName,
                     },
                 },
             },
+            status: 'APPROVED',
+        };
+
+        const articles = await prisma.article.findMany({
+            where: whereClause,
+            include: {
+                author: { select: { name: true } },
+                _count: { select: { claps: true, comments: true } },
+                categories: { select: { name: true } },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+            skip,
+            take: limit,
         });
-
-        if (!tag) {
-            return new NextResponse('Tag not found', { status: 404 });
-        }
-
-        const articles = tag.articles.map(a => a.article);
-
-        const totalArticles = await prisma.tagsOnArticles.count({
-            where: { tagName: tagName, article: { status: 'APPROVED' } }
-        });
+        
+        const totalArticles = await prisma.article.count({ where: whereClause });
         const totalPages = Math.ceil(totalArticles / limit);
 
         return NextResponse.json({
-            tag,
             articles,
             pagination: {
                 page,
-                limit,
-                totalArticles,
-                totalPages
+                totalPages,
             }
         });
 
     } catch (error) {
-        console.error(`GET_TAG_ARTICLES_ERROR`, error);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        console.error("GET_ARTICLES_BY_TAG_ERROR", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
     }
 }

@@ -145,7 +145,6 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
                   initialUserClaps={userClaps}
                 />
                 <ShareButton
-                  articleId={article.id}
                   title={article.title}
                   url={articleUrl}
                 />
