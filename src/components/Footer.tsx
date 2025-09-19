@@ -60,7 +60,7 @@ const Footer = () => {
         <hr className="my-8 border-border" />
         
         <div className="text-center text-journal-light">
-          <p>© ۱۴۰۳ مجله روانیک. تمامی حقوق محفوظ است.</p>
+          <p>© 1404 مجله روانیک. تمامی حقوق محفوظ است.</p>
         </div>
       </div>
     </footer>
