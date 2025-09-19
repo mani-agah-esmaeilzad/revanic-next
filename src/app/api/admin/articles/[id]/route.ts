@@ -5,9 +5,8 @@ import { z } from 'zod';
 import { Resend } from 'resend';
 import { ArticleStatusEmail } from '@/emails/ArticleStatusEmail';
 
-// --- FIX START: Tell Next.js to treat this route as dynamic ---
+// Add this line to force dynamic rendering
 export const dynamic = 'force-dynamic';
-// --- FIX END ---
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -34,10 +33,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const updatedArticle = await prisma.article.update({
             where: { id: articleId },
             data: { status },
-            include: { author: true }, // To access author's email and name
+            include: { author: true }, // for author email and name
         });
 
-        // Create an in-site notification
+        // Create in-site notification
         await prisma.notification.create({
             data: {
                 type: status === 'APPROVED' ? 'ARTICLE_APPROVED' : 'ARTICLE_REJECTED',
@@ -63,7 +62,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         } catch (emailError) {
             console.error("Failed to send article status email:", emailError);
         }
-
 
         return NextResponse.json(updatedArticle);
     } catch (error) {

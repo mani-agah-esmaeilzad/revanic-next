@@ -5,6 +5,11 @@ import { z } from 'zod';
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 
+export const dynamic = 'force-dynamic';
+
+interface JwtPayload {
+  userId: number;
+}
 // --- Final Corrected Zod Schema ---
 // This schema is now more flexible and correctly handles optional/nullable fields.
 const articleSchema = z.object({
