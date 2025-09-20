@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import { prisma } from '@/lib/prisma';
 
 export const config = {
   matcher: [
@@ -10,52 +9,28 @@ export const config = {
     '/admin/:path*', 
     '/api/admin/:path*'
   ],
-  runtime: 'nodejs',
 };
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
-  const { pathname } = request.nextUrl;
 
-  const protectedRoutes = ['/profile', '/write', '/admin', '/api/admin'];
-  const isProtectedRoute = protectedRoutes.some(p => pathname.startsWith(p));
-
-  if (isProtectedRoute) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-      if (!secret) {
-        throw new Error('JWT_SECRET is not set in environment variables.');
-      }
-
-      const { payload } = await jwtVerify(token, secret);
-
-      const userId = payload.userId;
-      if (typeof userId !== 'number') {
-        throw new Error('Invalid token: userId is missing or not a number');
-      }
-      
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        throw new Error('User not found in database');
-      }
-
-      return NextResponse.next();
-
-    } catch (error) {
-      console.error("Middleware Auth Error:", error);
-      const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('token');
-      return response;
-    }
+  if (!token) {
+    return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  return NextResponse.next();
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    if (!secret) {
+        throw new Error('JWT_SECRET is not set in environment variables.');
+    }
+
+    await jwtVerify(token, secret);
+    return NextResponse.next();
+
+  } catch (error) {
+    console.error("Middleware Auth Error:", error);
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    response.cookies.delete('token');
+    return response;
+  }
 }
