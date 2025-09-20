@@ -1,15 +1,18 @@
-// src/middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+
+export const config = {
+  matcher: ['/profile/:path*', '/write/:path*', '/admin/:path*', '/api/admin/:path*'],
+  runtime: 'nodejs',
+};
 
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
   const protectedRoutes = ['/profile', '/write', '/admin', '/api/admin'];
-
   const isProtectedRoute = protectedRoutes.some(p => pathname.startsWith(p));
 
   if (isProtectedRoute) {
@@ -21,13 +24,11 @@ export async function middleware(request: NextRequest) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
 
-      // *** اصلاح کلیدی: بررسی نوع و وجود userId ***
       const userId = payload.userId;
       if (typeof userId !== 'number') {
         throw new Error('Invalid token payload: userId is missing or not a number');
       }
 
-      // بررسی وجود کاربر در دیتابیس
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true },
@@ -49,7 +50,3 @@ export async function middleware(request: NextRequest) {
 
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: ['/profile/:path*', '/write/:path*', '/admin/:path*', '/api/admin/:path*'],
-};
