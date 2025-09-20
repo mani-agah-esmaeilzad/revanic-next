@@ -10,9 +10,9 @@ const Logo = ({ size = "md", className }: LogoProps) => {
     sm: "h-6",
     md: "h-8",
     lg: "h-12",
-    xl: "h-20", 
-    "2xl": "h-24", 
-    "3xl": "h-32", 
+    xl: "h-20", // Increased from h-16 for a larger default "xl" size
+    "2xl": "h-24", // Increased from h-20
+    "3xl": "h-32", // New even larger size
   };
 
   return (

@@ -1,4 +1,4 @@
-
+// src/components/AdminSubscriptionsTab.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import {
@@ -55,7 +55,7 @@ export const AdminSubscriptionsTab = () => {
                 body: JSON.stringify({ subscriptionId, status }),
             });
             if (response.ok) {
-                fetchRequests(); 
+                fetchRequests(); // Refresh the list
             } else {
                 alert('خطا در به‌روزرسانی وضعیت.');
             }

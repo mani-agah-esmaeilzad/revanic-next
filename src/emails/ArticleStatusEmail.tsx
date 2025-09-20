@@ -1,4 +1,4 @@
-
+// src/emails/ArticleStatusEmail.tsx
 import * as React from 'react';
 import { Html, Button, Heading, Text, Hr } from '@react-email/components';
 

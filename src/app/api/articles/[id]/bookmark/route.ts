@@ -1,4 +1,4 @@
-
+// src/app/api/articles/[id]/bookmark/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     if (existingBookmark) {
-      
+      // Already bookmarked, so remove it
       await prisma.bookmark.delete({
         where: {
           userId_articleId: {
@@ -43,7 +43,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       });
       return NextResponse.json({ bookmarked: false });
     } else {
-      
+      // Not bookmarked, so add it
       await prisma.bookmark.create({
         data: {
           userId,

@@ -1,16 +1,16 @@
-
+// src/app/api/articles/[id]/comments/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-import { z } from 'zod'; 
+import { z } from 'zod'; // <-- ایمپورت Zod
 
-
+// تعریف اسکیمای اعتبارسنجی
 const commentSchema = z.object({
   text: z.string().min(1, { message: "متن نظر نمی‌تواند خالی باشد." }).max(1000, { message: "متن نظر نمی‌تواند بیشتر از ۱۰۰۰ کاراکتر باشد." }),
 });
 
-
+// POST a new comment
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies();
   const token = cookieStore.get('token')?.value;
@@ -40,7 +40,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const body = await req.json();
 
-    
+    // اعتبارسنجی داده‌های ورودی با Zod
     const validation = commentSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });
@@ -64,14 +64,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       }
     });
 
-    
+    // --- Create Notification ---
     if (userId !== article.authorId) {
       const commenter = newComment.user;
       await prisma.notification.create({
         data: {
           type: 'COMMENT',
           message: `${commenter.name || 'یک کاربر'} برای مقاله شما نظری ثبت کرد.`,
-          userId: article.authorId, 
+          userId: article.authorId, // Notify the article author
           actorId: userId,
           articleId: articleId,
         }
@@ -86,7 +86,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 }
 
-
+// GET all comments for an article
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const articleId = parseInt(params.id, 10);

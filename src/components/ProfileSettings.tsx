@@ -20,13 +20,13 @@ interface ProfileSettingsProps {
 }
 
 export const ProfileSettings = ({ user }: ProfileSettingsProps) => {
-  
+  // State for personal info form
   const [name, setName] = useState(user.name || '');
   const [bio, setBio] = useState(user.bio || '');
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoMessage, setInfoMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
 
-  
+  // State for password form
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

@@ -1,10 +1,10 @@
-
+// src/app/api/me/publications/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 
-
+// GET: دریافت لیست انتشاراتی که کاربر عضو آنهاست
 export async function GET() {
     const token = cookies().get('token')?.value;
     if (!token) {
@@ -19,7 +19,7 @@ export async function GET() {
         const userPublications = await prisma.usersOnPublications.findMany({
             where: { userId },
             include: {
-                publication: true, 
+                publication: true, // شامل اطلاعات کامل انتشارات
             },
         });
 

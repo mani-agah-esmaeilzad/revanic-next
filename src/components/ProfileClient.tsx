@@ -1,4 +1,4 @@
-
+// src/components/ProfileClient.tsx
 "use client";
 
 import { useState } from "react";
@@ -17,11 +17,11 @@ import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { useQuery } from "@tanstack/react-query";
 import { Prisma } from "@prisma/client";
 
+// =======================================================================
+//  1. تعریف تایپ‌ها (Types)
+// =======================================================================
 
-
-
-
-
+// A helper type to get the full user object with relations from Prisma
 type UserPayload = Prisma.UserGetPayload<{
   include: {
     subscription: true,
@@ -35,7 +35,7 @@ type UserPayload = Prisma.UserGetPayload<{
   },
 }>;
 
-
+// The main UserData type now uses the Prisma payload
 type UserData = UserPayload;
 
 type Article = UserData['articles'][0];
@@ -46,9 +46,9 @@ interface ProfileClientProps {
   user: UserData;
 }
 
-
-
-
+// =======================================================================
+//  2. توابع دریافت داده (Data Fetching Functions)
+// =======================================================================
 
 const fetchSavedArticles = async (): Promise<Article[]> => {
   const response = await fetch('/api/me/bookmarks');
@@ -67,9 +67,9 @@ const fetchClappedArticles = async (): Promise<Article[]> => {
 };
 
 
-
-
-
+// =======================================================================
+//  3. کامپوننت‌های کوچک و کمکی (Helper Components)
+// =======================================================================
 
 const LogoutButton = () => {
   const router = useRouter();
@@ -116,26 +116,26 @@ const getSubscriptionText = (subscription: Subscription | null): string => {
 };
 
 
-
-
-
+// =======================================================================
+//  4. کامپوننت اصلی (Main Component)
+// =======================================================================
 
 export const ProfileClient = ({ user }: ProfileClientProps) => {
   const joinDate = new Intl.DateTimeFormat("fa-IR").format(new Date(user.createdAt));
   const [activeTab, setActiveTab] = useState("articles");
 
-  
+  // استفاده از useQuery برای دریافت داده‌های تب "ذخیره شده"
   const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<Article[]>({
     queryKey: ['savedArticles'],
     queryFn: fetchSavedArticles,
-    enabled: activeTab === 'saved', 
+    enabled: activeTab === 'saved', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
   });
 
-  
+  // استفاده از useQuery برای دریافت داده‌های تب "تشویق شده"
   const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<Article[]>({
     queryKey: ['clappedArticles'],
     queryFn: fetchClappedArticles,
-    enabled: activeTab === 'clapped', 
+    enabled: activeTab === 'clapped', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
   });
 
   return (
@@ -143,7 +143,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
       <div className="py-8">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            {}
+            {/* هدر پروفایل */}
             <Card className="mb-8 shadow-soft border-0">
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row gap-6">
@@ -207,7 +207,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
               </CardContent>
             </Card>
 
-            {}
+            {/* تب‌ها */}
             <Tabs defaultValue="articles" className="w-full" onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-5 mb-8">
                 <TabsTrigger value="articles">مقالات من</TabsTrigger>

@@ -1,4 +1,4 @@
-
+// src/app/api/search/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
 
     if (query) {
         where.OR = [
-            { title: { contains: query } }, 
-            { content: { contains: query } }, 
+            { title: { contains: query } }, // <-- FIX: 'mode' removed
+            { content: { contains: query } }, // <-- FIX: 'mode' removed
         ];
     }
 

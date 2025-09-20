@@ -1,4 +1,4 @@
-
+// src/app/api/subscribe/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 const subscribeSchema = z.object({
   tier: z.enum(['TRIAL', 'MONTHLY', 'YEARLY', 'STUDENT']),
-  studentIdCardUrl: z.string().url().optional().nullable(), 
+  studentIdCardUrl: z.string().url().optional().nullable(), // <-- ورودی جدید
 });
 
 export async function POST(req: Request) {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
         break;
       case 'STUDENT':
         status = 'PENDING_VERIFICATION';
-        endDate = null; 
+        endDate = null; // تاریخ انقضا بعد از تایید مشخص می‌شود
         if (!studentIdCardUrl) {
             return new NextResponse('Student ID card URL is required for student plan', { status: 400 });
         }

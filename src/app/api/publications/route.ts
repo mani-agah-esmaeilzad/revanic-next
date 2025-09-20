@@ -1,17 +1,17 @@
-
+// src/app/api/publications/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-
+// اسکیمای اعتبارسنجی برای ایجاد یک انتشارات جدید
 const createPublicationSchema = z.object({
     name: z.string().min(3, 'نام انتشارات باید حداقل ۳ کاراکتر باشد.').max(100),
     description: z.string().max(500, 'توضیحات نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.').optional(),
 });
 
-
+// GET: دریافت لیست تمام انتشارات
 export async function GET() {
     try {
         const publications = await prisma.publication.findMany({
@@ -32,7 +32,7 @@ export async function GET() {
 }
 
 
-
+// POST: ایجاد یک انتشارات جدید
 export async function POST(req: Request) {
     const token = cookies().get('token')?.value;
     if (!token) {
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
         const { name, description } = validation.data;
 
-        
+        // ایجاد یک slug منحصر به فرد و خوانا برای URL
         const slug = name.trim().replace(/\s+/g, '-').toLowerCase();
 
         const existingPublication = await prisma.publication.findFirst({
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
                 members: {
                     create: {
                         userId: userId,
-                        role: 'OWNER', 
+                        role: 'OWNER', // کاربری که انتشارات را می‌سازد، مالک آن است
                     },
                 },
             },

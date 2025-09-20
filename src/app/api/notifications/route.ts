@@ -1,10 +1,10 @@
-
+// src/app/api/notifications/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 
-
+// GET: دریافت تمام نوتیفیکیشن‌های کاربر
 export async function GET() {
     const token = cookies().get('token')?.value;
     if (!token) {
@@ -22,10 +22,10 @@ export async function GET() {
         const notifications = await prisma.notification.findMany({
             where: { userId },
             include: {
-                actor: { select: { id: true, name: true } } 
+                actor: { select: { id: true, name: true } } // اطلاعات کاربری که رویداد را ایجاد کرده
             },
             orderBy: { createdAt: 'desc' },
-            take: 20, 
+            take: 20, // دریافت ۲۰ نوتیفیکیشن آخر
         });
 
         const unreadCount = await prisma.notification.count({
@@ -39,7 +39,7 @@ export async function GET() {
     }
 }
 
-
+// PATCH: خوانده شده کردن تمام نوتیفیکیشن‌های خوانده نشده
 export async function PATCH() {
     const token = cookies().get('token')?.value;
     if (!token) {

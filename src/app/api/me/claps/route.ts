@@ -1,4 +1,4 @@
-
+// src/app/api/me/claps/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -27,7 +27,7 @@ export async function GET() {
                 article: {
                     include: {
                         author: { select: { name: true } },
-                        _count: { select: { claps: true, comments: true } }, 
+                        _count: { select: { claps: true, comments: true } }, // <-- اصلاح شد
                         categories: { select: { name: true } },
                     },
                 },

@@ -4,11 +4,11 @@ import { cookies } from "next/headers";
 import { jwtVerify, JWTPayload } from "jose";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import ArticleCard from "@/components/ArticleCard"; 
+import ArticleCard from "@/components/ArticleCard"; // *** اصلاح شد: ایمپورت به صورت default ***
 import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
 
-
+// تعریف تایپ صحیح برای payload توکن
 interface JwtPayload extends JWTPayload {
   userId: number;
 }
@@ -24,10 +24,10 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     where: { id: authorId },
     include: {
       articles: {
-        where: { status: 'APPROVED' }, 
+        where: { status: 'APPROVED' }, // *** اصلاح شد: استفاده از status ***
         orderBy: { createdAt: 'desc' },
         include: {
-          author: { select: { name: true } }, 
+          author: { select: { name: true } }, // اضافه شد تا ArticleCard نویسنده را داشته باشد
           _count: { select: { claps: true, comments: true } },
           categories: { select: { name: true } }
         }
@@ -50,7 +50,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
-      currentUserId = (payload as JwtPayload).userId; 
+      currentUserId = (payload as JwtPayload).userId; // *** اصلاح شد: استفاده از تایپ صحیح ***
 
       if (currentUserId) {
         const follow = await prisma.follow.findUnique({
@@ -116,7 +116,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                     author={{ name: article.author.name || 'ناشناس' }}
                     readTime={Math.ceil(article.content.length / 1000)}
                     publishDate={new Intl.DateTimeFormat('fa-IR').format(article.createdAt)}
-                    claps={article._count.claps} 
+                    claps={article._count.claps} // *** اصلاح شد: استفاده از claps به جای likes ***
                     comments={article._count.comments}
                     category={article.categories[0]?.name || 'عمومی'}
                     image={article.coverImageUrl}

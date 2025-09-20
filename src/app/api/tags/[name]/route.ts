@@ -13,9 +13,9 @@ export async function GET(
     try {
         const tagName = decodeURIComponent(params.name);
 
-        
-        
-        
+        // *** کوئری اصلاح‌شده ***
+        // ما مقالاتی را پیدا می‌کنیم که حداقل یکی از تگ‌هایشان
+        // نامی برابر با tagName داشته باشد.
         const whereClause = {
             tags: {
                 some: {

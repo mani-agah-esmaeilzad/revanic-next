@@ -1,11 +1,11 @@
-
+// src/app/publications/[slug]/page.tsx
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, FileText } from 'lucide-react';
 import ArticleCard from '@/components/ArticleCard';
 
-
+// این تابع برای تولید متادیتای صفحه (عنوان و توضیحات) استفاده می‌شود
 export async function generateMetadata({ params }: { params: { slug: string } }) {
     const publication = await prisma.publication.findUnique({
         where: { slug: params.slug },
@@ -43,12 +43,12 @@ const PublicationProfilePage = async ({ params }: { params: { slug: string } }) 
     });
 
     if (!publication) {
-        notFound(); 
+        notFound(); // اگر انتشارات پیدا نشد، صفحه 404 نمایش داده می‌شود
     }
 
     return (
         <div className="min-h-screen bg-background">
-            {}
+            {/* هدر صفحه پروفایل */}
             <section className="py-20 bg-muted/30 border-b">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto flex flex-col items-center text-center gap-4">
@@ -78,7 +78,7 @@ const PublicationProfilePage = async ({ params }: { params: { slug: string } }) 
                 </div>
             </section>
 
-            {}
+            {/* لیست مقالات */}
             <section className="py-12">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto">

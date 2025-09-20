@@ -1,4 +1,4 @@
-
+// src/app/api/users/[id]/follow/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -40,13 +40,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         data: { followerId, followingId },
       });
 
-      
+      // --- Create Notification ---
       const follower = await prisma.user.findUnique({ where: { id: followerId }, select: { name: true } });
       await prisma.notification.create({
         data: {
           type: 'FOLLOW',
           message: `${follower?.name || 'یک کاربر جدید'} شما را دنبال کرد.`,
-          userId: followingId, 
+          userId: followingId, // Notify the user who is being followed
           actorId: followerId,
         }
       });

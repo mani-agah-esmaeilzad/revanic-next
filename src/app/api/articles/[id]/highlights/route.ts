@@ -1,17 +1,17 @@
-
+// src/app/api/articles/[id]/highlights/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
-
+// اسکیمای اعتبارسنجی برای داده‌های ورودی
 const highlightSchema = z.object({
   text: z.string().min(1),
   domId: z.string().uuid(),
 });
 
-
+// GET: دریافت لیست هایلایت‌های یک مقاله
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const articleId = parseInt(params.id, 10);
@@ -22,7 +22,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     const highlights = await prisma.highlight.findMany({
       where: { articleId },
       include: {
-        user: { select: { id: true, name: true } }, 
+        user: { select: { id: true, name: true } }, // اطلاعات کاربری که هایلایت کرده
       },
     });
 
@@ -33,7 +33,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-
+// POST: ذخیره یک هایلایت جدید
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const token = cookies().get('token')?.value;
   if (!token) {
@@ -66,7 +66,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json(newHighlight, { status: 201 });
   } catch (error) {
     console.error('CREATE_HIGHLIGHT_ERROR', error);
-    
+    // مدیریت خطای unique بودن domId
     if (error instanceof Error && 'code' in error && (error as any).code === 'P2002') {
         return new NextResponse('Highlight with this ID already exists', { status: 409 });
     }

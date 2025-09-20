@@ -1,4 +1,4 @@
-
+// src/app/api/users/route.ts
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -6,9 +6,9 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get('search');
 
-  
+  // --- Pagination Logic ---
   const page = parseInt(searchParams.get("page") || "1", 10);
-  const limit = parseInt(searchParams.get("limit") || "9", 10); 
+  const limit = parseInt(searchParams.get("limit") || "9", 10); // 9 authors per page (for a 3x3 grid)
   const skip = (page - 1) * limit;
 
   const where: any = {};

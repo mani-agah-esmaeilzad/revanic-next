@@ -1,4 +1,4 @@
-
+// src/app/admin/manage/page.tsx
 import { AdminDashboard } from '@/components/AdminDashboard';
 
 const AdminManagePage = () => {

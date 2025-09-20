@@ -1,4 +1,4 @@
-
+// src/components/editor/Tiptap.tsx
 "use client";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -38,7 +38,7 @@ const Tiptap = ({ content, onChange }: TiptapProps) => {
     onUpdate({ editor }) {
       onChange(editor.getHTML());
     },
-    
+    // --- *** اصلاح اصلی برای حل خطای SSR *** ---
     immediatelyRender: false,
   });
 

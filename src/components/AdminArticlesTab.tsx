@@ -1,4 +1,4 @@
-
+// src/components/AdminArticlesTab.tsx
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -22,11 +22,11 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'; // <-- ایمپورت‌های جدید
 
-
-
-
+// =======================================================================
+//  1. تعریف تایپ‌ها (Types)
+// =======================================================================
 type ArticleStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 interface Article {
@@ -39,7 +39,7 @@ interface Article {
         email: string;
     };
     _count: {
-        claps: number; 
+        claps: number; // <-- *** مهم: از likes به claps تغییر کرد ***
         comments: number;
     };
 }
@@ -54,11 +54,11 @@ interface ApiResponse {
     pagination: PaginationInfo;
 }
 
+// =======================================================================
+//  2. توابع ارتباط با API (API Functions)
+// =======================================================================
 
-
-
-
-
+// تابع برای دریافت لیست مقالات
 const fetchArticles = async (page: number): Promise<ApiResponse> => {
     const response = await fetch(`/api/admin/articles?page=${page}&limit=10`);
     if (!response.ok) {
@@ -67,7 +67,7 @@ const fetchArticles = async (page: number): Promise<ApiResponse> => {
     return response.json();
 };
 
-
+// تابع برای تغییر وضعیت یک مقاله
 const updateArticleStatus = async ({ articleId, status }: { articleId: number, status: 'APPROVED' | 'REJECTED' }) => {
     const response = await fetch(`/api/admin/articles/${articleId}`, {
         method: 'PATCH',
@@ -80,7 +80,7 @@ const updateArticleStatus = async ({ articleId, status }: { articleId: number, s
     return response.json();
 };
 
-
+// تابع برای حذف یک مقاله
 const deleteArticle = async (articleId: number) => {
     if (!window.confirm(`آیا از حذف مقاله با شناسه ${articleId} اطمینان دارید؟`)) {
         throw new Error('حذف توسط کاربر لغو شد.');
@@ -97,24 +97,24 @@ const deleteArticle = async (articleId: number) => {
 };
 
 
-
-
-
+// =======================================================================
+//  3. کامپوننت اصلی (Main Component)
+// =======================================================================
 export const AdminArticlesTab = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const queryClient = useQueryClient();
 
-    
+    // استفاده از useQuery برای دریافت و کش کردن داده‌ها
     const { data, isLoading, isError } = useQuery<ApiResponse>({
         queryKey: ['admin-articles', currentPage],
         queryFn: () => fetchArticles(currentPage),
     });
 
-    
+    // استفاده از useMutation برای عملیات تغییر وضعیت
     const statusMutation = useMutation({
         mutationFn: updateArticleStatus,
         onSuccess: () => {
-            
+            // بعد از موفقیت، کوئری مربوط به لیست مقالات را باطل می‌کنیم تا داده‌ها دوباره گرفته شوند
             queryClient.invalidateQueries({ queryKey: ['admin-articles', currentPage] });
         },
         onError: () => {
@@ -122,7 +122,7 @@ export const AdminArticlesTab = () => {
         }
     });
 
-    
+    // استفاده از useMutation برای عملیات حذف
     const deleteMutation = useMutation({
         mutationFn: deleteArticle,
         onSuccess: () => {

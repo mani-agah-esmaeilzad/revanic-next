@@ -1,4 +1,4 @@
-
+// src/components/AnalyticsDashboard.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,7 +56,7 @@ export const AnalyticsDashboard = () => {
 
     return (
         <div className="space-y-6">
-            {}
+            {/* Stat Cards */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -87,7 +87,7 @@ export const AnalyticsDashboard = () => {
                 </Card>
             </div>
 
-            {}
+            {/* Views Chart */}
             <Card>
                 <CardHeader>
                     <CardTitle>بازدید ۷ روز گذشته</CardTitle>
@@ -105,7 +105,7 @@ export const AnalyticsDashboard = () => {
                 </CardContent>
             </Card>
 
-             {}
+             {/* Top Articles */}
             <Card>
                 <CardHeader>
                     <CardTitle>محبوب‌ترین مقالات شما</CardTitle>

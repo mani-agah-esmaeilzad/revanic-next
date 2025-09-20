@@ -1,4 +1,4 @@
-
+// src/app/api/me/analytics/route.ts
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -29,16 +29,16 @@ export async function GET() {
         });
         const articleIds = userArticles.map(a => a.id);
 
-        
+        // 1. آمار کلی
         const totalViews = await prisma.articleView.count({ where: { articleId: { in: articleIds } } });
-        const totalClapsResult = await prisma.clap.aggregate({ 
+        const totalClapsResult = await prisma.clap.aggregate({ // <-- اصلاح شد
             _sum: { count: true },
             where: { articleId: { in: articleIds } }
         });
-        const totalClaps = totalClapsResult._sum.count || 0; 
+        const totalClaps = totalClapsResult._sum.count || 0; // <-- اصلاح شد
         const totalComments = await prisma.comment.count({ where: { articleId: { in: articleIds } } });
 
-        
+        // 2. آمار بازدید ۷ روز گذشته برای نمودار
         const sevenDaysAgo = subDays(new Date(), 7);
         const dailyViewsRaw = await prisma.articleView.findMany({
             where: {
@@ -65,7 +65,7 @@ export async function GET() {
             };
         }).reverse();
 
-        
+        // 3. ۵ مقاله پربازدید
         const topArticles = await prisma.article.findMany({
             where: { authorId: userId },
             include: {
@@ -82,7 +82,7 @@ export async function GET() {
 
         return NextResponse.json({
             totalViews,
-            totalLikes: totalClaps, 
+            totalLikes: totalClaps, // <-- اصلاح شد
             totalComments,
             chartData,
             topArticles

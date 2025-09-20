@@ -1,4 +1,4 @@
-
+// src/app/admin/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import {
@@ -39,7 +39,7 @@ import {
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
-
+// Define types for the data we expect from the API
 interface AdminStats {
     totalUsers: number;
     totalArticles: number;

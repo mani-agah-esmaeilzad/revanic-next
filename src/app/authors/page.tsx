@@ -1,4 +1,4 @@
-
+// src/app/authors/page.tsx
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ const AuthorsPage = () => {
   const fetchData = useCallback(async (page = 1) => {
     setIsLoading(true);
     try {
-      
+      // Fetch users and following status in parallel
       const usersPromise = fetch(`/api/users?search=${searchQuery}&page=${page}`);
       const followingPromise = fetch("/api/me/following");
 
@@ -71,7 +71,7 @@ const AuthorsPage = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchData(1); 
+      fetchData(1); // Reset to page 1 on new search
     }, 300);
 
     return () => clearTimeout(timer);
@@ -160,7 +160,7 @@ const AuthorsPage = () => {
                   ))}
                 </div>
 
-                {}
+                {/* Pagination Component */}
                 {pagination && pagination.totalPages > 1 && (
                   <div className="mt-12">
                     <Pagination>

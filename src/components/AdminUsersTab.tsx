@@ -1,4 +1,4 @@
-
+// src/components/AdminUsersTab.tsx
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -87,7 +87,7 @@ export const AdminUsersTab = () => {
         body: JSON.stringify({ id: userId }),
       });
       if (response.ok) {
-        fetchUsers(pagination?.page || 1); 
+        fetchUsers(pagination?.page || 1); // Refresh the current page
       } else {
         alert('خطا در حذف کاربر.');
       }
@@ -104,7 +104,7 @@ export const AdminUsersTab = () => {
   const onEditFinished = () => {
     setIsEditDialogOpen(false);
     setSelectedUser(null);
-    fetchUsers(pagination?.page || 1); 
+    fetchUsers(pagination?.page || 1); // Refresh the current page
   }
 
   const handlePageChange = (newPage: number) => {

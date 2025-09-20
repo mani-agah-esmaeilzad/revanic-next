@@ -1,4 +1,4 @@
-
+// src/app/articles/page.tsx
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-
+// Define a type for the article object received from the API
 interface FetchedArticle {
   id: number;
   title: string;
@@ -36,7 +36,7 @@ interface ApiResponse {
   }
 }
 
-
+// Function to fetch articles from the API
 const fetchArticles = async (page: number, query: string, category: string): Promise<ApiResponse> => {
   const params = new URLSearchParams();
   if (query) params.append("search", query);
@@ -64,16 +64,16 @@ const ArticlesPage = () => {
     "همه", "فناوری", "تاریخ", "هنر و معماری", "علم", "فرهنگ", "سیاست", "اقتصاد", "ورزش", "سلامت", "محیط زیست",
   ], []);
 
-  
+  // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedQuery(searchQuery);
-      setCurrentPage(1); 
+      setCurrentPage(1); // Reset to first page on new search
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  
+  // Fetch data using useQuery
   const { data, isLoading, isError } = useQuery<ApiResponse>({
     queryKey: ['articles', currentPage, debouncedQuery, selectedCategory],
     queryFn: () => fetchArticles(currentPage, debouncedQuery, selectedCategory),
@@ -125,7 +125,7 @@ const ArticlesPage = () => {
                     size="sm"
                     onClick={() => {
                       setSelectedCategory(category)
-                      setCurrentPage(1); 
+                      setCurrentPage(1); // Reset to first page on category change
                     }}
                     className={
                       selectedCategory === category
