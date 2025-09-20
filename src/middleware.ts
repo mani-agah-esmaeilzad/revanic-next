@@ -4,7 +4,12 @@ import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 
 export const config = {
-  matcher: ['/profile/:path*', '/write/:path*', '/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    '/profile/:path*', 
+    '/write/:path*', 
+    '/admin/:path*', 
+    '/api/admin/:path*'
+  ],
   runtime: 'nodejs',
 };
 
@@ -22,13 +27,17 @@ export async function middleware(request: NextRequest) {
 
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      if (!secret) {
+        throw new Error('JWT_SECRET is not set in environment variables.');
+      }
+
       const { payload } = await jwtVerify(token, secret);
 
       const userId = payload.userId;
       if (typeof userId !== 'number') {
-        throw new Error('Invalid token payload: userId is missing or not a number');
+        throw new Error('Invalid token: userId is missing or not a number');
       }
-
+      
       const user = await prisma.user.findUnique({
         where: { id: userId },
         select: { id: true },
