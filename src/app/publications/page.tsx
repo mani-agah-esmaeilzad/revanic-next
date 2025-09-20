@@ -1,4 +1,4 @@
-// src/app/publications/page.tsx
+
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
@@ -17,7 +17,7 @@ interface Publication {
     };
 }
 
-// تابع برای دریافت لیست انتشارات از API
+
 const fetchPublications = async (): Promise<Publication[]> => {
     const response = await fetch('/api/publications');
     if (!response.ok) {

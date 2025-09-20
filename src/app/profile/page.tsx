@@ -1,4 +1,4 @@
-// src/app/profile/page.tsx
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
@@ -26,12 +26,12 @@ const ProfilePage = async () => {
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      subscription: true, // دریافت اطلاعات اشتراک کاربر
+      subscription: true, 
       articles: {
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { name: true } },
-          _count: { select: { claps: true, comments: true, views: true } }, // <-- *** اصلاح نهایی انجام شد ***
+          _count: { select: { claps: true, comments: true, views: true } }, 
           categories: { select: { name: true } },
         },
       },
@@ -39,7 +39,7 @@ const ProfilePage = async () => {
   });
 
   if (!dbUser) {
-    // اگر کاربر در دیتابیس پیدا نشد (مثلاً حذف شده باشد)
+    
     redirect("/login");
   }
 

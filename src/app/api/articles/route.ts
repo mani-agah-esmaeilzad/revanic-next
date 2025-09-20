@@ -1,4 +1,4 @@
-// src/app/api/articles/route.ts
+
 import { NextResponse, NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from 'zod';
@@ -10,19 +10,19 @@ export const dynamic = 'force-dynamic';
 interface JwtPayload {
     userId: number;
 }
-// --- Final Corrected Zod Schema ---
-// This schema is now more flexible and correctly handles optional/nullable fields.
+
+
 const articleSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     content: z.string().min(1, 'Content is required'),
     published: z.boolean(),
     categoryIds: z.array(z.number()).optional(),
     tags: z.array(z.string()).optional(),
-    coverImageUrl: z.string().nullable().optional(), // Now correctly handles null or undefined
-    publicationId: z.number().nullable().optional(), // Now correctly handles null or undefined
+    coverImageUrl: z.string().nullable().optional(), 
+    publicationId: z.number().nullable().optional(), 
 });
 
-// GET function remains unchanged
+
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
@@ -79,7 +79,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// POST function with corrected schema
+
 export async function POST(req: Request) {
     const token = cookies().get("token")?.value;
     if (!token) {
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
         const validation = articleSchema.safeParse(body);
 
         if (!validation.success) {
-            // If validation fails, send back the specific Zod errors
+            
             return NextResponse.json({ message: validation.error.flatten().fieldErrors }, { status: 400 });
         }
 

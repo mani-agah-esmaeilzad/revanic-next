@@ -18,7 +18,7 @@ export const BookmarkButton = ({ articleId, initialBookmarked }: BookmarkButtonP
   const handleBookmark = async () => {
     setIsLoading(true);
 
-    // Optimistic update
+    
     setIsBookmarked(!isBookmarked);
 
     try {
@@ -31,14 +31,14 @@ export const BookmarkButton = ({ articleId, initialBookmarked }: BookmarkButtonP
           router.push('/login');
           return;
         }
-        // Revert on failure
+        
         setIsBookmarked(isBookmarked);
         console.error("Failed to update bookmark status");
       }
-      // We can optionally refresh the router if bookmarks affect other parts of the page
-      // router.refresh();
+      
+      
     } catch (error) {
-      // Revert on network error
+      
       setIsBookmarked(isBookmarked);
       console.error("An error occurred:", error);
     } finally {

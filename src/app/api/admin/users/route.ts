@@ -1,4 +1,4 @@
-// src/app/api/admin/users/route.ts
+
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// ... توابع DELETE و PUT بدون تغییر باقی می‌مانند
+
 export async function DELETE(req: Request) {
     try {
         const { id } = await req.json();

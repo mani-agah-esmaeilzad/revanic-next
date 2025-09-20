@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "strip-comments": "node ./scripts/strip-comments.js"
   },
   "prisma": {
     "seed": "ts-node --project tsconfig.json prisma/seed.ts"

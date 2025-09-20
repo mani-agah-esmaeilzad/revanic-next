@@ -33,7 +33,7 @@ const Login = () => {
 
       if (response.ok) {
         router.push("/profile");
-        router.refresh(); // To update server components and reflect login state
+        router.refresh(); 
       } else {
         const data = await response.text();
         setError(data || "ایمیل یا رمز عبور نامعتبر است.");
@@ -60,7 +60,7 @@ const Login = () => {
 
         <CardContent className="space-y-4">
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email Input */}
+            {}
             <div className="space-y-2">
               <label className="text-sm font-medium text-journal">ایمیل</label>
               <div className="relative">
@@ -76,7 +76,7 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Password Input */}
+            {}
             <div className="space-y-2">
               <label className="text-sm font-medium text-journal">
                 رمز عبور
@@ -107,7 +107,7 @@ const Login = () => {
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            {/* Forgot Password */}
+            {}
             <div className="flex justify-end">
               <Link
                 href={`/forget-password`}
@@ -117,7 +117,7 @@ const Login = () => {
               </Link>
             </div>
 
-            {/* Submit Button */}
+            {}
             <Button
               type="submit"
               className="w-full bg-journal-green text-white hover:bg-journal-green-light"
@@ -129,7 +129,7 @@ const Login = () => {
 
           <Separator />
 
-          {/* Social Login */}
+          {}
           <div className="space-y-3">
             <Button
               variant="outline"
@@ -159,7 +159,7 @@ const Login = () => {
 
           <Separator />
 
-          {/* Register Link */}
+          {}
           <div className="text-center">
             <p className="text-journal-light">
               حساب کاربری ندارید؟{" "}

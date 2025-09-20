@@ -1,4 +1,4 @@
-// src/components/ClapButton.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -35,7 +35,7 @@ export const ClapButton = ({ articleId, initialTotalClaps, initialUserClaps }: C
       .then(res => {
         if (!res.ok) {
             if (res.status === 401) router.push('/login');
-            // Revert optimistic updates on failure
+            
             setTotalClaps(prev => prev - clapQueue);
             setUserClaps(prev => prev - clapQueue);
         }
@@ -56,7 +56,7 @@ export const ClapButton = ({ articleId, initialTotalClaps, initialUserClaps }: C
         setIsClapping(false);
         setClapQueue(0);
       });
-    }, 500); // Debounce API calls
+    }, 500); 
 
     return () => clearTimeout(handler);
   }, [clapQueue, articleId, router]);
@@ -65,7 +65,7 @@ export const ClapButton = ({ articleId, initialTotalClaps, initialUserClaps }: C
   const handleClap = () => {
     if (userClaps >= 50) return;
     
-    // Optimistic update
+    
     setClapQueue(prev => prev + 1);
     setTotalClaps(prev => prev + 1);
     setUserClaps(prev => prev + 1);

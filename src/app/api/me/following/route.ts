@@ -1,16 +1,16 @@
-// src/app/api/me/following/route.ts
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 
-// GET IDs of users the current user is following
+
 export async function GET(req: Request) {
   const cookieStore = cookies();
   const token = cookieStore.get('token')?.value;
 
   if (!token) {
-    return NextResponse.json({ following: [] }); // Not logged in, follows no one
+    return NextResponse.json({ following: [] }); 
   }
 
   try {

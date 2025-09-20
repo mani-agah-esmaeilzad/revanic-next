@@ -1,17 +1,17 @@
-// src/app/api/admin/stats/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { subDays, format } from 'date-fns';
 
 export async function GET() {
     try {
-        // 1. آمار کلی
+        
         const totalUsers = await prisma.user.count();
         const totalArticles = await prisma.article.count({ where: { status: 'APPROVED' } });
         const pendingArticles = await prisma.article.count({ where: { status: 'PENDING' } });
         const totalComments = await prisma.comment.count();
 
-        // 2. کاربران جدید در ۷ روز گذشته برای نمودار
+        
         const sevenDaysAgo = subDays(new Date(), 7);
         const newUsersRaw = await prisma.user.findMany({
             where: { createdAt: { gte: sevenDaysAgo } },
@@ -33,7 +33,7 @@ export async function GET() {
             };
         }).reverse();
 
-        // 3. آخرین فعالیت‌ها
+        
         const latestUsers = await prisma.user.findMany({
             orderBy: { createdAt: 'desc' },
             take: 5,

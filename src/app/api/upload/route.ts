@@ -15,12 +15,12 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // تبدیل تصویر به JPEG
+    
     const jpegBuffer = await sharp(buffer)
       .jpeg({ quality: 80 })
       .toBuffer();
 
-    // نام فایل جدید
+    
     const originalName = file.name.split('.').slice(0, -1).join('.') || 'image';
     const newFilename = `${Date.now()}_${originalName}.jpeg`;
 

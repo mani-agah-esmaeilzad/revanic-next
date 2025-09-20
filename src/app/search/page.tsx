@@ -1,4 +1,4 @@
-// src/app/search/page.tsx
+
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
@@ -30,7 +30,7 @@ interface FetchedArticle {
     coverImageUrl: string | null;
     author: { name: string | null };
     createdAt: string;
-    _count: { claps: number; comments: number }; // <-- اصلاح شد: از likes به claps
+    _count: { claps: number; comments: number }; 
     categories: { name: string }[];
 }
 
@@ -62,7 +62,7 @@ const SearchPage = () => {
     const [hasSearched, setHasSearched] = useState(false);
     const [pagination, setPagination] = useState<PaginationInfo | null>(null);
 
-    // Fetch authors and categories for filters
+    
     useEffect(() => {
         const fetchFiltersData = async () => {
             try {
@@ -185,10 +185,10 @@ const SearchPage = () => {
                                                 id={String(article.id)}
                                                 title={article.title}
                                                 excerpt={article.content.substring(0, 150) + "..."}
-                                                author={{ name: article.author.name || "ناشناس" }} // <-- اصلاح شد
+                                                author={{ name: article.author.name || "ناشناس" }} 
                                                 readTime={5}
                                                 publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(article.createdAt))}
-                                                claps={article._count.claps} // <-- اصلاح شد
+                                                claps={article._count.claps} 
                                                 comments={article._count.comments}
                                                 category={article.categories[0]?.name || ''}
                                                 image={article.coverImageUrl}

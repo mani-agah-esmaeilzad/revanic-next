@@ -1,4 +1,4 @@
-// src/components/ArticleContent.tsx
+
 'use client';
 
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
@@ -76,7 +76,7 @@ export const ArticleContent = ({ articleId, content }: ArticleContentProps) => {
 
       savedHighlights.forEach(highlight => {
         editor.state.doc.descendants((node, pos) => {
-          // *** اصلاح اصلی برای رفع خطای تایپ‌اسکریپت ***
+          
           if (node.isText && node.text) {
             const index = node.text.indexOf(highlight.text);
             if (index !== -1) {
@@ -84,7 +84,7 @@ export const ArticleContent = ({ articleId, content }: ArticleContentProps) => {
               const to = from + highlight.text.length;
               tr.addMark(from, to, editor.schema.marks.highlight.create({ 'data-highlight-id': highlight.domId }));
               highlightsApplied = true;
-              return false; // برای بهینه‌سازی: جستجو برای این هایلایت را متوقف کن
+              return false; 
             }
           }
         });

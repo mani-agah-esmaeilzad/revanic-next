@@ -1,4 +1,4 @@
-// src/components/Notifications.tsx
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -47,7 +47,7 @@ export const Notifications = () => {
 
     useEffect(() => {
         fetchNotifications();
-        // Optional: Poll for new notifications every minute
+        
         const interval = setInterval(fetchNotifications, 60000);
         return () => clearInterval(interval);
     }, []);

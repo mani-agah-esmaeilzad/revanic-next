@@ -12,15 +12,15 @@ import { FollowButton } from "@/components/FollowButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { ArticleContent } from '@/components/ArticleContent'; // کامپوننت جدید برای نمایش محتوا و هایلایت
-import { ShareButton } from "@/components/ShareButton"; // کامپوننت جدید اشتراک‌گذاری
+import { ArticleContent } from '@/components/ArticleContent'; 
+import { ShareButton } from "@/components/ShareButton"; 
 import { Button } from "@/components/ui/button";
 
 interface JwtPayload {
   userId: number;
 }
 
-// آدرس پایه سایت را از متغیرهای محیطی می‌خوانیم
+
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
@@ -30,17 +30,17 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
-  // ثبت بازدید مقاله (به صورت غیرمسدودکننده)
+  
   prisma.articleView.create({
     data: { articleId: articleId }
   }).catch(console.error);
 
-  // دریافت اطلاعات کامل مقاله از دیتابیس
+  
   const article = await prisma.article.findUnique({
     where: { id: articleId, status: 'APPROVED' },
     include: {
       author: true,
-      claps: true, // دریافت اطلاعات کامل تشویق‌ها برای محاسبه مجموع
+      claps: true, 
       _count: { select: { comments: true } },
       tags: { include: { tag: true } },
     },
@@ -50,11 +50,11 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
-  // محاسبه مجموع کل تشویق‌ها
+  
   const totalClaps = article.claps.reduce((sum, clap) => sum + clap.count, 0);
-  const articleUrl = `${baseUrl}/articles/${article.id}`; // ساخت URL کامل مقاله برای اشتراک‌گذاری
+  const articleUrl = `${baseUrl}/articles/${article.id}`; 
 
-  // بررسی وضعیت کاربر فعلی (لاگین کرده یا نه)
+  
   let currentUserId: number | null = null;
   let userClaps = 0;
   let userIsFollowingAuthor = false;
@@ -70,11 +70,11 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
       currentUserId = payload.userId as number;
 
       if (currentUserId) {
-        // پیدا کردن تعداد تشویق‌های کاربر فعلی
+        
         const userClap = article.claps.find(c => c.userId === currentUserId);
         userClaps = userClap ? userClap.count : 0;
 
-        // بررسی وضعیت فالو و بوکمارک به صورت همزمان
+        
         const [follow, bookmark] = await Promise.all([
           prisma.follow.findUnique({ where: { followerId_followingId: { followerId: currentUserId, followingId: article.author.id } } }),
           prisma.bookmark.findUnique({ where: { userId_articleId: { userId: currentUserId, articleId: article.id } } })
@@ -156,10 +156,10 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </div>
           </header>
 
-          {/* استفاده از کامپوننت جدید برای نمایش محتوا و فعال‌سازی هایلایت */}
+          {}
           <ArticleContent articleId={article.id} content={article.content} />
 
-          {/* بخش نمایش برچسب‌ها */}
+          {}
           {article.tags.length > 0 && (
             <div className="my-12">
               <div className="flex flex-wrap gap-2">
@@ -174,7 +174,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </div>
           )}
 
-          {/* کارت نویسنده */}
+          {}
           <Card className="my-12 shadow-sm border">
             <CardContent className="p-6">
               <div className="flex flex-col sm:flex-row gap-4 items-center">
@@ -207,7 +207,7 @@ const ArticleDetailPage = async ({ params }: { params: { id: string } }) => {
             </CardContent>
           </Card>
 
-          {/* بخش کامنت‌ها */}
+          {}
           <Card className="shadow-sm border">
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-6">

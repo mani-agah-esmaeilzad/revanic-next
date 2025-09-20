@@ -1,4 +1,4 @@
-// src/app/page.tsx
+
 import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
@@ -6,7 +6,7 @@ import ArticleCard from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
 
 const Index = () => {
-  // Sample articles data
+  
   const featuredArticles = [
     {
       id: "1",
@@ -15,7 +15,7 @@ const Index = () => {
       author: { name: "علی رضایی", avatar: "" },
       readTime: 8,
       publishDate: "۳ روز پیش",
-      claps: 124, // <-- تغییر از likes به claps
+      claps: 124, 
       comments: 23,
       category: "فناوری",
       image: ""
@@ -27,7 +27,7 @@ const Index = () => {
       author: { name: "مریم احمدی", avatar: "" },
       readTime: 12,
       publishDate: "یک هفته پیش",
-      claps: 89, // <-- تغییر از likes به claps
+      claps: 89, 
       comments: 15,
       category: "تاریخ",
       image: ""
@@ -39,7 +39,7 @@ const Index = () => {
       author: { name: "محمد حسینی", avatar: "" },
       readTime: 6,
       publishDate: "۲ هفته پیش",
-      claps: 67, // <-- تغییر از likes به claps
+      claps: 67, 
       comments: 8,
       category: "هنر و معماری",
       image: ""
@@ -48,7 +48,7 @@ const Index = () => {
 
   return (
     <>
-      {/* Hero Section */}
+      {}
       <section className="relative overflow-hidden bg-gradient-to-bl from-journal-cream via-background to-journal-cream/50">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
@@ -86,7 +86,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -106,7 +106,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Articles */}
+      {}
       <section className="py-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -132,7 +132,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {}
       <section className="py-20 bg-gradient-hero">
         <div className="container mx-auto px-4 text-center">
           <div className="max-w-3xl mx-auto text-white">

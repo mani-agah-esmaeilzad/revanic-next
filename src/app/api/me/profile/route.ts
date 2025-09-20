@@ -1,11 +1,11 @@
-// src/app/api/me/profile/route.ts
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
-import { z } from "zod"; // <-- ایمپورت Zod
+import { z } from "zod"; 
 
-// تعریف اسکیمای اعتبارسنجی
+
 const profileUpdateSchema = z.object({
   name: z.string().min(3, { message: "نام باید حداقل ۳ کاراکتر باشد." }).max(50, { message: "نام نمی‌تواند بیشتر از ۵۰ کاراکتر باشد." }),
   bio: z.string().max(300, { message: "بیوگرافی نمی‌تواند بیشتر از ۳۰۰ کاراکتر باشد." }).optional().nullable(),
@@ -26,7 +26,7 @@ export async function PUT(req: Request) {
 
     const body = await req.json();
     
-    // اعتبارسنجی داده‌های ورودی با Zod
+    
     const validation = profileUpdateSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });

@@ -1,4 +1,4 @@
-// src/app/api/me/bookmarks/route.ts
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -16,12 +16,12 @@ export async function GET() {
         const secret = new TextEncoder().encode(process.env.JWT_SECRET);
         const { payload } = await jwtVerify(token, secret);
 
-        // --- FIX ---
+        
         const userId = payload.userId as number;
         if (!userId) {
             return new NextResponse('Invalid token payload', { status: 401 });
         }
-        // --- END FIX ---
+        
 
         const bookmarks = await prisma.bookmark.findMany({
             where: { userId },

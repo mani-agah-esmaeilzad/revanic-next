@@ -1,8 +1,8 @@
-// src/components/ArticleCard.tsx
+
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, Hand, MessageCircle } from "lucide-react"; // <-- Heart به Hand تغییر کرد
+import { Clock, Hand, MessageCircle } from "lucide-react"; 
 import Image from "next/image";
 
 interface ArticleCardProps {
@@ -15,7 +15,7 @@ interface ArticleCardProps {
   };
   readTime: number;
   publishDate: string;
-  claps: number; // <-- اصلاح شد
+  claps: number; 
   comments: number;
   category: string;
   image?: string | null;
@@ -28,7 +28,7 @@ const ArticleCard = ({
   author,
   readTime,
   publishDate,
-  claps, // <-- اصلاح شد
+  claps, 
   comments,
   category,
   image
@@ -65,8 +65,8 @@ const ArticleCard = ({
                   {readTime} دقیقه
                 </div>
                 <div className="flex items-center gap-1">
-                  <Hand className="h-3 w-3" /> {/* <-- اصلاح شد */}
-                  {claps} {/* <-- اصلاح شد */}
+                  <Hand className="h-3 w-3" /> {}
+                  {claps} {}
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageCircle className="h-3 w-3" />

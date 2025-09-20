@@ -1,4 +1,4 @@
-// src/app/subscription/page.tsx
+
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -38,8 +38,8 @@ const Subscription = () => {
         const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
         if (!uploadResponse.ok) throw new Error('Upload failed');
         const uploadData = await uploadResponse.json();
-        // Assuming the local upload API returns a relative URL like /uploads/filename.jpg
-        // We need to construct the full URL for Zod validation
+        
+        
         studentIdCardUrl = `${window.location.origin}${uploadData.url}`;
 
       } catch (error) {
@@ -106,7 +106,7 @@ const Subscription = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
 
-            {/* Free Trial Plan */}
+            {}
             <Card className="flex flex-col">
               <CardHeader className="text-center">
                 <Gift className="h-10 w-10 mx-auto text-journal-orange mb-4" />
@@ -124,7 +124,7 @@ const Subscription = () => {
               </CardContent>
             </Card>
 
-            {/* Monthly Plan */}
+            {}
             <Card className="flex flex-col">
               <CardHeader className="text-center">
                 <Star className="h-10 w-10 mx-auto text-journal-green mb-4" />
@@ -144,7 +144,7 @@ const Subscription = () => {
               </CardContent>
             </Card>
 
-            {/* Yearly Plan */}
+            {}
             <Card className="ring-2 ring-journal-orange shadow-lg flex flex-col relative">
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-journal-orange">۲ ماه رایگان</Badge>
               <CardHeader className="text-center">
@@ -163,7 +163,7 @@ const Subscription = () => {
               </CardContent>
             </Card>
 
-            {/* Student Plan */}
+            {}
             <Card className="flex flex-col">
               <CardHeader className="text-center">
                 <GraduationCap className="h-10 w-10 mx-auto text-journal-green mb-4" />
@@ -180,19 +180,7 @@ const Subscription = () => {
                     {isUploading ? <Loader2 className="h-4 w-4 ml-2 animate-spin" /> : <Upload className="h-4 w-4 ml-2" />}
                     {studentFile ? studentFile.name : 'آپلود کارت دانشجویی'}
                   </Label>
-                  <Input id="student-card" type="file" className="hidden" onChange={(e) => setStudentFile(e.target.files ? e.target.files[0] : null)} accept="image/*,.pdf" />
-                  <Button onClick={() => handleSubscribe('STUDENT')} disabled={!!isLoading || !studentFile || isUploading} className="w-full bg-journal-green hover:bg-journal-green/90">
-                    {isLoading === 'STUDENT' ? <Loader2 className="animate-spin" /> : 'ارسال درخواست'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-          </div>
-        </div>
-      </section>
-
-      {/* Financial Aid Section */}
+                  <Input id="student-card" type="file" className="hidden" onChange={(e) => setStudentFile(e.target.files ? e.target.files[0] : null)} accept="image}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <Card className="max-w-3xl mx-auto bg-journal-cream/50 border-journal-green/20">

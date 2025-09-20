@@ -6,7 +6,7 @@ const Footer = () => {
     <footer className="bg-journal-cream border-t border-border mt-20">
       <div className="container mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Logo & Description */}
+          {}
           <div className="md:col-span-2">
             <Logo size="xl" className="mb-4" />
             <p className="text-journal-light max-w-md leading-relaxed">
@@ -15,7 +15,7 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Quick Links */}
+          {}
           <div>
             <h3 className="font-semibold text-journal mb-4">دسترسی سریع</h3>
             <div className="space-y-3">
@@ -34,7 +34,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Support & Info */}
+          {}
           <div>
             <h3 className="font-semibold text-journal mb-4">پشتیبانی</h3>
             <div className="space-y-3">

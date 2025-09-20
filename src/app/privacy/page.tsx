@@ -6,7 +6,7 @@ const Privacy = () => {
   return (
     <div className="min-h-screen bg-background">
       
-      {/* Hero Section */}
+      {}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -21,7 +21,7 @@ const Privacy = () => {
         </div>
       </section>
 
-      {/* Privacy Policy Content */}
+      {}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">

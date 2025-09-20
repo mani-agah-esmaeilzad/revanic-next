@@ -1,4 +1,4 @@
-// src/components/Header.tsx
+
 "use client";
 
 import { useState } from "react";
@@ -17,7 +17,7 @@ import {
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // تابع برای بستن منو هنگام کلیک روی لینک
+  
   const handleLinkClick = () => {
     setIsMobileMenuOpen(false);
   };
@@ -27,10 +27,10 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href={`/`} className="flex items-center">
-            <Logo size="lg" /> {/* Adjusted size for better look */}
+            <Logo size="lg" /> {}
           </Link>
 
-          {/* Desktop Navigation */}
+          {}
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/articles" className="text-journal-light hover:text-journal transition-colors">
               مقالات
@@ -68,7 +68,7 @@ const Header = () => {
               </Button>
             </Link>
 
-            {/* Mobile Menu Trigger */}
+            {}
             <div className="md:hidden">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>

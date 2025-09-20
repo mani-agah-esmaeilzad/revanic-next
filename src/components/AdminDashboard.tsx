@@ -1,11 +1,11 @@
-// src/components/AdminDashboard.tsx
+
 'use client';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AdminUsersTab } from './AdminUsersTab';
 import { AdminArticlesTab } from './AdminArticlesTab';
 import { AdminCommentsTab } from './AdminCommentsTab';
-import { AdminSubscriptionsTab } from './AdminSubscriptionsTab'; // <-- ایمپورت جدید
+import { AdminSubscriptionsTab } from './AdminSubscriptionsTab'; 
 
 export const AdminDashboard = () => {
   return (
@@ -14,7 +14,7 @@ export const AdminDashboard = () => {
         <TabsTrigger value="users">کاربران</TabsTrigger>
         <TabsTrigger value="articles">مقالات</TabsTrigger>
         <TabsTrigger value="comments">نظرات</TabsTrigger>
-        <TabsTrigger value="subscriptions">اشتراک‌ها</TabsTrigger> {/* <-- تب جدید */}
+        <TabsTrigger value="subscriptions">اشتراک‌ها</TabsTrigger> {}
       </TabsList>
       <TabsContent value="users">
         <AdminUsersTab />
@@ -26,7 +26,7 @@ export const AdminDashboard = () => {
         <AdminCommentsTab />
       </TabsContent>
       <TabsContent value="subscriptions">
-        <AdminSubscriptionsTab /> {/* <-- محتوای تب جدید */}
+        <AdminSubscriptionsTab /> {}
       </TabsContent>
     </Tabs>
   );

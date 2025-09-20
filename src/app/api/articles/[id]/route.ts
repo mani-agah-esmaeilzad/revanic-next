@@ -1,4 +1,4 @@
-// src/app/api/articles/[id]/route.ts
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -8,7 +8,7 @@ interface JwtPayload {
   userId: number;
 }
 
-// UPDATE an article (This function remains unchanged)
+
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies();
   const token = cookieStore.get('token')?.value;
@@ -47,7 +47,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       data: {
         title,
         content,
-        // status update logic might be needed here depending on features
+        
       },
     });
 
@@ -59,7 +59,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-// DELETE an article
+
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies();
   const token = cookieStore.get('token')?.value;
@@ -88,31 +88,31 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
 
-    // فقط نویسنده مقاله یا ادمین می‌تواند آن را حذف کند
+    
     if (article.authorId !== userId && user?.role !== 'ADMIN') {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    // --- FIX START: Use a transaction to delete dependencies first ---
+    
     await prisma.$transaction(async (tx) => {
-      // حذف تمام رکوردهای وابسته
+      
       await tx.clap.deleteMany({ where: { articleId } });
       await tx.comment.deleteMany({ where: { articleId } });
       await tx.bookmark.deleteMany({ where: { articleId } });
       await tx.tagsOnArticles.deleteMany({ where: { articleId } });
 
-      // قطع اتصال دسته‌بندی‌ها
+      
       await tx.article.update({
         where: { id: articleId },
         data: { categories: { set: [] } }
       });
 
-      // در نهایت، حذف خود مقاله
+      
       await tx.article.delete({ where: { id: articleId } });
     });
-    // --- FIX END ---
+    
 
-    return new NextResponse(null, { status: 204 }); // No Content
+    return new NextResponse(null, { status: 204 }); 
 
   } catch (error) {
     console.error('ARTICLE_DELETE_ERROR', error);

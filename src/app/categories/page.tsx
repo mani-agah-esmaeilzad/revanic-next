@@ -1,4 +1,4 @@
-"use client"; // اشتباه تایپی 'use-client' به "use client" اصلاح شد
+"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -145,7 +145,7 @@ const Categories = () => {
     <div className="min-h-screen bg-background">
 
 
-      {/* Hero Section */}
+      { }
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -159,7 +159,7 @@ const Categories = () => {
         </div>
       </section>
 
-      {/* Featured Categories */}
+      { }
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
@@ -203,7 +203,7 @@ const Categories = () => {
         </div>
       </section>
 
-      {/* All Categories */}
+      { }
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
@@ -214,7 +214,7 @@ const Categories = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {allCategories.map((category) => (
                 <Link
-                  href={`/articles?category=${category.id}`} // <-- 'to' به 'href' تغییر کرد
+                  href={`/articles?category=${category.id}`}
                   key={category.id}
                 >
                   <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
@@ -259,7 +259,7 @@ const Categories = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      { }
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -270,7 +270,7 @@ const Categories = () => {
               پیشنهاد موضوع جدید دهید یا خودتان در آن حوزه مقاله بنویسید
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/write"> {/* <-- 'to' به 'href' تغییر کرد */}
+              <Link href="/write"> { }
                 <Button
                   size="lg"
                   className="bg-journal-green text-white hover:bg-journal-green-light"
@@ -278,7 +278,7 @@ const Categories = () => {
                   نوشتن مقاله
                 </Button>
               </Link>
-              <Link href="/contact"> {/* <-- 'to' به 'href' تغییر کرد */}
+              <Link href="/contact"> { }
                 <Button
                   variant="outline"
                   size="lg"

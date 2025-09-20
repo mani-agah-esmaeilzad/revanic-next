@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+
 
 @layer base {
   :root {
@@ -36,7 +34,7 @@ All colors MUST be HSL.
     --input: 154 15% 90%;
     --ring: 154 60% 25%;
     
-    /* Custom design tokens */
+    
     --journal-green: 154 60% 25%;
     --journal-green-light: 154 30% 35%;
     --journal-orange: 35 85% 60%;
@@ -44,15 +42,15 @@ All colors MUST be HSL.
     --journal-text: 154 60% 15%;
     --journal-text-light: 154 15% 45%;
     
-    /* Gradients */
+    
     --gradient-hero: linear-gradient(135deg, hsl(var(--journal-green)), hsl(var(--journal-green-light)));
     --gradient-accent: linear-gradient(135deg, hsl(var(--journal-orange)), hsl(35 75% 65%));
     
-    /* Shadows */
+    
     --shadow-soft: 0 2px 20px -5px hsl(var(--journal-green) / 0.1);
     --shadow-medium: 0 8px 30px -8px hsl(var(--journal-green) / 0.15);
     
-    /* Typography */
+    
     --font-persian: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
     --radius: 0.5rem;
@@ -103,7 +101,7 @@ All colors MUST be HSL.
     --input: 154 25% 20%;
     --ring: 154 30% 85%;
     
-    /* Dark mode custom tokens */
+    
     --journal-green: 154 30% 75%;
     --journal-green-light: 154 25% 65%;
     --journal-orange: 35 85% 65%;

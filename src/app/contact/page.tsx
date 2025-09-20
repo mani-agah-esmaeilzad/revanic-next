@@ -19,11 +19,11 @@ const Contact = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate form submission
+    
     setTimeout(() => {
       setIsLoading(false);
       console.log("Contact form submitted:", { name, email, subject, message });
-      // Reset form
+      
       setName("");
       setEmail("");
       setSubject("");
@@ -73,7 +73,7 @@ const Contact = () => {
     <div className="min-h-screen bg-background">
 
 
-      {/* Hero Section */}
+      {}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
@@ -87,13 +87,13 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* Contact Form & Info */}
+      {}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
 
-              {/* Contact Form */}
+              {}
               <div className="lg:col-span-2">
                 <Card className="shadow-medium border-0">
                   <CardHeader>
@@ -176,7 +176,7 @@ const Contact = () => {
                 </Card>
               </div>
 
-              {/* Contact Info */}
+              {}
               <div className="space-y-6">
                 <Card className="shadow-soft border-0">
                   <CardHeader>
@@ -200,7 +200,7 @@ const Contact = () => {
                   </CardContent>
                 </Card>
 
-                {/* Quick Actions */}
+                {}
                 <Card className="shadow-soft border-0">
                   <CardHeader>
                     <CardTitle className="text-xl font-bold text-journal">
@@ -225,7 +225,7 @@ const Contact = () => {
                   </CardContent>
                 </Card>
 
-                {/* FAQ Link */}
+                {}
                 <Card className="shadow-soft border-0 bg-journal-cream/50">
                   <CardContent className="p-6 text-center">
                     <h3 className="font-bold text-journal mb-2">
@@ -249,7 +249,7 @@ const Contact = () => {
         </div>
       </section>
 
-      {/* Office Location */}
+      {}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">

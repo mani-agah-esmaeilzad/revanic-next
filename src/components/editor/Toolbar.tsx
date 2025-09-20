@@ -1,4 +1,4 @@
-// src/components/editor/Toolbar.tsx
+
 "use client";
 
 import { type Editor } from "@tiptap/react";
@@ -14,10 +14,10 @@ import {
   Quote,
   Code,
   Link,
-  Image as ImageIcon, // تغییر نام برای جلوگیری از تداخل با تگ Image
-  Loader2, // برای نمایش وضعیت لودینگ آپلود
+  Image as ImageIcon, 
+  Loader2, 
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react"; // ایمپورت‌های جدید
+import { useCallback, useRef, useState } from "react"; 
 import { Toggle } from "@/components/ui/toggle";
 
 type Props = {
@@ -28,7 +28,7 @@ export const Toolbar = ({ editor }: Props) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // تابع برای مدیریت افزودن یا ویرایش لینک
+  
   const setLink = useCallback(() => {
     if (!editor) return;
     const previousUrl = editor.getAttributes("link").href;
@@ -45,7 +45,7 @@ export const Toolbar = ({ editor }: Props) => {
     editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }, [editor]);
 
-  // --- تابع برای مدیریت آپلود و درج تصویر ---
+  
   const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!editor || !event.target.files?.length) return;
 
@@ -74,7 +74,7 @@ export const Toolbar = ({ editor }: Props) => {
       alert("آپلود تصویر با خطا مواجه شد.");
     } finally {
       setIsUploading(false);
-      // ریست کردن اینپوت فایل تا بتوان فایل مشابه را دوباره انتخاب کرد
+      
       if(fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -87,7 +87,7 @@ export const Toolbar = ({ editor }: Props) => {
 
   return (
     <div className="border rounded-t-md p-2 flex flex-wrap gap-1 bg-transparent">
-      {/* دکمه‌های فرمت‌دهی اصلی متن */}
+      {}
       <Toggle size="sm" pressed={editor.isActive("bold")} onPressedChange={() => editor.chain().focus().toggleBold().run()}>
         <Bold className="h-4 w-4" />
       </Toggle>
@@ -100,7 +100,7 @@ export const Toolbar = ({ editor }: Props) => {
 
       <div className="w-[1px] bg-muted-foreground/20 mx-1"></div>
 
-      {/* دکمه‌های هِدینگ‌ها */}
+      {}
       <Toggle size="sm" pressed={editor.isActive("heading", { level: 1 })} onPressedChange={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}>
         <Heading1 className="h-4 w-4" />
       </Toggle>
@@ -113,7 +113,7 @@ export const Toolbar = ({ editor }: Props) => {
       
       <div className="w-[1px] bg-muted-foreground/20 mx-1"></div>
 
-      {/* دکمه‌های لیست‌ها */}
+      {}
       <Toggle size="sm" pressed={editor.isActive("bulletList")} onPressedChange={() => editor.chain().focus().toggleBulletList().run()}>
         <List className="h-4 w-4" />
       </Toggle>
@@ -123,7 +123,7 @@ export const Toolbar = ({ editor }: Props) => {
       
       <div className="w-[1px] bg-muted-foreground/20 mx-1"></div>
 
-      {/* دکمه‌های بلاک‌های خاص */}
+      {}
       <Toggle size="sm" pressed={editor.isActive("blockquote")} onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}>
         <Quote className="h-4 w-4" />
       </Toggle>
@@ -133,12 +133,12 @@ export const Toolbar = ({ editor }: Props) => {
 
       <div className="w-[1px] bg-muted-foreground/20 mx-1"></div>
 
-      {/* دکمه‌های مربوط به مدیا */}
+      {}
       <Toggle size="sm" pressed={editor.isActive("link")} onPressedChange={setLink}>
         <Link className="h-4 w-4" />
       </Toggle>
 
-      {/* --- دکمه نهایی برای آپلود و درج تصویر --- */}
+      {}
       <input
         type="file"
         ref={fileInputRef}

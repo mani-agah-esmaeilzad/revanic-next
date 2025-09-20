@@ -1,4 +1,4 @@
-// src/app/write/page.tsx
+
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -29,18 +29,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useQuery } from "@tanstack/react-query";
 
-// =======================================================================
-//  1. لود کردن دینامیک ادیتور Tiptap
-// =======================================================================
-// چون Tiptap با DOM کار می‌کند، باید آن را فقط در سمت کلاینت لود کنیم تا از خطاهای SSR جلوگیری شود.
+
+
+
+
 const Tiptap = dynamic(() => import('@/components/editor/Tiptap'), {
   ssr: false,
   loading: () => <Skeleton className="min-h-[400px] w-full rounded-lg" />,
 });
 
-// =======================================================================
-//  2. تعریف تایپ‌ها و توابع دریافت داده
-// =======================================================================
+
+
+
 interface Category {
   id: number;
   name: string;
@@ -51,29 +51,29 @@ interface Publication {
     name: string;
 }
 
-const DRAFT_KEY = 'revanic_article_draft'; // کلید برای ذخیره پیش‌نویس در localStorage
+const DRAFT_KEY = 'revanic_article_draft'; 
 
-// تابع برای دریافت انتشارات کاربر (برای React Query)
+
 const fetchUserPublications = async (): Promise<Publication[]> => {
     const res = await fetch('/api/me/publications');
     if (!res.ok) throw new Error('Failed to fetch publications');
     return res.json();
 }
 
-// تابع برای دریافت دسته‌بندی‌ها (برای React Query)
+
 const fetchCategories = async (): Promise<Category[]> => {
     const res = await fetch('/api/categories');
     if(!res.ok) throw new Error('Failed to fetch categories');
     return res.json();
 }
 
-// =======================================================================
-//  3. کامپوننت اصلی صفحه
-// =======================================================================
+
+
+
 const WritePage = () => {
   const router = useRouter();
   
-  // State های مربوط به فرم و داده‌های مقاله
+  
   const [articleId, setArticleId] = useState<number | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -82,18 +82,18 @@ const WritePage = () => {
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [publicationId, setPublicationId] = useState<string>("personal");
   
-  // State های مربوط به وضعیت UI (لودینگ، پیام‌ها و ...)
+  
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState<"save" | "publish" | false>(false);
   const [message, setMessage] = useState<{ type: "error" | "success"; text: string; } | null>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const isInitialLoad = useRef(true);
 
-  // دریافت داده‌های لازم (دسته‌بندی‌ها و انتشارات) با استفاده از React Query
+  
   const { data: categories = [], isError: isCategoriesError } = useQuery<Category[]>({ queryKey: ['categories'], queryFn: fetchCategories });
   const { data: publications = [], isError: isPublicationsError } = useQuery<Publication[]>({ queryKey: ['userPublications'], queryFn: fetchUserPublications });
 
-  // منطق ذخیره و بازیابی خودکار پیش‌نویس از localStorage
+  
   useEffect(() => {
     if (isInitialLoad.current) {
       const savedDraft = localStorage.getItem(DRAFT_KEY);
@@ -130,7 +130,7 @@ const WritePage = () => {
   };
   const clearDraft = () => localStorage.removeItem(DRAFT_KEY);
   
-  // تابع برای آپلود تصویر شاخص
+  
   const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -159,7 +159,7 @@ const WritePage = () => {
     }
   };
 
-  // تابع اصلی برای ارسال فرم (ذخیره پیش‌نویس یا ارسال برای انتشار)
+  
   const handleSubmit = async (published: boolean) => {
     if (!title.trim() || !content.trim() || content === '<p></p>') {
       setMessage({ type: 'error', text: 'عنوان و محتوای مقاله نمی‌توانند خالی باشند.' });

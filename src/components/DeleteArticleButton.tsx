@@ -25,7 +25,7 @@ export const DeleteArticleButton = ({ articleId }: DeleteArticleButtonProps) => 
       });
 
       if (response.ok) {
-        // Refresh the page to show the updated list of articles
+        
         router.refresh();
       } else {
         alert("خطا در حذف مقاله. لطفاً دوباره تلاش کنید.");

@@ -18,7 +18,7 @@ export const FollowButton = ({ targetUserId, initialFollowing }: FollowButtonPro
   const handleFollow = async () => {
     setIsLoading(true);
 
-    // Optimistic update
+    
     setIsFollowing(!isFollowing);
 
     try {
@@ -31,12 +31,12 @@ export const FollowButton = ({ targetUserId, initialFollowing }: FollowButtonPro
           router.push('/login');
           return;
         }
-        // Revert on failure
+        
         setIsFollowing(isFollowing);
         console.error("Failed to update follow status");
       }
     } catch (error) {
-      // Revert on network error
+      
       setIsFollowing(isFollowing);
       console.error("An error occurred:", error);
     } finally {

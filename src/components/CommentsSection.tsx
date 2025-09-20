@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 
-// Define types for the comment and user
+
 interface CommentUser {
   id: number;
   name: string | null;
@@ -62,12 +62,12 @@ export const CommentsSection = ({ articleId, isUserLoggedIn }: CommentsSectionPr
 
       if (response.ok) {
         const createdComment = await response.json();
-        // Add the new comment to the top of the list
+        
         setComments([createdComment, ...comments]);
         setNewComment('');
       } else {
         console.error("Failed to post comment");
-        // Optionally, show an error to the user
+        
       }
     } catch (error) {
       console.error("Error submitting comment:", error);

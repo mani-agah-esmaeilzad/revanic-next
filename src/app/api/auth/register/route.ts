@@ -1,12 +1,12 @@
-// src/app/api/auth/register/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { Resend } from 'resend';
 import { WelcomeEmail } from '@/emails/WelcomeEmail';
-import { SignJWT } from 'jose'; // <-- ایمپورت جدید
-import { cookies } from 'next/headers'; // <-- ایمپورت جدید
+import { SignJWT } from 'jose'; 
+import { cookies } from 'next/headers'; 
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // --- ارسال ایمیل خوش‌آمدگویی ---
+    
     try {
       await resend.emails.send({
         from: 'Revanic <onboarding@resend.dev>',
@@ -58,19 +58,19 @@ export async function POST(req: Request) {
       console.error("Failed to send welcome email:", emailError);
     }
 
-    // --- لاگین خودکار کاربر ---
+    
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const token = await new SignJWT({ userId: user.id, userEmail: user.email })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
-      .setExpirationTime("1d") // توکن برای ۱ روز معتبر است
+      .setExpirationTime("1d") 
       .sign(secret);
 
     cookies().set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      maxAge: 60 * 60 * 24, // 1 روز
+      maxAge: 60 * 60 * 24, 
     });
 
     const { password: _, ...userWithoutPassword } = user;

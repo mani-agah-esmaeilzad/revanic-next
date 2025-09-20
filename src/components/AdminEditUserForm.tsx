@@ -1,4 +1,4 @@
-// src/components/AdminEditUserForm.tsx
+
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 
-// Define a type for the user object we are editing
+
 interface User {
     id: number;
     name: string | null;
@@ -26,7 +26,7 @@ interface User {
 
 interface AdminEditUserFormProps {
     user: User;
-    onFinished: () => void; // A function to call when the form is submitted to close the dialog
+    onFinished: () => void; 
 }
 
 export const AdminEditUserForm = ({ user, onFinished }: AdminEditUserFormProps) => {
@@ -56,7 +56,7 @@ export const AdminEditUserForm = ({ user, onFinished }: AdminEditUserFormProps) 
             });
 
             if (response.ok) {
-                onFinished(); // Close the dialog and trigger a data refresh
+                onFinished(); 
             } else {
                 const result = await response.text();
                 setError(result || 'خطا در ویرایش کاربر.');

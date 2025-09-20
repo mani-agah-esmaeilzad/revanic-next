@@ -5,7 +5,7 @@ const AuthorsGuide = () => {
     return (
         <div className="min-h-screen bg-background">
 
-            {/* Hero Section */}
+            {}
             <section className="py-16 bg-journal-cream/30">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center">
@@ -20,7 +20,7 @@ const AuthorsGuide = () => {
                 </div>
             </section>
 
-            {/* Guidelines */}
+            {}
             <section className="py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto">
@@ -56,7 +56,7 @@ const AuthorsGuide = () => {
                             </Card>
                         </div>
 
-                        {/* Detailed Guidelines */}
+                        {}
                         <div className="space-y-8">
                             <Card className="shadow-soft border-0">
                                 <CardContent className="p-8">

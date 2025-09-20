@@ -1,11 +1,11 @@
-// src/app/api/admin/articles/[id]/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { Resend } from 'resend';
 import { ArticleStatusEmail } from '@/emails/ArticleStatusEmail';
 
-// Add this line to force dynamic rendering
+
 export const dynamic = 'force-dynamic';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -33,10 +33,10 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         const updatedArticle = await prisma.article.update({
             where: { id: articleId },
             data: { status },
-            include: { author: true }, // for author email and name
+            include: { author: true }, 
         });
 
-        // Create in-site notification
+        
         await prisma.notification.create({
             data: {
                 type: status === 'APPROVED' ? 'ARTICLE_APPROVED' : 'ARTICLE_REJECTED',
@@ -46,7 +46,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
             }
         });
 
-        // --- Send article status email ---
+        
         try {
             await resend.emails.send({
                 from: 'Revanic <alerts@resend.dev>',

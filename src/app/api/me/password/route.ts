@@ -1,12 +1,12 @@
-// src/app/api/me/password/route.ts
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { z } from 'zod'; // <-- ایمپورت Zod
+import { z } from 'zod'; 
 
-// تعریف اسکیمای اعتبارسنجی
+
 const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1, { message: "رمز عبور فعلی الزامی است." }),
   newPassword: z.string().min(6, { message: "رمز عبور جدید باید حداقل ۶ کاراکتر باشد." }),
@@ -27,7 +27,7 @@ export async function PUT(req: Request) {
 
     const body = await req.json();
 
-    // اعتبارسنجی داده‌های ورودی با Zod
+    
     const validation = passwordChangeSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json({ message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });

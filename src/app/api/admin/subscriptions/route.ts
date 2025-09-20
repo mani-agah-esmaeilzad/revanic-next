@@ -1,4 +1,4 @@
-// src/app/api/admin/subscriptions/route.ts
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
@@ -12,7 +12,7 @@ const statusUpdateSchema = z.object({
     status: z.enum(['ACTIVE', 'REJECTED']),
 });
 
-// GET: دریافت تمام درخواست‌های اشتراک در انتظار تایید
+
 export async function GET() {
     try {
         const pendingSubscriptions = await prisma.subscription.findMany({
@@ -31,7 +31,7 @@ export async function GET() {
     }
 }
 
-// PATCH: تایید یا رد کردن یک درخواست اشتراک
+
 export async function PATCH(req: Request) {
     try {
         const body = await req.json();
@@ -45,7 +45,7 @@ export async function PATCH(req: Request) {
 
         const subscription = await prisma.subscription.findUnique({
             where: { id: subscriptionId },
-            include: { user: true } // برای دسترسی به ایمیل و نام کاربر
+            include: { user: true } 
         });
 
         if (!subscription) {
@@ -63,7 +63,7 @@ export async function PATCH(req: Request) {
             data: { status, endDate },
         });
 
-        // ایجاد نوتیفیکیشن در سایت
+        
         await prisma.notification.create({
             data: {
                 userId: updatedSubscription.userId,
@@ -72,7 +72,7 @@ export async function PATCH(req: Request) {
             }
         });
 
-        // --- ارسال ایمیل وضعیت اشتراک ---
+        
         try {
             await resend.emails.send({
                 from: 'Revanic <alerts@resend.dev>',

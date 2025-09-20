@@ -1,8 +1,8 @@
-// src/app/api/admin/articles/route.ts
+
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET all articles for the admin panel with pagination
+
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
                     select: { name: true, email: true },
                 },
                 _count: {
-                    select: { claps: true, comments: true }, // <-- *** اصلاح شد ***
+                    select: { claps: true, comments: true }, 
                 },
             },
         });
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// DELETE an article by admin
+
 export async function DELETE(req: Request) {
     try {
         const { id } = await req.json();
@@ -48,9 +48,9 @@ export async function DELETE(req: Request) {
         const articleId = Number(id);
 
         await prisma.$transaction(async (tx:any) => {
-            // تمام رکوردهای وابسته حذف می‌شوند چون onDelete: Cascade است
-            // اما برای اطمینان می‌توان به صورت دستی هم حذف کرد
-            await tx.clap.deleteMany({ where: { articleId } }); // <-- اصلاح شد
+            
+            
+            await tx.clap.deleteMany({ where: { articleId } }); 
             await tx.comment.deleteMany({ where: { articleId } });
             await tx.bookmark.deleteMany({ where: { articleId } });
 

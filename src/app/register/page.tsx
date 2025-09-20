@@ -1,4 +1,4 @@
-// src/app/register/page.tsx
+
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +41,7 @@ const Register = () => {
       });
 
       if (response.ok) {
-        // --- FIX: Redirect to subscription page ---
+        
         router.push("/subscription");
       } else {
         const data = await response.text();
@@ -69,7 +69,7 @@ const Register = () => {
 
         <CardContent className="space-y-4">
           <form onSubmit={handleRegister} className="space-y-4">
-            {/* Name Input */}
+            {}
             <div className="space-y-2">
               <label className="text-sm font-medium text-journal">
                 نام و نام خانوادگی
@@ -87,7 +87,7 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Email Input */}
+            {}
             <div className="space-y-2">
               <label className="text-sm font-medium text-journal">ایمیل</label>
               <div className="relative">
@@ -103,7 +103,7 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Password Input */}
+            {}
             <div className="space-y-2">
               <label className="text-sm font-medium text-journal">
                 رمز عبور
@@ -132,7 +132,7 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Confirm Password Input */}
+            {}
             <div className="space-y-2">
               <label className="text-sm font-medium text-journal">
                 تأیید رمز عبور
@@ -152,7 +152,7 @@ const Register = () => {
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            {/* Terms */}
+            {}
             <div className="text-xs text-journal-light">
               با ثبت نام، شما با{" "}
               <Link
@@ -171,7 +171,7 @@ const Register = () => {
               ما موافقت می‌کنید.
             </div>
 
-            {/* Submit Button */}
+            {}
             <Button
               type="submit"
               className="w-full bg-journal-green text-white hover:bg-journal-green-light"
@@ -183,7 +183,7 @@ const Register = () => {
 
           <Separator />
 
-          {/* Social Login */}
+          {}
           <div className="space-y-3">
             <Button
               variant="outline"
@@ -213,7 +213,7 @@ const Register = () => {
 
           <Separator />
 
-          {/* Login Link */}
+          {}
           <div className="text-center">
             <p className="text-journal-light">
               قبلاً حساب دارید؟{" "}

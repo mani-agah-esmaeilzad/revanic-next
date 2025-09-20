@@ -1,4 +1,4 @@
-// src/app/tags/[name]/page.tsx
+
 'use client';
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";

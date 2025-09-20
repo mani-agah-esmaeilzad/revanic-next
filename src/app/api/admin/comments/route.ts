@@ -1,8 +1,8 @@
-// src/app/api/admin/comments/route.ts
+
 import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET all comments for the admin panel with pagination
+
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get("page") || "1", 10);
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     }
 }
 
-// DELETE a comment by admin
+
 export async function DELETE(req: Request) {
     try {
         const { id } = await req.json();

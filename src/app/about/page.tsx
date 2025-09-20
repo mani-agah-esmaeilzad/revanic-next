@@ -40,7 +40,7 @@ const About = () => {
     return (
         <div className="min-h-screen bg-background">
 
-            {/* Hero Section */}
+            {}
             <section className="py-20 bg-gradient-to-bl from-journal-cream via-background to-journal-cream/50">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center">
@@ -60,13 +60,13 @@ const About = () => {
                 </div>
             </section>
 
-            {/* Mission & Vision */}
+            {}
             <section className="py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
 
-                            {/* Mission */}
+                            {}
                             <Card className="shadow-soft border-0">
                                 <CardContent className="p-8">
                                     <div className="flex items-center gap-3 mb-6">
@@ -84,7 +84,7 @@ const About = () => {
                                 </CardContent>
                             </Card>
 
-                            {/* Vision */}
+                            {}
                             <Card className="shadow-soft border-0">
                                 <CardContent className="p-8">
                                     <div className="flex items-center gap-3 mb-6">
@@ -105,7 +105,7 @@ const About = () => {
                 </div>
             </section>
 
-            {/* Values */}
+            {}
             <section className="py-16 bg-journal-cream/30">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
@@ -137,7 +137,7 @@ const About = () => {
                 </div>
             </section>
 
-            {/* Team */}
+            {}
             <section className="py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-6xl mx-auto">
@@ -168,7 +168,7 @@ const About = () => {
                 </div>
             </section>
 
-            {/* Stats */}
+            {}
             <section className="py-16 bg-gradient-hero">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center text-white">
@@ -195,7 +195,7 @@ const About = () => {
                 </div>
             </section>
 
-            {/* CTA */}
+            {}
             <section className="py-16">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center">
