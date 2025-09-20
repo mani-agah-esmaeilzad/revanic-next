@@ -51,19 +51,19 @@ interface ProfileClientProps {
 // =======================================================================
 
 const fetchSavedArticles = async (): Promise<Article[]> => {
-    const response = await fetch('/api/me/bookmarks');
-    if (!response.ok) {
-        throw new Error('Failed to fetch saved articles');
-    }
-    return response.json();
+  const response = await fetch('/api/me/bookmarks');
+  if (!response.ok) {
+    throw new Error('Failed to fetch saved articles');
+  }
+  return response.json();
 };
 
 const fetchClappedArticles = async (): Promise<Article[]> => {
-    const response = await fetch('/api/me/claps');
-    if (!response.ok) {
-        throw new Error('Failed to fetch clapped articles');
-    }
-    return response.json();
+  const response = await fetch('/api/me/claps');
+  if (!response.ok) {
+    throw new Error('Failed to fetch clapped articles');
+  }
+  return response.json();
 };
 
 
@@ -130,7 +130,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
     queryFn: fetchSavedArticles,
     enabled: activeTab === 'saved', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
   });
-  
+
   // استفاده از useQuery برای دریافت داده‌های تب "تشویق شده"
   const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<Article[]>({
     queryKey: ['clappedArticles'],
@@ -306,7 +306,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                         <Skeleton className="h-24 w-full" />
                       </div>
                     ) : isErrorClapped ? (
-                        <p className="text-red-500">خطا در دریافت مقالات تشویق شده.</p>
+                      <p className="text-red-500">خطا در دریافت مقالات تشویق شده.</p>
                     ) : clappedArticles && clappedArticles.length > 0 ? (
                       <div className="space-y-6">
                         {clappedArticles.map((article) => (

@@ -8,30 +8,30 @@ import { Search as SearchIcon } from 'lucide-react';
 import ArticleCard from '@/components/ArticleCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select';
 import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
 } from "@/components/ui/pagination";
 
 interface FetchedArticle {
-  id: number;
-  title: string;
-  content: string;
-  coverImageUrl: string | null;
-  author: { name: string | null };
-  createdAt: string;
-  _count: { claps: number; comments: number }; // <-- اصلاح شد: از likes به claps
-  categories: { name: string }[];
+    id: number;
+    title: string;
+    content: string;
+    coverImageUrl: string | null;
+    author: { name: string | null };
+    createdAt: string;
+    _count: { claps: number; comments: number }; // <-- اصلاح شد: از likes به claps
+    categories: { name: string }[];
 }
 
 interface Author {
@@ -70,11 +70,11 @@ const SearchPage = () => {
                     fetch('/api/users'),
                     fetch('/api/categories')
                 ]);
-                if(authorsRes.ok) {
+                if (authorsRes.ok) {
                     const data = await authorsRes.json();
                     setAuthors(data.users);
                 }
-                if(categoriesRes.ok) {
+                if (categoriesRes.ok) {
                     const data = await categoriesRes.json();
                     setCategories(data);
                 }
@@ -147,7 +147,7 @@ const SearchPage = () => {
                                 </div>
                                 <div>
                                     <label className="text-right block mb-2 text-sm font-medium text-journal">دسته‌بندی</label>
-                                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                                         <SelectTrigger><SelectValue placeholder="همه" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">همه</SelectItem>
@@ -156,8 +156,8 @@ const SearchPage = () => {
                                     </Select>
                                 </div>
                             </div>
-                             <Button onClick={() => performSearch(1)} className="w-full mt-4 bg-journal-green hover:bg-journal-green/90">
-                                <SearchIcon className="h-4 w-4 ml-2"/>
+                            <Button onClick={() => performSearch(1)} className="w-full mt-4 bg-journal-green hover:bg-journal-green/90">
+                                <SearchIcon className="h-4 w-4 ml-2" />
                                 جستجو
                             </Button>
                         </Card>
@@ -177,43 +177,43 @@ const SearchPage = () => {
                         ) : hasSearched ? (
                             results.length > 0 ? (
                                 <>
-                                <h2 className="text-2xl font-bold text-journal mb-6">نتایج جستجو</h2>
-                                <div className="space-y-6">
-                                    {results.map(article => (
-                                        <ArticleCard
-                                            key={article.id}
-                                            id={String(article.id)}
-                                            title={article.title}
-                                            excerpt={article.content.substring(0,150) + "..."}
-                                            author={{ name: article.author.name || "ناشناس" }} // <-- اصلاح شد
-                                            readTime={5}
-                                            publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(article.createdAt))}
-                                            claps={article._count.claps} // <-- اصلاح شد
-                                            comments={article._count.comments}
-                                            category={article.categories[0]?.name || ''}
-                                            image={article.coverImageUrl}
-                                        />
-                                    ))}
-                                </div>
-                                {pagination && pagination.totalPages > 1 && (
-                                    <div className="mt-12">
-                                        <Pagination>
-                                            <PaginationContent>
-                                                <PaginationItem><PaginationPrevious onClick={() => handlePageChange(pagination.page - 1)} /></PaginationItem>
-                                                {[...Array(pagination.totalPages)].map((_, i) => (
-                                                    <PaginationItem key={i}><PaginationLink isActive={pagination.page === i + 1} onClick={() => handlePageChange(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
-                                                ))}
-                                                <PaginationItem><PaginationNext onClick={() => handlePageChange(pagination.page + 1)} /></PaginationItem>
-                                            </PaginationContent>
-                                        </Pagination>
+                                    <h2 className="text-2xl font-bold text-journal mb-6">نتایج جستجو</h2>
+                                    <div className="space-y-6">
+                                        {results.map(article => (
+                                            <ArticleCard
+                                                key={article.id}
+                                                id={String(article.id)}
+                                                title={article.title}
+                                                excerpt={article.content.substring(0, 150) + "..."}
+                                                author={{ name: article.author.name || "ناشناس" }} // <-- اصلاح شد
+                                                readTime={5}
+                                                publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(article.createdAt))}
+                                                claps={article._count.claps} // <-- اصلاح شد
+                                                comments={article._count.comments}
+                                                category={article.categories[0]?.name || ''}
+                                                image={article.coverImageUrl}
+                                            />
+                                        ))}
                                     </div>
-                                )}
+                                    {pagination && pagination.totalPages > 1 && (
+                                        <div className="mt-12">
+                                            <Pagination>
+                                                <PaginationContent>
+                                                    <PaginationItem><PaginationPrevious onClick={() => handlePageChange(pagination.page - 1)} /></PaginationItem>
+                                                    {[...Array(pagination.totalPages)].map((_, i) => (
+                                                        <PaginationItem key={i}><PaginationLink isActive={pagination.page === i + 1} onClick={() => handlePageChange(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
+                                                    ))}
+                                                    <PaginationItem><PaginationNext onClick={() => handlePageChange(pagination.page + 1)} /></PaginationItem>
+                                                </PaginationContent>
+                                            </Pagination>
+                                        </div>
+                                    )}
                                 </>
                             ) : (
                                 <p className="text-center text-journal-light py-12">نتیجه‌ای برای جستجوی شما یافت نشد.</p>
                             )
                         ) : (
-                             <p className="text-center text-journal-light py-12">برای مشاهده نتایج، لطفاً جستجو کنید.</p>
+                            <p className="text-center text-journal-light py-12">برای مشاهده نتایج، لطفاً جستجو کنید.</p>
                         )}
                     </div>
                 </div>

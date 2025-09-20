@@ -55,18 +55,18 @@ const Index = () => {
             <div className="mb-8">
               <Logo size="xl" className="justify-center mb-6" />
             </div>
-            
+
             <h1 className="text-4xl md:text-6xl font-bold text-journal mb-6 leading-tight">
               جایی برای اشتراک
               <br />
               <span className="text-journal-orange">دانش و تجربه</span>
             </h1>
-            
+
             <p className="text-xl text-journal-light mb-8 max-w-2xl mx-auto leading-relaxed">
-              در مجله روانیک، نویسندگان و خوانندگان فارسی‌زبان دور هم جمع می‌شوند تا 
+              در مجله روانیک، نویسندگان و خوانندگان فارسی‌زبان دور هم جمع می‌شوند تا
               بهترین مقالات را بخوانند، بنویسند و به اشتراک بگذارند.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/articles">
                 <Button size="lg" className="w-full sm:w-auto gradient-hero text-white hover:shadow-medium transition-all">
@@ -74,7 +74,7 @@ const Index = () => {
                   شروع خواندن
                 </Button>
               </Link>
-              
+
               <Link href="/write">
                 <Button variant="outline" size="lg" className="w-full sm:w-auto border-journal-green text-journal-green hover:bg-journal-green hover:text-white">
                   <PenTool className="ml-2 h-5 w-5" />
@@ -115,13 +115,13 @@ const Index = () => {
               بهترین مقالات هفته که توسط جامعه خوانندگان ما انتخاب شده‌اند
             </p>
           </div>
-          
+
           <div className="max-w-4xl mx-auto space-y-6">
             {featuredArticles.map((article) => (
               <ArticleCard key={article.id} {...article} />
             ))}
           </div>
-          
+
           <div className="text-center mt-12">
             <Link href="/articles">
               <Button variant="outline" size="lg">
@@ -142,12 +142,12 @@ const Index = () => {
             <p className="text-xl mb-8 opacity-90 text-journal">
               به جامعه نویسندگان و خوانندگان فارسی‌زبان بپیوندید و صدای خود را به گوش جهان برسانید
             </p>
-              <Link href="/register">
-                <Button size="lg" variant="secondary" className="bg-white text-journal-green hover:bg-journal-cream">
-                  <Users className="ml-2 h-5 w-5" />
-                  عضویت رایگان
-                </Button>
-              </Link>
+            <Link href="/register">
+              <Button size="lg" variant="secondary" className="bg-white text-journal-green hover:bg-journal-cream">
+                <Users className="ml-2 h-5 w-5" />
+                عضویت رایگان
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

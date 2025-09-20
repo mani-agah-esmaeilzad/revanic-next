@@ -10,7 +10,7 @@ const Footer = () => {
           <div className="md:col-span-2">
             <Logo size="xl" className="mb-4" />
             <p className="text-journal-light max-w-md leading-relaxed">
-              مجله روانیک، پلتفرمی برای انتشار و خواندن مقالات فارسی با کیفیت بالا. 
+              مجله روانیک، پلتفرمی برای انتشار و خواندن مقالات فارسی با کیفیت بالا.
               جایی برای اشتراک دانش و تجربیات نویسندگان ایرانی.
             </p>
           </div>
@@ -58,7 +58,7 @@ const Footer = () => {
         </div>
 
         <hr className="my-8 border-border" />
-        
+
         <div className="text-center text-journal-light">
           <p>© 1404 مجله روانیک. تمامی حقوق محفوظ است.</p>
         </div>

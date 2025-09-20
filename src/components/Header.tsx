@@ -95,10 +95,10 @@ const Header = () => {
                     </Link>
                     <hr className="border-border" />
                     <Link href="/write" onClick={handleLinkClick}>
-                        <Button variant="outline" className="w-full">
-                            <PenTool className="h-4 w-4 ml-2" />
-                            نوشتن
-                        </Button>
+                      <Button variant="outline" className="w-full">
+                        <PenTool className="h-4 w-4 ml-2" />
+                        نوشتن
+                      </Button>
                     </Link>
                   </div>
                 </SheetContent>

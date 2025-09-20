@@ -29,28 +29,28 @@ interface FetchedArticle {
 }
 
 interface ApiResponse {
-    articles: FetchedArticle[];
-    pagination: {
-        page: number;
-        totalPages: number;
-    }
+  articles: FetchedArticle[];
+  pagination: {
+    page: number;
+    totalPages: number;
+  }
 }
 
 // Function to fetch articles from the API
 const fetchArticles = async (page: number, query: string, category: string): Promise<ApiResponse> => {
-    const params = new URLSearchParams();
-    if (query) params.append("search", query);
-    if (category && category !== "همه") {
-        params.append("category", category);
-    }
-    params.append("page", String(page));
-    params.append("limit", "6");
+  const params = new URLSearchParams();
+  if (query) params.append("search", query);
+  if (category && category !== "همه") {
+    params.append("category", category);
+  }
+  params.append("page", String(page));
+  params.append("limit", "6");
 
-    const response = await fetch(`/api/articles?${params.toString()}`);
-    if (!response.ok) {
-        throw new Error('Network response was not ok');
-    }
-    return response.json();
+  const response = await fetch(`/api/articles?${params.toString()}`);
+  if (!response.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return response.json();
 };
 
 
@@ -67,11 +67,11 @@ const ArticlesPage = () => {
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
-        setDebouncedQuery(searchQuery);
-        setCurrentPage(1); // Reset to first page on new search
+      setDebouncedQuery(searchQuery);
+      setCurrentPage(1); // Reset to first page on new search
     }, 500);
     return () => clearTimeout(timer);
-  },[searchQuery]);
+  }, [searchQuery]);
 
   // Fetch data using useQuery
   const { data, isLoading, isError } = useQuery<ApiResponse>({
@@ -124,8 +124,8 @@ const ArticlesPage = () => {
                     variant={selectedCategory === category ? "default" : "outline"}
                     size="sm"
                     onClick={() => {
-                        setSelectedCategory(category)
-                        setCurrentPage(1); // Reset to first page on category change
+                      setSelectedCategory(category)
+                      setCurrentPage(1); // Reset to first page on category change
                     }}
                     className={
                       selectedCategory === category
@@ -146,11 +146,11 @@ const ArticlesPage = () => {
                 ))}
               </div>
             ) : isError ? (
-                <div className="text-center py-12">
-                    <p className="text-red-500 text-lg mb-4">
-                      خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.
-                    </p>
-                </div>
+              <div className="text-center py-12">
+                <p className="text-red-500 text-lg mb-4">
+                  خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.
+                </p>
+              </div>
             ) : data && data.articles.length > 0 ? (
               <>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -40,7 +40,7 @@ export async function GET(
             skip,
             take: limit,
         });
-        
+
         const totalArticles = await prisma.article.count({ where: whereClause });
         const totalPages = Math.ceil(totalArticles / limit);
 

@@ -8,18 +8,18 @@ import { jwtVerify } from "jose";
 export const dynamic = 'force-dynamic';
 
 interface JwtPayload {
-  userId: number;
+    userId: number;
 }
 // --- Final Corrected Zod Schema ---
 // This schema is now more flexible and correctly handles optional/nullable fields.
 const articleSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  content: z.string().min(1, 'Content is required'),
-  published: z.boolean(),
-  categoryIds: z.array(z.number()).optional(),
-  tags: z.array(z.string()).optional(),
-  coverImageUrl: z.string().nullable().optional(), // Now correctly handles null or undefined
-  publicationId: z.number().nullable().optional(), // Now correctly handles null or undefined
+    title: z.string().min(1, 'Title is required'),
+    content: z.string().min(1, 'Content is required'),
+    published: z.boolean(),
+    categoryIds: z.array(z.number()).optional(),
+    tags: z.array(z.string()).optional(),
+    coverImageUrl: z.string().nullable().optional(), // Now correctly handles null or undefined
+    publicationId: z.number().nullable().optional(), // Now correctly handles null or undefined
 });
 
 // GET function remains unchanged

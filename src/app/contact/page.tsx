@@ -71,8 +71,8 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      
-      
+
+
       {/* Hero Section */}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
@@ -92,7 +92,7 @@ const Contact = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-              
+
               {/* Contact Form */}
               <div className="lg:col-span-2">
                 <Card className="shadow-medium border-0">
@@ -156,8 +156,8 @@ const Contact = () => {
                         />
                       </div>
 
-                      <Button 
-                        type="submit" 
+                      <Button
+                        type="submit"
                         size="lg"
                         className="w-full bg-journal-green text-white hover:bg-journal-green-light"
                         disabled={isLoading}
@@ -208,15 +208,15 @@ const Contact = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start border-journal-green/20 hover:bg-journal-green hover:text-white"
                     >
                       <Mail className="ml-2 h-4 w-4" />
                       ارسال ایمیل مستقیم
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full justify-start border-journal-green/20 hover:bg-journal-green hover:text-white"
                     >
                       <MessageCircle className="ml-2 h-4 w-4" />
@@ -234,8 +234,8 @@ const Contact = () => {
                     <p className="text-journal-light text-sm mb-4">
                       شاید پاسخ سوال شما در بخش سوالات متداول موجود باشد
                     </p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       className="border-journal-green text-journal-green hover:bg-journal-green hover:text-white"
                     >
@@ -272,7 +272,7 @@ const Contact = () => {
         </div>
       </section>
 
-      
+
     </div>
   );
 };
