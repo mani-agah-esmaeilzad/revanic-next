@@ -43,30 +43,32 @@ export async function GET(req: NextRequest) {
     }
 }
 
+// ... توابع DELETE و PUT بدون تغییر باقی می‌مانند
 export async function DELETE(req: Request) {
     try {
         const { id } = await req.json();
-        const userId = Number(id);
-
-        if (isNaN(userId)) {
-            return new NextResponse('User ID is required and must be a number', { status: 400 });
+        if (!id) {
+            return new NextResponse('User ID is required', { status: 400 });
         }
-        await prisma.$transaction(async (tx) => {
+        const userId = Number(id);
+        await prisma.$transaction(async (tx:any) => {
+            await tx.like.deleteMany({ where: { userId } });
+            await tx.bookmark.deleteMany({ where: { userId } });
+            await tx.comment.deleteMany({ where: { userId } });
+            await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followingId: userId }] } });
+            await tx.subscription.deleteMany({ where: { userId } });
             await tx.article.deleteMany({ where: { authorId: userId } });
             await tx.user.delete({ where: { id: userId } });
         });
-
         return new NextResponse(null, { status: 204 });
-
     } catch (error) {
         console.error('ADMIN_DELETE_USER_ERROR', error);
-        if (typeof error === 'object' && error !== null && 'code' in error && (error as any).code === 'P2025') {
+        if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2025') {
             return new NextResponse('User to delete does not exist.', { status: 404 });
         }
         return new NextResponse('Internal Server Error', { status: 500 });
     }
 }
-
 export async function PUT(req: Request) {
     try {
         const { id, ...data } = await req.json();
