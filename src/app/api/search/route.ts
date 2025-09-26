@@ -1,66 +1,78 @@
 // src/app/api/search/route.ts
-import { NextResponse, NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 
-export async function GET(req: NextRequest) {
+const ARTICLES_PER_PAGE = 5;
+
+export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get('q');
-    const authorId = searchParams.get('authorId');
-    const categoryId = searchParams.get('categoryId');
+    const query = searchParams.get("q");
+    const page = Number(searchParams.get("page")) || 1;
 
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
-    const skip = (page - 1) * limit;
-
-    const where: any = { status: 'APPROVED' };
-
-    if (query) {
-        where.OR = [
-            { title: { contains: query } }, // <-- FIX: 'mode' removed
-            { content: { contains: query } }, // <-- FIX: 'mode' removed
-        ];
-    }
-
-    if (authorId) {
-        where.authorId = parseInt(authorId, 10);
-    }
-
-    if (categoryId) {
-        where.categories = {
-            some: { id: parseInt(categoryId, 10) },
-        };
+    if (!query) {
+        return NextResponse.json(
+            { error: "Query parameter is required" },
+            { status: 400 }
+        );
     }
 
     try {
+        const whereClause: Prisma.ArticleWhereInput = { // <-- Use Prisma type
+            status: "APPROVED",
+            OR: [
+                { title: { contains: query, mode: "insensitive" } },
+                { content: { contains: query, mode: "insensitive" } },
+                {
+                    tags: {
+                        some: {
+                            tag: {
+                                name: {
+                                    contains: query,
+                                    mode: "insensitive",
+                                },
+                            },
+                        },
+                    },
+                },
+            ],
+        };
+
         const articles = await prisma.article.findMany({
-            where,
-            skip,
-            take: limit,
+            where: whereClause,
             include: {
-                author: { select: { name: true } },
+                author: { select: { name: true, avatarUrl: true } },
                 _count: { select: { claps: true, comments: true } },
                 categories: { select: { name: true } },
             },
-            orderBy: {
-                createdAt: "desc",
-            },
+            skip: (page - 1) * ARTICLES_PER_PAGE,
+            take: ARTICLES_PER_PAGE,
+            orderBy: { createdAt: 'desc' }
         });
 
-        const totalArticles = await prisma.article.count({ where });
-        const totalPages = Math.ceil(totalArticles / limit);
+        const totalArticles = await prisma.article.count({ where: whereClause });
+
+        const users = await prisma.user.findMany({
+            where: {
+                name: { contains: query, mode: "insensitive" },
+            },
+            select: {
+                id: true,
+                name: true,
+                avatarUrl: true,
+                bio: true,
+            },
+            take: 5,
+        });
 
         return NextResponse.json({
             articles,
-            pagination: {
-                page,
-                limit,
-                totalArticles,
-                totalPages,
-            }
+            users,
+            totalPages: Math.ceil(totalArticles / ARTICLES_PER_PAGE)
         });
 
     } catch (error) {
-        console.error("SEARCH_API_ERROR", error);
+        console.error("SEARCH_ERROR", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }

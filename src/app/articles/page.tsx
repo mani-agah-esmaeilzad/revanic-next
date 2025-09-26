@@ -1,213 +1,87 @@
 // src/app/articles/page.tsx
-"use client";
-import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Filter } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import ArticleCard from "@/components/ArticleCard";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { Pagination } from "@/components/Pagination"; // <-- ایمپورت کامپوننت جدید
 
-// Define a type for the article object received from the API
-interface FetchedArticle {
-  id: number;
-  title: string;
-  content: string;
-  coverImageUrl: string | null;
-  author: { name: string | null };
-  createdAt: string;
-  _count: { likes: number; comments: number };
-  categories: { name: string }[];
+const ARTICLES_PER_PAGE = 10; // <-- تعداد مقالات در هر صفحه
+
+interface ArticlesPageProps {
+  searchParams: {
+    page?: string;
+  };
 }
 
-interface ApiResponse {
-  articles: FetchedArticle[];
-  pagination: {
-    page: number;
-    totalPages: number;
+const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
+  // 1. دریافت و اعتبارسنجی شماره صفحه فعلی
+  const currentPage = Number(searchParams.page) || 1;
+  if (currentPage < 1) {
+    // Or redirect to page 1
+    return <p className="text-center">شماره صفحه نامعتبر است.</p>;
   }
-}
 
-// Function to fetch articles from the API
-const fetchArticles = async (page: number, query: string, category: string): Promise<ApiResponse> => {
-  const params = new URLSearchParams();
-  if (query) params.append("search", query);
-  if (category && category !== "همه") {
-    params.append("category", category);
-  }
-  params.append("page", String(page));
-  params.append("limit", "6");
+  // 2. دریافت تعداد کل مقالات و محاسبه تعداد صفحات
+  const totalArticles = await prisma.article.count({
+    where: { status: "APPROVED" },
+  });
+  const totalPages = Math.ceil(totalArticles / ARTICLES_PER_PAGE);
 
-  const response = await fetch(`/api/articles?${params.toString()}`);
-  if (!response.ok) {
-    throw new Error('Network response was not ok');
-  }
-  return response.json();
-};
-
-
-const ArticlesPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("همه");
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const categories = useMemo(() => [
-    "همه", "فناوری", "تاریخ", "هنر و معماری", "علم", "فرهنگ", "سیاست", "اقتصاد", "ورزش", "سلامت", "محیط زیست",
-  ], []);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-      setCurrentPage(1); // Reset to first page on new search
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Fetch data using useQuery
-  const { data, isLoading, isError } = useQuery<ApiResponse>({
-    queryKey: ['articles', currentPage, debouncedQuery, selectedCategory],
-    queryFn: () => fetchArticles(currentPage, debouncedQuery, selectedCategory),
+  // 3. دریافت مقالات فقط برای صفحه فعلی
+  const articles = await prisma.article.findMany({
+    where: { status: "APPROVED" },
+    orderBy: { createdAt: "desc" },
+    skip: (currentPage - 1) * ARTICLES_PER_PAGE, // <-- رد کردن مقالات صفحات قبلی
+    take: ARTICLES_PER_PAGE,                   // <-- دریافت فقط مقالات این صفحه
+    include: {
+      author: { select: { name: true, avatarUrl: true } },
+      categories: { select: { name: true } },
+      _count: { select: { claps: true, comments: true } },
+    },
   });
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= (data?.pagination.totalPages || 1)) {
-      setCurrentPage(newPage);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      <section className="py-16 bg-journal-cream/30">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl font-bold text-journal mb-4">
-              مقالات مجله روانیک
-            </h1>
-            <p className="text-xl text-journal-light mb-8">
-              مجموعه‌ای از بهترین مقالات فارسی در موضوعات مختلف
-            </p>
-            <div className="relative max-w-lg mx-auto">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-journal-light h-4 w-4" />
-              <Input
-                placeholder="جستجو در مقالات..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10 h-12 border-journal-green/20"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-8">
+          آخرین مقالات
+        </h1>
 
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-6xl mx-auto">
-            <div className="mb-8">
-              <div className="flex items-center gap-4 mb-4">
-                <Filter className="h-5 w-5 text-journal-light" />
-                <span className="font-medium text-journal">دسته‌بندی:</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      setSelectedCategory(category)
-                      setCurrentPage(1); // Reset to first page on category change
-                    }}
-                    className={
-                      selectedCategory === category
-                        ? "bg-journal-green text-white"
-                        : "border-journal-green/20 text-journal-light hover:bg-journal-green hover:text-white"
-                    }
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-40 w-full" />
-                ))}
-              </div>
-            ) : isError ? (
-              <div className="text-center py-12">
-                <p className="text-red-500 text-lg mb-4">
-                  خطا در دریافت اطلاعات. لطفاً دوباره تلاش کنید.
-                </p>
-              </div>
-            ) : data && data.articles.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {data.articles.map((article) => (
-                    <ArticleCard
-                      key={article.id}
-                      id={article.id.toString()}
-                      title={article.title}
-                      excerpt={article.content.substring(0, 150) + "..."}
-                      author={{ name: article.author.name || "ناشناس" }}
-                      readTime={Math.ceil(article.content.length / 1000)}
-                      publishDate={new Intl.DateTimeFormat("fa-IR").format(
-                        new Date(article.createdAt),
-                      )}
-                      claps={article._count.likes}
-                      comments={article._count.comments}
-                      category={article.categories[0]?.name || "عمومی"}
-                      image={article.coverImageUrl}
-                    />
-                  ))}
-                </div>
-
-                {data.pagination && data.pagination.totalPages > 1 && (
-                  <div className="mt-12">
-                    <Pagination>
-                      <PaginationContent>
-                        <PaginationItem>
-                          <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} />
-                        </PaginationItem>
-                        {[...Array(data.pagination.totalPages)].map((_, i) => (
-                          <PaginationItem key={i}>
-                            <PaginationLink
-                              isActive={currentPage === i + 1}
-                              onClick={() => handlePageChange(i + 1)}
-                            >
-                              {i + 1}
-                            </PaginationLink>
-                          </PaginationItem>
-                        ))}
-                        <PaginationItem>
-                          <PaginationNext onClick={() => handlePageChange(currentPage + 1)} />
-                        </PaginationItem>
-                      </PaginationContent>
-                    </Pagination>
-                  </div>
+        {articles.length > 0 ? (
+          <div className="space-y-6">
+            {articles.map((article) => (
+              <ArticleCard
+                key={article.id}
+                id={article.id.toString()}
+                title={article.title}
+                excerpt={
+                  article.content.substring(0, 200).replace(/<[^>]*>?/gm, "") +
+                  "..."
+                }
+                author={{
+                  name: article.author.name || "ناشناس",
+                  avatar: article.author.avatarUrl || undefined,
+                }}
+                readTime={Math.ceil(article.content.length / 1000)}
+                publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                  article.createdAt
                 )}
-              </>
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-journal-light text-lg mb-4">
-                  هیچ مقاله‌ای یافت نشد.
-                </p>
-              </div>
-            )}
+                claps={article._count.claps}
+                comments={article._count.comments}
+                category={article.categories[0]?.name || "عمومی"}
+                image={article.coverImageUrl}
+              />
+            ))}
           </div>
+        ) : (
+          <p className="text-center text-muted-foreground py-16">
+            مقاله‌ای برای نمایش وجود ندارد.
+          </p>
+        )}
+
+        {/* 4. نمایش کامپوننت صفحه‌بندی */}
+        <div className="mt-12">
+          <Pagination totalPages={totalPages} currentPage={currentPage} />
         </div>
-      </section>
+      </div>
     </div>
   );
 };

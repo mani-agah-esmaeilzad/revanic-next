@@ -1,135 +1,110 @@
 // src/app/tags/[name]/page.tsx
-'use client';
-import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 import ArticleCard from "@/components/ArticleCard";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
+import { Pagination } from "@/components/Pagination"; // <-- ایمپورت کامپوننت
 
-interface FetchedArticle {
-    id: number;
-    title: string;
-    content: string;
-    coverImageUrl: string | null;
-    author: { name: string | null };
-    createdAt: string;
-    _count: { likes: number; comments: number };
-    categories: { name: string }[];
-}
+const ARTICLES_PER_PAGE = 10; // <-- تعداد مقالات در هر صفحه
 
-interface PaginationInfo {
-    page: number;
-    totalPages: number;
-}
-
-const TagPage = () => {
-    const params = useParams();
-    const tagName = decodeURIComponent(params.name as string);
-    const [articles, setArticles] = useState<FetchedArticle[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [pagination, setPagination] = useState<PaginationInfo | null>(null);
-
-    const fetchArticlesByTag = useCallback(async (page = 1) => {
-        setIsLoading(true);
-        try {
-            const response = await fetch(`/api/tags/${tagName}?page=${page}&limit=10`);
-            if (response.ok) {
-                const data = await response.json();
-                setArticles(data.articles);
-                setPagination(data.pagination);
-            }
-        } catch (error) {
-            console.error("Failed to fetch articles by tag:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [tagName]);
-
-    useEffect(() => {
-        if (tagName) {
-            fetchArticlesByTag(1);
-        }
-    }, [fetchArticlesByTag, tagName]);
-
-    const handlePageChange = (newPage: number) => {
-        if (newPage > 0 && newPage <= (pagination?.totalPages || 1)) {
-            fetchArticlesByTag(newPage);
-        }
+interface TagPageProps {
+    params: {
+        name: string;
     };
+    searchParams: {
+        page?: string;
+    };
+}
+
+const TagPage = async ({ params, searchParams }: TagPageProps) => {
+    const tagName = decodeURIComponent(params.name);
+    const currentPage = Number(searchParams.page) || 1;
+
+    const tag = await prisma.tag.findUnique({
+        where: { name: tagName },
+        include: {
+            // 1. دریافت تعداد کل مقالات برای این تگ
+            _count: {
+                select: { articles: true },
+            },
+        },
+    });
+
+    if (!tag) {
+        notFound();
+    }
+
+    // 2. دریافت مقالات صفحه‌بندی شده برای این تگ
+    const articles = await prisma.article.findMany({
+        where: {
+            status: "APPROVED",
+            tags: {
+                some: {
+                    tag: {
+                        name: tagName,
+                    },
+                },
+            },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (currentPage - 1) * ARTICLES_PER_PAGE,
+        take: ARTICLES_PER_PAGE,
+        include: {
+            author: { select: { name: true, avatarUrl: true } },
+            categories: { select: { name: true } },
+            _count: { select: { claps: true, comments: true } },
+        },
+    });
+
+    const totalArticles = tag._count.articles;
+    const totalPages = Math.ceil(totalArticles / ARTICLES_PER_PAGE);
 
     return (
-        <div className="min-h-screen bg-background">
-            <section className="py-16 bg-journal-cream/30">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto text-center">
-                        <p className="text-lg text-journal-light mb-2">مقالات مرتبط با</p>
-                        <h1 className="text-4xl font-bold text-journal">
-                            #{tagName}
-                        </h1>
-                    </div>
-                </div>
-            </section>
+        <div className="container mx-auto px-4 py-8">
+            <div className="max-w-4xl mx-auto">
+                <h1 className="text-4xl font-bold text-center mb-2">
+                    مقالات با تگ: <span className="text-primary">{tagName}</span>
+                </h1>
+                <p className="text-center text-muted-foreground mb-8">
+                    {totalArticles} مقاله یافت شد
+                </p>
 
-            <section className="py-12">
-                <div className="container mx-auto px-4">
-                    <div className="max-w-4xl mx-auto">
-                        {isLoading ? (
-                            <div className="space-y-6">
-                                <Skeleton className="h-40 w-full" />
-                                <Skeleton className="h-40 w-full" />
-                                <Skeleton className="h-40 w-full" />
-                            </div>
-                        ) : articles.length > 0 ? (
-                            <>
-                                <div className="space-y-6">
-                                    {articles.map((article) => (
-                                        <ArticleCard
-                                            key={article.id}
-                                            id={article.id.toString()}
-                                            title={article.title}
-                                            excerpt={article.content.substring(0, 150) + "..."}
-                                            author={{ name: article.author.name || "ناشناس" }}
-                                            readTime={Math.ceil(article.content.length / 1000)}
-                                            publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
-                                            claps={article._count.likes}
-                                            comments={article._count.comments}
-                                            category={article.categories[0]?.name || "عمومی"}
-                                            image={article.coverImageUrl}
-                                        />
-                                    ))}
-                                </div>
-
-                                {pagination && pagination.totalPages > 1 && (
-                                    <div className="mt-12">
-                                        <Pagination>
-                                            <PaginationContent>
-                                                <PaginationItem><PaginationPrevious onClick={() => handlePageChange(pagination.page - 1)} /></PaginationItem>
-                                                {[...Array(pagination.totalPages)].map((_, i) => (
-                                                    <PaginationItem key={i}><PaginationLink isActive={pagination.page === i + 1} onClick={() => handlePageChange(i + 1)}>{i + 1}</PaginationLink></PaginationItem>
-                                                ))}
-                                                <PaginationItem><PaginationNext onClick={() => handlePageChange(pagination.page + 1)} /></PaginationItem>
-                                            </PaginationContent>
-                                        </Pagination>
-                                    </div>
+                {articles.length > 0 ? (
+                    <div className="space-y-6">
+                        {articles.map((article) => (
+                            <ArticleCard
+                                key={article.id}
+                                id={article.id.toString()}
+                                title={article.title}
+                                excerpt={
+                                    article.content.substring(0, 200).replace(/<[^>]*>?/gm, "") +
+                                    "..."
+                                }
+                                author={{
+                                    name: article.author.name || "ناشناس",
+                                    avatar: article.author.avatarUrl || undefined,
+                                }}
+                                readTime={Math.ceil(article.content.length / 1000)}
+                                publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                                    article.createdAt
                                 )}
-                            </>
-                        ) : (
-                            <div className="text-center py-12">
-                                <p className="text-journal-light text-lg">
-                                    هیچ مقاله‌ای با این برچسب یافت نشد.
-                                </p>
-                            </div>
-                        )}
+                                claps={article._count.claps}
+                                comments={article._count.comments}
+                                category={article.categories[0]?.name || "عمومی"}
+                                image={article.coverImageUrl}
+                            />
+                        ))}
                     </div>
+                ) : (
+                    <p className="text-center text-muted-foreground py-16">
+                        مقاله‌ای با این تگ یافت نشد.
+                    </p>
+                )}
+
+                {/* 3. نمایش کامپوننت صفحه‌بندی */}
+                <div className="mt-12">
+                    <Pagination totalPages={totalPages} currentPage={currentPage} />
                 </div>
-            </section>
+            </div>
         </div>
     );
 };
