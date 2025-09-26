@@ -1,129 +1,176 @@
 // src/components/AnalyticsDashboard.tsx
-'use client';
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { Eye, Heart, MessageCircle } from 'lucide-react';
-import { Skeleton } from './ui/skeleton';
-import Link from 'next/link';
+"use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { BarChart, Eye, MessageSquare, Hand } from "lucide-react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import Link from "next/link";
+
+// =======================================================================
+//  1. تعریف تایپ‌ها برای داده‌های API
+// =======================================================================
 interface AnalyticsData {
+  stats: {
+    totalArticles: number;
     totalViews: number;
-    totalLikes: number;
+    totalClaps: number;
     totalComments: number;
-    chartData: { name: string; views: number }[];
-    topArticles: { id: number; title: string; _count: { views: number } }[];
+  };
+  chartData: {
+    date: string;
+    views: number;
+  }[];
+  topArticles: {
+    id: number;
+    title: string;
+    views: number;
+  }[];
 }
 
-export const AnalyticsDashboard = () => {
-    const [data, setData] = useState<AnalyticsData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchAnalytics = async () => {
-            try {
-                const response = await fetch('/api/me/analytics');
-                if (response.ok) {
-                    const analyticsData = await response.json();
-                    setData(analyticsData);
-                }
-            } catch (error) {
-                console.error("Failed to fetch analytics:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchAnalytics();
-    }, []);
-
-    if (isLoading) {
-        return (
-            <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                    <Skeleton className="h-28" />
-                </div>
-                <Skeleton className="h-80" />
-                <Skeleton className="h-48" />
-            </div>
-        );
-    }
-
-    if (!data) {
-        return <p className="text-center text-muted-foreground">اطلاعاتی برای نمایش وجود ندارد.</p>
-    }
-
-    return (
-        <div className="space-y-6">
-            {/* Stat Cards */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">مجموع بازدیدها</CardTitle>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{data.totalViews.toLocaleString('fa-IR')}</div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">مجموع لایک‌ها</CardTitle>
-                        <Heart className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{data.totalLikes.toLocaleString('fa-IR')}</div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">مجموع نظرات</CardTitle>
-                        <MessageCircle className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{data.totalComments.toLocaleString('fa-IR')}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Views Chart */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>بازدید ۷ روز گذشته</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                    <ResponsiveContainer width="100%" height={350}>
-                        <BarChart data={data.chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                            <Tooltip wrapperClassName="!bg-background !border-border rounded-lg" />
-                            <Bar dataKey="views" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-
-             {/* Top Articles */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>محبوب‌ترین مقالات شما</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="space-y-4">
-                        {data.topArticles.map(article => (
-                            <div key={article.id} className="flex items-center justify-between">
-                                <Link href={`/articles/${article.id}`} className="font-medium hover:underline">{article.title}</Link>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                    <Eye className="h-4 w-4 ml-2" />
-                                    {article._count.views.toLocaleString('fa-IR')} بازدید
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
+// =======================================================================
+//  2. تابع Fetcher
+// =======================================================================
+const fetchAnalyticsData = async (): Promise<AnalyticsData> => {
+  const response = await fetch("/api/me/analytics");
+  if (!response.ok) {
+    throw new Error("Failed to fetch analytics data.");
+  }
+  return response.json();
 };
+
+// =======================================================================
+//  3. کامپوننت اصلی داشبورد
+// =======================================================================
+export function AnalyticsDashboard() {
+  const { data, isLoading, isError } = useQuery<AnalyticsData>({
+    queryKey: ["analytics-dashboard"],
+    queryFn: fetchAnalyticsData,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+        </div>
+        <Skeleton className="h-80" />
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>خطا</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-red-500">
+            متاسفانه در بارگذاری آمار مشکلی پیش آمد. لطفا بعدا دوباره تلاش
+            کنید.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { stats, chartData, topArticles } = data;
+
+  return (
+    <div className="space-y-6">
+      {/* کارت‌های آمار کلی */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">کل بازدیدها</CardTitle>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalViews}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">کل تشویق‌ها</CardTitle>
+            <Hand className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalClaps}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">کل نظرات</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalComments}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">کل مقالات</CardTitle>
+            <BarChart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalArticles}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* نمودار بازدید */}
+      <Card>
+        <CardHeader>
+          <CardTitle>نمودار بازدید ۳۰ روز گذشته</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip />
+              <Line type="monotone" dataKey="views" stroke="#16a34a" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+      
+      {/* لیست مقالات برتر */}
+      <Card>
+          <CardHeader>
+              <CardTitle>محبوب‌ترین مقالات (بر اساس بازدید)</CardTitle>
+          </CardHeader>
+          <CardContent>
+              <div className="space-y-4">
+                  {topArticles.map((article, index) => (
+                      <div key={article.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <span className="text-lg font-bold text-muted-foreground">{index + 1}</span>
+                            <Link href={`/articles/${article.id}`} className="font-medium hover:underline">
+                                {article.title}
+                            </Link>
+                          </div>
+                          <div className="font-semibold">{article.views} بازدید</div>
+                      </div>
+                  ))}
+              </div>
+          </CardContent>
+      </Card>
+
+    </div>
+  );
+}

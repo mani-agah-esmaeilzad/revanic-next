@@ -1,95 +1,91 @@
 // src/app/api/me/analytics/route.ts
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
-import { prisma } from '@/lib/prisma';
-import { subDays, format } from 'date-fns';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
 
-interface JwtPayload {
-    userId: number;
-}
+export async function GET(req: Request) {
+  const token = cookies().get("token")?.value;
+  if (!token) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
 
-export async function GET() {
-    const token = cookies().get('token')?.value;
-    if (!token) {
-        return new NextResponse('Authentication token not found', { status: 401 });
-    }
+  try {
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    const userId = payload.userId as number;
 
-    try {
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        const userId = payload.userId as number;
-        if (!userId) {
-            return new NextResponse('Invalid token payload', { status: 401 });
-        }
+    // 1. دریافت تمام مقالات کاربر
+    const articles = await prisma.article.findMany({
+      where: { authorId: userId, status: "APPROVED" },
+      include: {
+        _count: {
+          select: {
+            views: true,
+            claps: true,
+            comments: true,
+          },
+        },
+      },
+    });
 
-        const userArticles = await prisma.article.findMany({
-            where: { authorId: userId },
-            select: { id: true }
-        });
-        const articleIds = userArticles.map(a => a.id);
+    // 2. محاسبه آمار کلی
+    const totalArticles = articles.length;
+    const totalViews = articles.reduce((sum, article) => sum + article._count.views, 0);
+    const totalClaps = articles.reduce((sum, article) => sum + article._count.claps, 0);
+    const totalComments = articles.reduce((sum, article) => sum + article._count.comments, 0);
 
-        // 1. آمار کلی
-        const totalViews = await prisma.articleView.count({ where: { articleId: { in: articleIds } } });
-        const totalClapsResult = await prisma.clap.aggregate({ // <-- اصلاح شد
-            _sum: { count: true },
-            where: { articleId: { in: articleIds } }
-        });
-        const totalClaps = totalClapsResult._sum.count || 0; // <-- اصلاح شد
-        const totalComments = await prisma.comment.count({ where: { articleId: { in: articleIds } } });
+    // 3. محاسبه داده‌های نمودار (بازدید در 30 روز گذشته)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // 2. آمار بازدید ۷ روز گذشته برای نمودار
-        const sevenDaysAgo = subDays(new Date(), 7);
-        const dailyViewsRaw = await prisma.articleView.findMany({
-            where: {
-                articleId: { in: articleIds },
-                viewedAt: { gte: sevenDaysAgo }
-            },
-            select: {
-                viewedAt: true
-            }
-        });
+    const dailyViews = await prisma.articleView.groupBy({
+      by: ['viewedAt'],
+      where: {
+        article: {
+          authorId: userId,
+        },
+        viewedAt: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        viewedAt: 'asc',
+      },
+    });
+    
+    // فرمت کردن داده‌ها برای نمودار
+    const chartData = dailyViews.map(view => ({
+        date: view.viewedAt.toISOString().split('T')[0], // فرمت YYYY-MM-DD
+        views: view._count.id
+    }));
 
-        const dailyViewsMap = new Map<string, number>();
-        for (const view of dailyViewsRaw) {
-            const day = format(new Date(view.viewedAt), 'yyyy-MM-dd');
-            dailyViewsMap.set(day, (dailyViewsMap.get(day) || 0) + 1);
-        }
+    // 4. پیدا کردن ۵ مقاله برتر
+    const topArticles = articles
+      .sort((a, b) => b._count.views - a._count.views)
+      .slice(0, 5)
+      .map(article => ({
+          id: article.id,
+          title: article.title,
+          views: article._count.views
+      }));
 
-        const chartData = Array.from({ length: 7 }).map((_, i) => {
-            const date = subDays(new Date(), i);
-            const formattedDate = format(date, 'yyyy-MM-dd');
-            return {
-                name: new Intl.DateTimeFormat('fa-IR', { weekday: 'short' }).format(date),
-                views: dailyViewsMap.get(formattedDate) || 0
-            };
-        }).reverse();
+    return NextResponse.json({
+      stats: {
+        totalArticles,
+        totalViews,
+        totalClaps,
+        totalComments,
+      },
+      chartData,
+      topArticles,
+    });
 
-        // 3. ۵ مقاله پربازدید
-        const topArticles = await prisma.article.findMany({
-            where: { authorId: userId },
-            include: {
-                _count: {
-                    select: { views: true }
-                }
-            },
-            orderBy: {
-                views: { _count: 'desc' }
-            },
-            take: 5
-        });
-
-
-        return NextResponse.json({
-            totalViews,
-            totalLikes: totalClaps, // <-- اصلاح شد
-            totalComments,
-            chartData,
-            topArticles
-        });
-
-    } catch (error) {
-        console.error('GET_ANALYTICS_ERROR', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
-    }
+  } catch (error) {
+    console.error("ANALYTICS_API_ERROR", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
 }
