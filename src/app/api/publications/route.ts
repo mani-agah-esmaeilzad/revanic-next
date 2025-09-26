@@ -1,87 +1,83 @@
 // src/app/api/publications/route.ts
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
-import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
 
-// اسکیمای اعتبارسنجی برای ایجاد یک انتشارات جدید
-const createPublicationSchema = z.object({
-    name: z.string().min(3, 'نام انتشارات باید حداقل ۳ کاراکتر باشد.').max(100),
-    description: z.string().max(500, 'توضیحات نمی‌تواند بیشتر از ۵۰۰ کاراکتر باشد.').optional(),
-});
-
-// GET: دریافت لیست تمام انتشارات
-export async function GET() {
-    try {
-        const publications = await prisma.publication.findMany({
-            include: {
-                _count: {
-                    select: { members: true, articles: true },
-                },
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
-        return NextResponse.json(publications);
-    } catch (error) {
-        console.error('GET_PUBLICATIONS_ERROR', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
-    }
+// تابعی برای ساختن اسلاگ (slug) تمیز از نام نشریه
+function createSlug(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/\s+/g, "-") // جایگزینی فاصله‌ها با خط تیره
+        .replace(/[^\w\-]+/g, "") // حذف کاراکترهای نامعتبر
+        .replace(/\-\-+/g, "-") // جایگزینی چند خط تیره با یکی
+        .replace(/^-+/, "") // حذف خط تیره از ابتدا
+        .replace(/-+$/, ""); // حذف خط تیره از انتها
 }
 
-
-// POST: ایجاد یک انتشارات جدید
 export async function POST(req: Request) {
-    const token = cookies().get('token')?.value;
+    const token = cookies().get("token")?.value;
     if (!token) {
-        return new NextResponse('Authentication token not found', { status: 401 });
+        return new NextResponse("Authentication token not found", { status: 401 });
     }
 
     try {
+        // 1. احراز هویت و دریافت اطلاعات کاربر
         const secret = new TextEncoder().encode(process.env.JWT_SECRET);
         const { payload } = await jwtVerify(token, secret);
         const userId = payload.userId as number;
 
-        const body = await req.json();
-        const validation = createPublicationSchema.safeParse(body);
-
-        if (!validation.success) {
-            return NextResponse.json({ message: validation.error.errors.map(e => e.message).join(', ') }, { status: 400 });
+        if (!userId) {
+            return new NextResponse("Invalid token payload", { status: 401 });
         }
 
-        const { name, description } = validation.data;
+        // 2. دریافت و اعتبارسنجی داده‌های ورودی
+        const { name, description } = await req.json();
+        if (!name || name.length < 3) {
+            return NextResponse.json(
+                { error: "Name is required and must be at least 3 characters long." },
+                { status: 400 }
+            );
+        }
 
-        // ایجاد یک slug منحصر به فرد و خوانا برای URL
-        const slug = name.trim().replace(/\s+/g, '-').toLowerCase();
-
-        const existingPublication = await prisma.publication.findFirst({
-            where: { OR: [{ name }, { slug }] },
+        // 3. ایجاد اسلاگ و بررسی عدم تکراری بودن آن
+        let slug = createSlug(name);
+        const existingPublication = await prisma.publication.findUnique({
+            where: { slug },
         });
 
         if (existingPublication) {
-            return new NextResponse('انتشاراتی با این نام یا اسلاگ уже موجود است.', { status: 409 });
+            // اگر اسلاگ تکراری بود، یک عدد تصادفی به انتهای آن اضافه کن
+            slug = `${slug}-${Math.floor(Math.random() * 1000)}`;
         }
 
+        // 4. ایجاد نشریه و اتصال کاربر به آن به عنوان مالک (OWNER)
         const newPublication = await prisma.publication.create({
             data: {
                 name,
                 slug,
                 description,
+                // ایجاد رکورد در جدول واسط UsersOnPublications
                 members: {
                     create: {
                         userId: userId,
-                        role: 'OWNER', // کاربری که انتشارات را می‌سازد، مالک آن است
+                        role: "OWNER", // نقش کاربر به عنوان مالک تعیین می‌شود
                     },
                 },
+            },
+            include: {
+                members: true, // بازگرداندن اطلاعات اعضا برای اطمینان
             },
         });
 
         return NextResponse.json(newPublication, { status: 201 });
 
     } catch (error) {
-        console.error('CREATE_PUBLICATION_ERROR', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        console.error("CREATE_PUBLICATION_ERROR", error);
+        // @ts-ignore
+        if (error.code === 'P2002') { // خطای ইউনিক بودن دیتابیس
+            return NextResponse.json({ error: "A publication with this name already exists." }, { status: 409 });
+        }
+        return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
