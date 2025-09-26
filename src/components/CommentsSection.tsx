@@ -1,129 +1,249 @@
-'use client';
+// src/components/CommentsSection.tsx
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import Link from 'next/link';
+import { useState, useMemo, FC } from "react";
+import { useForm, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Prisma } from "@prisma/client";
+import { useMutation } from "@tanstack/react-query";
 
-// Define types for the comment and user
-interface CommentUser {
-  id: number;
-  name: string | null;
-}
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, MessageSquare, CornerDownRight } from "lucide-react";
+import Link from "next/link";
 
-interface Comment {
-  id: number;
-  text: string;
-  createdAt: string;
-  user: CommentUser;
+// =======================================================================
+//  1. تعریف تایپ‌ها و Schema
+// =======================================================================
+
+const commentFormSchema = z.object({
+  text: z.string().min(1, "متن نظر نمی‌تواند خالی باشد.").max(1000, "نظر شما بیش از حد طولانی است."),
+});
+
+type CommentFormData = z.infer<typeof commentFormSchema>;
+
+type CommentWithUser = Prisma.CommentGetPayload<{
+  include: { user: { select: { id: true, name: true, avatarUrl: true } } };
+}>;
+
+// تایپ جدید برای نمایش تو در تو
+interface CommentWithReplies extends CommentWithUser {
+  replies: CommentWithReplies[];
 }
 
 interface CommentsSectionProps {
   articleId: number;
-  isUserLoggedIn: boolean;
+  initialComments: CommentWithUser[];
+  currentUserId: number | null;
 }
 
-export const CommentsSection = ({ articleId, isUserLoggedIn }: CommentsSectionProps) => {
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface CommentProps {
+  comment: CommentWithReplies;
+  onReply: (commentId: number, text: string) => Promise<void>;
+  currentUserId: number | null;
+  articleId: number;
+}
 
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        const response = await fetch(`/api/articles/${articleId}/comments`);
-        if (response.ok) {
-          const data = await response.json();
-          setComments(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch comments:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+interface CommentFormProps {
+  articleId: number;
+  parentId?: number | null;
+  onCommentPosted: (newComment: CommentWithUser) => void;
+  placeholder?: string;
+  buttonText?: string;
+}
 
-    fetchComments();
-  }, [articleId]);
 
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
+// =======================================================================
+//  2. کامپوننت فرم ارسال نظر (برای نظرات اصلی و پاسخ‌ها)
+// =======================================================================
+const CommentForm: FC<CommentFormProps> = ({ articleId, parentId = null, onCommentPosted, placeholder, buttonText }) => {
+  const { toast } = useToast();
+  const form = useForm<CommentFormData>({
+    resolver: zodResolver(commentFormSchema),
+    defaultValues: { text: "" },
+  });
 
-    setIsSubmitting(true);
-    try {
+  const mutation = useMutation<CommentWithUser, Error, CommentFormData>({
+    mutationFn: async (data) => {
       const response = await fetch(`/api/articles/${articleId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: newComment }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, parentId }),
       });
-
-      if (response.ok) {
-        const createdComment = await response.json();
-        // Add the new comment to the top of the list
-        setComments([createdComment, ...comments]);
-        setNewComment('');
-      } else {
-        console.error("Failed to post comment");
-        // Optionally, show an error to the user
+      if (!response.ok) {
+        throw new Error("Failed to post comment");
       }
-    } catch (error) {
-      console.error("Error submitting comment:", error);
-    } finally {
-      setIsSubmitting(false);
+      return response.json();
+    },
+    onSuccess: (newComment) => {
+      onCommentPosted(newComment);
+      form.reset();
+      toast({ title: "موفقیت", description: "نظر شما با موفقیت ثبت شد." });
+    },
+    onError: () => {
+      toast({ title: "خطا", description: "خطا در ارسال نظر. لطفاً دوباره تلاش کنید.", variant: "destructive" });
     }
+  });
+
+  const onSubmit: SubmitHandler<CommentFormData> = (data) => {
+    mutation.mutate(data);
   };
 
   return (
-    <div className="space-y-6">
-      {isUserLoggedIn ? (
-        <form onSubmit={handleSubmitComment} className="space-y-4">
-          <Textarea
-            placeholder="نظر خود را بنویسید..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            className="min-h-24"
-            required
-          />
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'در حال ارسال...' : 'ارسال نظر'}
-          </Button>
-        </form>
-      ) : (
-        <div className="text-center py-8 text-journal-light border rounded-lg">
-          <p className="text-lg mb-4">برای مشاهده و ارسال نظرات وارد حساب کاربری خود شوید</p>
-          <Link href="/login">
-            <Button variant="outline">ورود به حساب کاربری</Button>
-          </Link>
-        </div>
-      )}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="text"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Textarea placeholder={placeholder || "نظر خود را بنویسید..."} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <Button type="submit" disabled={mutation.isPending}>
+          {mutation.isPending && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          {buttonText || 'ارسال نظر'}
+        </Button>
+      </form>
+    </Form>
+  );
+};
 
-      <div className="space-y-8">
-        {isLoading ? (
-          <p>در حال بارگذاری نظرات...</p>
-        ) : comments.length > 0 ? (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex gap-4">
-              <Avatar>
-                <AvatarFallback>{comment.user.name?.charAt(0) || '؟'}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-journal">{comment.user.name || 'کاربر ناشناس'}</span>
-                  <span className="text-xs text-journal-light">
-                    {new Intl.DateTimeFormat('fa-IR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(comment.createdAt))}
-                  </span>
-                </div>
-                <p className="text-journal-light mt-2">{comment.text}</p>
-              </div>
-            </div>
-          ))
-        ) : (
-          <p className="text-center text-journal-light py-4">هنوز نظری ثبت نشده است. اولین نفر باشید!</p>
+
+// =======================================================================
+//  3. کامپوننت نمایش یک نظر (Recursive Component)
+// =======================================================================
+const Comment: FC<CommentProps> = ({ comment, onReply, currentUserId, articleId }) => {
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const commentDate = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(comment.createdAt));
+
+  const handleReplyPosted = (newReply: CommentWithUser) => {
+    // This function doesn't need to do anything here, because the parent state handles it
+    setShowReplyForm(false);
+  }
+
+  return (
+    <div className="flex gap-4">
+      <Link href={`/authors/${comment.user.id}`}>
+        <Avatar className="h-10 w-10">
+          <AvatarImage src={comment.user.avatarUrl || ""} />
+          <AvatarFallback>{comment.user.name?.charAt(0)}</AvatarFallback>
+        </Avatar>
+      </Link>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <Link href={`/authors/${comment.user.id}`} className="font-bold">{comment.user.name}</Link>
+          <span className="text-xs text-muted-foreground">{commentDate}</span>
+        </div>
+        <p className="text-sm my-2">{comment.text}</p>
+        {currentUserId && (
+          <Button variant="ghost" size="sm" onClick={() => setShowReplyForm(!showReplyForm)}>
+            <CornerDownRight className="ml-2 h-4 w-4" />
+            پاسخ
+          </Button>
+        )}
+
+        {showReplyForm && (
+          <div className="mt-4">
+            <CommentForm
+              articleId={articleId}
+              parentId={comment.id}
+              onCommentPosted={handleReplyPosted}
+              placeholder={`در پاسخ به ${comment.user.name}...`}
+              buttonText="ارسال پاسخ"
+            />
+          </div>
+        )}
+
+        {/* بخش نمایش پاسخ‌ها */}
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-4 space-y-4 pr-6 border-r-2">
+            {comment.replies.map(reply => (
+              <Comment key={reply.id} comment={reply} onReply={onReply} currentUserId={currentUserId} articleId={articleId} />
+            ))}
+          </div>
         )}
       </div>
     </div>
+  );
+};
+
+
+// =======================================================================
+//  4. کامپوننت اصلی بخش نظرات
+// =======================================================================
+export const CommentsSection: FC<CommentsSectionProps> = ({ articleId, initialComments, currentUserId }) => {
+  const [comments, setComments] = useState<CommentWithUser[]>(initialComments);
+
+  const handleCommentPosted = (newComment: CommentWithUser) => {
+    setComments(prev => [...prev, newComment]);
+  }
+
+  // این تابع نظرات صاف را به ساختار درختی تبدیل می‌کند
+  const nestedComments = useMemo(() => {
+    const commentMap: { [key: number]: CommentWithReplies } = {};
+    const rootComments: CommentWithReplies[] = [];
+
+    // First pass: create a map of all comments
+    comments.forEach(comment => {
+      commentMap[comment.id] = { ...comment, replies: [] };
+    });
+
+    // Second pass: link replies to their parents
+    comments.forEach(comment => {
+      if (comment.parentId && commentMap[comment.parentId]) {
+        commentMap[comment.parentId].replies.push(commentMap[comment.id]);
+      } else {
+        rootComments.push(commentMap[comment.id]);
+      }
+    });
+
+    return rootComments;
+  }, [comments]);
+
+
+  return (
+    <section>
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        <MessageSquare />
+        نظرات ({comments.length})
+      </h2>
+
+      {/* فرم ارسال نظر اصلی */}
+      {currentUserId ? (
+        <div className="mb-8">
+          <CommentForm articleId={articleId} onCommentPosted={handleCommentPosted} />
+        </div>
+      ) : (
+        <p className="mb-8 text-center text-muted-foreground">
+          برای ثبت نظر، لطفاً <Link href="/login" className="text-primary hover:underline">وارد شوید</Link>.
+        </p>
+      )}
+
+      {/* لیست نظرات */}
+      <div className="space-y-6">
+        {nestedComments.length > 0 ? (
+          nestedComments.map(comment => (
+            <Comment
+              key={comment.id}
+              comment={comment}
+              onReply={() => Promise.resolve()} // The main form handles adding replies
+              currentUserId={currentUserId}
+              articleId={articleId}
+            />
+          ))
+        ) : (
+          <p className="text-center text-muted-foreground py-4">هنوز نظری ثبت نشده است. اولین نفر باشید!</p>
+        )}
+      </div>
+    </section>
   );
 };

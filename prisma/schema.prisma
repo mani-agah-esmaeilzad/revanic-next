@@ -9,15 +9,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enum حذف شد چون SQLite از آن پشتیبانی نمی‌کند
-
-// ================== MODELS ==================
-
 model User {
   id                     Int            @id @default(autoincrement())
   email                  String         @unique
   name                   String?
-  avatarUrl              String? // <-- این فیلد اضافه شد
+  avatarUrl              String?
   password               String
   bio                    String?
   role                   String         @default("USER") // 'USER' or 'ADMIN'
@@ -75,13 +71,11 @@ model UsersOnPublications {
   userId        Int
   publication   Publication       @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   publicationId Int
-  role          String            @default("WRITER") // <-- تغییر از PublicationRole به String
+  role          String            @default("WRITER") 
   assignedAt    DateTime          @default(now())
 
   @@id([userId, publicationId])
 }
-
-// ... بقیه مدل‌ها بدون هیچ تغییری باقی می‌مانند ...
 
 model ArticleView {
   id        Int      @id @default(autoincrement())
@@ -157,6 +151,9 @@ model Bookmark {
   @@id([userId, articleId])
 }
 
+// =======================================================================
+// --- تغییرات اصلی در مدل `Comment` اعمال شده است ---
+// =======================================================================
 model Comment {
   id        Int      @id @default(autoincrement())
   text      String
@@ -165,7 +162,13 @@ model Comment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  // فیلدهای جدید برای سیستم پاسخ
+  parentId  Int?
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
 }
+// =======================================================================
 
 model Subscription {
   id                Int      @id @default(autoincrement())
@@ -180,20 +183,12 @@ model Subscription {
 
 model Highlight {
   id        Int      @id @default(autoincrement())
-  
-  // برای ذخیره متن دقیق هایلایت شده
   text      String   
-  
-  // برای ذخیره اطلاعات مکان هایلایت در متن
-  // ما از یک شناساگر منحصر به فرد (UUID) که در فرانت‌اند تولید می‌شود استفاده خواهیم کرد
   domId     String   @unique
-
-  // روابط
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   articleId Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
-
   createdAt DateTime @default(now())
 
   @@index([articleId])
