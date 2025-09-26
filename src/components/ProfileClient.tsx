@@ -1,13 +1,13 @@
 // src/components/ProfileClient.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Edit3, LogOut, Crown } from "lucide-react";
+import { Edit3, LogOut, Crown, Loader2 } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
 import { useRouter } from "next/navigation";
 import { ProfileSettings } from "./ProfileSettings";
@@ -16,6 +16,7 @@ import { Skeleton } from "./ui/skeleton";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { useQuery } from "@tanstack/react-query";
 import { Prisma } from "@prisma/client";
+import { useToast } from "@/components/ui/use-toast"; // <-- ایمپورت useToast
 
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
@@ -124,19 +125,54 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
   const joinDate = new Intl.DateTimeFormat("fa-IR").format(new Date(user.createdAt));
   const [activeTab, setActiveTab] = useState("articles");
 
+  // State های جدید برای آپلود آواتار
+  const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+
   // استفاده از useQuery برای دریافت داده‌های تب "ذخیره شده"
   const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<Article[]>({
     queryKey: ['savedArticles'],
     queryFn: fetchSavedArticles,
-    enabled: activeTab === 'saved', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
+    enabled: activeTab === 'saved',
   });
 
   // استفاده از useQuery برای دریافت داده‌های تب "تشویق شده"
   const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<Article[]>({
     queryKey: ['clappedArticles'],
     queryFn: fetchClappedArticles,
-    enabled: activeTab === 'clapped', // فقط زمانی دیتا رو بگیر که این تب فعال باشه
+    enabled: activeTab === 'clapped',
   });
+
+  // تابع برای مدیریت آپلود آواتار
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/me/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const data = await response.json();
+      setAvatarUrl(data.url); // به‌روزرسانی تصویر در UI
+      toast({ title: "موفقیت‌آمیز", description: "تصویر پروفایل شما با موفقیت به‌روز شد." });
+
+    } catch (error) {
+      toast({ title: "خطا", description: "آپلود تصویر با خطا مواجه شد.", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -148,19 +184,34 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex flex-col items-center md:items-start">
-                    <Avatar className="h-32 w-32 mb-4">
-                      <AvatarImage src={""} />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      accept="image/*"
+                    />
+                    <Avatar
+                      className="h-32 w-32 mb-4 cursor-pointer relative group"
+                      onClick={() => !isUploading && fileInputRef.current?.click()}
+                    >
+                      <AvatarImage src={avatarUrl || ""} />
                       <AvatarFallback className="bg-journal-green text-white font-bold text-4xl">
                         {user.name?.charAt(0) || "U"}
                       </AvatarFallback>
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                        {isUploading ? <Loader2 className="h-8 w-8 text-white animate-spin" /> : <Edit3 className="h-8 w-8 text-white" />}
+                      </div>
                     </Avatar>
                     <Button
                       variant="outline"
                       size="sm"
                       className="flex items-center gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
                     >
-                      <Edit3 className="h-4 w-4" />
-                      تغییر تصویر
+                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit3 className="h-4 w-4" />}
+                      {isUploading ? 'در حال آپلود...' : 'تغییر تصویر'}
                     </Button>
                   </div>
                   <div className="flex-1">
