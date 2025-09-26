@@ -17,6 +17,7 @@ model User {
   id                     Int            @id @default(autoincrement())
   email                  String         @unique
   name                   String?
+  avatarUrl              String? // <-- این فیلد اضافه شد
   password               String
   bio                    String?
   role                   String         @default("USER") // 'USER' or 'ADMIN'

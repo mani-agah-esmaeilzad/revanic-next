@@ -4,9 +4,9 @@ import { jwtVerify } from 'jose';
 
 export const config = {
   matcher: [
-    '/profile/:path*', 
-    '/write/:path*', 
-    '/admin/:path*', 
+    '/profile/:path*',
+    '/write/:path*',
+    '/admin/:path*',
     '/api/admin/:path*'
   ],
 };
@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     if (!secret) {
-        throw new Error('JWT_SECRET is not set in environment variables.');
+      throw new Error('JWT_SECRET is not set in environment variables.');
     }
 
     await jwtVerify(token, secret);
