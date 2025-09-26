@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import ArticleCard from "@/components/ArticleCard";
 import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
+import { Pin } from "lucide-react";
 
 interface JwtPayload extends JWTPayload {
   userId: number;
@@ -15,7 +16,6 @@ interface JwtPayload extends JWTPayload {
 
 const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
   const authorId = parseInt(params.id, 10);
-
   if (isNaN(authorId)) {
     notFound();
   }
@@ -23,16 +23,22 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
   const author = await prisma.user.findUnique({
     where: { id: authorId },
     include: {
+      pinnedArticle: {
+        include: {
+          author: { select: { name: true, avatarUrl: true } },
+          _count: { select: { claps: true, comments: true } },
+          categories: { select: { name: true } },
+        },
+      },
       articles: {
         where: { status: 'APPROVED' },
         orderBy: { createdAt: 'desc' },
         include: {
           author: { select: { name: true, avatarUrl: true } },
           _count: { select: { claps: true, comments: true } },
-          categories: { select: { name: true } }
-        }
+          categories: { select: { name: true } },
+        },
       },
-      // کوئری برای شمارش دنبال‌کننده‌ها از قبل وجود داشت
       _count: { select: { followers: true, following: true } },
     },
   });
@@ -41,11 +47,13 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
+  const otherArticles = author.pinnedArticle
+    ? author.articles.filter(article => article.id !== author.pinnedArticleId)
+    : author.articles;
+
   let currentUserId: number | null = null;
   let userIsFollowingAuthor = false;
-
-  const cookieStore = cookies();
-  const token = cookieStore.get("token")?.value;
+  const token = cookies().get("token")?.value;
 
   if (token) {
     try {
@@ -83,7 +91,6 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                   <div className="flex-1 text-center md:text-right">
                     <h1 className="text-3xl font-bold text-foreground mb-2">{author.name}</h1>
                     <p className="text-muted-foreground mb-4">{author.bio}</p>
-                    {/* --- تغییر اصلی در این بخش اعمال شده است --- */}
                     <div className="flex justify-center md:justify-start gap-6 text-muted-foreground mb-4">
                       <div className="text-center">
                         <div className="font-bold text-lg text-foreground">{author.articles.length}</div>
@@ -106,10 +113,34 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
               </CardContent>
             </Card>
 
-            <h2 className="text-2xl font-bold text-foreground mb-6">مقالات منتشر شده توسط {author.name}</h2>
+            {author.pinnedArticle && (
+              <div className="mb-12">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-muted-foreground">
+                  <Pin className="h-5 w-5" />
+                  مقاله پین شده
+                </h2>
+                <ArticleCard
+                  key={author.pinnedArticle.id}
+                  id={author.pinnedArticle.id.toString()}
+                  title={author.pinnedArticle.title}
+                  excerpt={author.pinnedArticle.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
+                  author={{ name: author.pinnedArticle.author.name || 'ناشناس', avatar: author.pinnedArticle.author.avatarUrl || undefined }}
+                  readTime={Math.ceil(author.pinnedArticle.content.length / 1000)}
+                  publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(author.pinnedArticle.createdAt))}
+                  claps={author.pinnedArticle._count.claps}
+                  comments={author.pinnedArticle._count.comments}
+                  category={author.pinnedArticle.categories[0]?.name || 'عمومی'}
+                  image={author.pinnedArticle.coverImageUrl}
+                />
+              </div>
+            )}
+
+            <h2 className="text-2xl font-bold text-foreground mb-6">
+              {author.pinnedArticle ? 'سایر مقالات' : 'مقالات منتشر شده توسط'} {author.name}
+            </h2>
             <div className="space-y-6">
-              {author.articles.length > 0 ? (
-                author.articles.map((article) => (
+              {otherArticles.length > 0 ? (
+                otherArticles.map((article) => (
                   <ArticleCard
                     key={article.id}
                     id={article.id.toString()}
@@ -117,7 +148,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                     excerpt={article.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
                     author={{ name: article.author.name || 'ناشناس', avatar: article.author.avatarUrl || undefined }}
                     readTime={Math.ceil(article.content.length / 1000)}
-                    publishDate={new Intl.DateTimeFormat('fa-IR').format(article.createdAt)}
+                    publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(article.createdAt))}
                     claps={article._count.claps}
                     comments={article._count.comments}
                     category={article.categories[0]?.name || 'عمومی'}
@@ -125,7 +156,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                   />
                 ))
               ) : (
-                <p className="text-center text-muted-foreground py-8">این نویسنده هنوز مقاله‌ای منتشر نکرده است.</p>
+                 author.pinnedArticle ? null : <p className="text-center text-muted-foreground py-8">این نویسنده هنوز مقاله‌ای منتشر نکرده است.</p>
               )}
             </div>
           </div>

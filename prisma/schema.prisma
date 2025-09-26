@@ -19,6 +19,8 @@ model User {
   role                   String         @default("USER") // 'USER' or 'ADMIN'
   articles               Article[]
   claps                  Clap[]
+  pinnedArticleId        Int?           @unique
+  pinnedArticle          Article?       @relation("PinnedArticle", fields: [pinnedArticleId], references: [id], onDelete: SetNull)
   comments               Comment[]
   bookmarks              Bookmark[]
   following              Follow[]       @relation("UserFollows")
@@ -43,6 +45,7 @@ model Article {
   categories    Category[]     @relation("ArticleToCategory")
   tags          TagsOnArticles[]
   claps         Clap[]
+  pinnedByUsers User[]         @relation("PinnedArticle")
   comments      Comment[]
   bookmarks     Bookmark[]
   notifications Notification[]

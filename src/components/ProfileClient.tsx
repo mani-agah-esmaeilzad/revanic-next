@@ -7,22 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Edit3, LogOut, Crown, Loader2 } from "lucide-react";
+import { Edit3, LogOut, Crown, Loader2, Pin, PinOff } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
 import { useRouter } from "next/navigation";
 import { ProfileSettings } from "./ProfileSettings";
 import { DeleteArticleButton } from "./DeleteArticleButton";
 import { Skeleton } from "./ui/skeleton";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Prisma } from "@prisma/client";
 import { useToast } from "@/components/ui/use-toast";
 
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
 // =======================================================================
-
-// A helper type to get the full user object with relations from Prisma
 type UserPayload = Prisma.UserGetPayload<{
   include: {
     subscription: true;
@@ -33,19 +31,17 @@ type UserPayload = Prisma.UserGetPayload<{
         categories: { select: { name: true } };
       };
     };
-    // --- تغییر اصلی اول: اضافه کردن _count به تایپ ---
     _count: {
       select: {
         followers: true;
         following: true;
       };
     };
+    pinnedArticle: true;
   };
 }>;
 
-// The main UserData type now uses the Prisma payload
 type UserData = UserPayload;
-
 type Article = UserData["articles"][0];
 type Subscription = UserData["subscription"];
 type ArticleStatus = Article["status"];
@@ -55,29 +51,35 @@ interface ProfileClientProps {
 }
 
 // =======================================================================
-//  2. توابع دریافت داده (Data Fetching Functions)
+//  2. توابع Fetcher
 // =======================================================================
-
 const fetchSavedArticles = async (): Promise<Article[]> => {
   const response = await fetch("/api/me/bookmarks");
-  if (!response.ok) {
-    throw new Error("Failed to fetch saved articles");
-  }
+  if (!response.ok) throw new Error("Failed to fetch saved articles");
   return response.json();
 };
 
 const fetchClappedArticles = async (): Promise<Article[]> => {
   const response = await fetch("/api/me/claps");
-  if (!response.ok) {
-    throw new Error("Failed to fetch clapped articles");
-  }
+  if (!response.ok) throw new Error("Failed to fetch clapped articles");
   return response.json();
 };
 
-// =======================================================================
-//  3. کامپوننت‌های کوچک و کمکی (Helper Components)
-// =======================================================================
+const pinArticleRequest = async (articleId: number | null) => {
+    const response = await fetch('/api/me/pin-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ articleId }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update pin status');
+    }
+    return response.json();
+};
 
+// =======================================================================
+//  3. کامپوننت‌های کمکی
+// =======================================================================
 const LogoutButton = () => {
   const router = useRouter();
   const handleLogout = async () => {
@@ -101,108 +103,92 @@ const LogoutButton = () => {
 
 const ArticleStatusBadge = ({ status }: { status: ArticleStatus }) => {
   switch (status) {
-    case "APPROVED":
-      return <Badge className="bg-green-500 text-white">تایید شده</Badge>;
-    case "PENDING":
-      return (
-        <Badge className="bg-yellow-500 text-yellow-900">
-          در انتظار تایید
-        </Badge>
-      );
-    case "REJECTED":
-      return <Badge variant="destructive">رد شده</Badge>;
-    default:
-      return <Badge variant="outline">نامشخص</Badge>;
+    case 'APPROVED': return <Badge className="bg-green-500 text-white">تایید شده</Badge>;
+    case 'PENDING': return <Badge className="bg-yellow-500 text-yellow-900">در انتظار تایید</Badge>;
+    case 'REJECTED': return <Badge variant="destructive">رد شده</Badge>;
+    default: return <Badge variant="outline">نامشخص</Badge>;
   }
-};
+}
 
 const getSubscriptionText = (subscription: Subscription | null): string => {
   if (!subscription) return "رایگان";
   switch (subscription.tier) {
-    case "STUDENT":
-      if (subscription.status === "ACTIVE") return "دانشجویی";
-      if (subscription.status === "PENDING_VERIFICATION")
-        return "در انتظار تایید";
+    case 'STUDENT':
+      if (subscription.status === 'ACTIVE') return "دانشجویی";
+      if (subscription.status === 'PENDING_VERIFICATION') return "در انتظار تایید";
       return "دانشجویی (رد شده)";
-    case "MONTHLY":
-      return "ماهانه";
-    case "YEARLY":
-      return "سالانه";
-    case "TRIAL":
-      return "آزمایشی";
-    default:
-      return "رایگان";
+    case 'MONTHLY': return "ماهانه";
+    case 'YEARLY': return "سالانه";
+    case 'TRIAL': return "آزمایشی";
+    default: return "رایگان";
   }
 };
 
 // =======================================================================
-//  4. کامپوننت اصلی (Main Component)
+//  4. کامپوننت اصلی
 // =======================================================================
-
 export const ProfileClient = ({ user }: ProfileClientProps) => {
-  const joinDate = new Intl.DateTimeFormat("fa-IR").format(
-    new Date(user.createdAt)
-  );
+  const joinDate = new Intl.DateTimeFormat("fa-IR").format(new Date(user.createdAt));
   const [activeTab, setActiveTab] = useState("articles");
-
+  
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [pinnedArticleId, setPinnedArticleId] = useState(user.pinnedArticleId);
 
-  const {
-    data: savedArticles,
-    isLoading: isLoadingSaved,
-    isError: isErrorSaved,
-  } = useQuery<Article[]>({
-    queryKey: ["savedArticles"],
+  const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<Article[]>({
+    queryKey: ['savedArticles'],
     queryFn: fetchSavedArticles,
-    enabled: activeTab === "saved",
+    enabled: activeTab === 'saved',
   });
 
-  const {
-    data: clappedArticles,
-    isLoading: isLoadingClapped,
-    isError: isErrorClapped,
-  } = useQuery<Article[]>({
-    queryKey: ["clappedArticles"],
+  const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<Article[]>({
+    queryKey: ['clappedArticles'],
     queryFn: fetchClappedArticles,
-    enabled: activeTab === "clapped",
+    enabled: activeTab === 'clapped',
+  });
+  
+  const pinMutation = useMutation({
+      mutationFn: pinArticleRequest,
+      onSuccess: (data) => {
+          setPinnedArticleId(data.pinnedArticleId);
+          toast({ title: "موفقیت", description: "وضعیت پین مقاله به‌روز شد." });
+          // Invalidate the author profile query to reflect changes on the public page
+          queryClient.invalidateQueries({ queryKey: ['author-profile', user.id.toString()] });
+      },
+      onError: () => {
+          toast({ title: "خطا", description: "عملیات ناموفق بود.", variant: "destructive" });
+      }
   });
 
-  const handleAvatarUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
 
-    try {
-      const response = await fetch("/api/me/avatar", {
-        method: "POST",
-        body: formData,
-      });
+      try {
+          const response = await fetch('/api/me/avatar', {
+              method: 'POST',
+              body: formData,
+          });
 
-      if (!response.ok) throw new Error("Upload failed");
-
-      const data = await response.json();
-      setAvatarUrl(data.url);
-      toast({
-        title: "موفقیت‌آمیز",
-        description: "تصویر پروفایل شما با موفقیت به‌روز شد.",
-      });
-    } catch (error) {
-      toast({
-        title: "خطا",
-        description: "آپلود تصویر با خطا مواجه شد.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
+          if (!response.ok) throw new Error('Upload failed');
+          
+          const data = await response.json();
+          setAvatarUrl(data.url);
+          toast({ title: "موفقیت‌آمیز", description: "تصویر پروفایل شما با موفقیت به‌روز شد." });
+          
+      } catch (error) {
+          toast({ title: "خطا", description: "آپلود تصویر با خطا مواجه شد.", variant: "destructive" });
+      } finally {
+          setIsUploading(false);
+      }
   };
 
   return (
@@ -221,7 +207,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                       className="hidden"
                       accept="image/*"
                     />
-                    <Avatar
+                    <Avatar 
                       className="h-32 w-32 mb-4 cursor-pointer relative group"
                       onClick={() => !isUploading && fileInputRef.current?.click()}
                     >
@@ -230,11 +216,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                         {user.name?.charAt(0) || "U"}
                       </AvatarFallback>
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                        {isUploading ? (
-                          <Loader2 className="h-8 w-8 text-white animate-spin" />
-                        ) : (
-                          <Edit3 className="h-8 w-8 text-white" />
-                        )}
+                        {isUploading ? <Loader2 className="h-8 w-8 text-white animate-spin" /> : <Edit3 className="h-8 w-8 text-white" />}
                       </div>
                     </Avatar>
                     <Button
@@ -244,20 +226,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isUploading}
                     >
-                      {isUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Edit3 className="h-4 w-4" />
-                      )}
-                      {isUploading ? "در حال آپلود..." : "تغییر تصویر"}
+                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Edit3 className="h-4 w-4" />}
+                      {isUploading ? 'در حال آپلود...' : 'تغییر تصویر'}
                     </Button>
                   </div>
                   <div className="flex-1">
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-4">
                       <div>
-                        <h1 className="text-3xl font-bold text-journal mb-2">
-                          {user.name}
-                        </h1>
+                        <h1 className="text-3xl font-bold text-journal mb-2">{user.name}</h1>
                         <p className="text-journal-light mb-2">{user.email}</p>
                         <div className="flex items-center gap-2 mb-4">
                           <Badge
@@ -277,29 +253,18 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                     <p className="text-journal-light mb-6">
                       {user.bio || "بیوگرافی شما در اینجا نمایش داده می‌شود."}
                     </p>
-                    {/* --- تغییر اصلی دوم: نمایش مقادیر واقعی --- */}
                     <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-journal">
-                          {user.articles.length}
-                        </div>
+                        <div className="text-2xl font-bold text-journal">{user.articles.length}</div>
                         <div className="text-sm text-journal-light">مقاله</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-journal">
-                          {user._count.followers}
-                        </div>
-                        <div className="text-sm text-journal-light">
-                          دنبال‌کننده
-                        </div>
+                        <div className="text-2xl font-bold text-journal">{user._count.followers}</div>
+                        <div className="text-sm text-journal-light">دنبال‌کننده</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-journal">
-                          {user._count.following}
-                        </div>
-                        <div className="text-sm text-journal-light">
-                          دنبال‌شونده
-                        </div>
+                        <div className="text-2xl font-bold text-journal">{user._count.following}</div>
+                        <div className="text-sm text-journal-light">دنبال‌شونده</div>
                       </div>
                     </div>
                   </div>
@@ -307,11 +272,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
               </CardContent>
             </Card>
 
-            <Tabs
-              defaultValue="articles"
-              className="w-full"
-              onValueChange={setActiveTab}
-            >
+            <Tabs defaultValue="articles" className="w-full" onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-5 mb-8">
                 <TabsTrigger value="articles">مقالات من</TabsTrigger>
                 <TabsTrigger value="analytics">آمار</TabsTrigger>
@@ -322,46 +283,45 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
 
               <TabsContent value="articles">
                 <Card className="shadow-soft border-0">
-                  <CardHeader>
-                    <CardTitle>مقالات من</CardTitle>
-                  </CardHeader>
+                  <CardHeader><CardTitle>مقالات من</CardTitle></CardHeader>
                   <CardContent>
                     <div className="space-y-6">
                       {user.articles.length > 0 ? (
                         user.articles.map((article) => (
                           <div
                             key={article.id}
-                            className="flex items-center gap-4"
+                            className={`flex items-center gap-4 p-2 rounded-lg hover:bg-muted transition-colors ${pinnedArticleId === article.id ? 'bg-primary/10' : ''}`}
                           >
                             <div className="flex-grow">
                               <ArticleCard
                                 id={article.id.toString()}
                                 title={article.title}
-                                excerpt={
-                                  article.content.substring(0, 150) + "..."
-                                }
+                                excerpt={article.content.substring(0, 150) + "..."}
                                 image={article.coverImageUrl}
-                                author={{
-                                  name: user.name || "Unknown",
-                                  avatar: user.avatarUrl,
-                                }}
-                                readTime={Math.ceil(
-                                  article.content.length / 1000
-                                )}
-                                publishDate={new Intl.DateTimeFormat(
-                                  "fa-IR"
-                                ).format(new Date(article.createdAt))}
+                                author={{ name: user.name || "Unknown", avatar: user.avatarUrl }}
+                                readTime={Math.ceil(article.content.length / 1000)}
+                                publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                                 claps={article._count.claps}
                                 comments={article._count.comments}
-                                category={
-                                  article.categories[0]?.name || "عمومی"
-                                }
+                                category={article.categories[0]?.name || "عمومی"}
                               />
                             </div>
                             <div className="flex flex-col items-center gap-2">
-                              <ArticleStatusBadge
-                                status={article.status as ArticleStatus}
-                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => pinMutation.mutate(article.id)}
+                                disabled={pinMutation.isPending}
+                                className="h-8 w-8 p-0"
+                                title={pinnedArticleId === article.id ? "برداشتن از پین" : "پین کردن"}
+                              >
+                                {pinnedArticleId === article.id ? (
+                                  <PinOff className="h-4 w-4 text-primary" />
+                                ) : (
+                                  <Pin className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                                )}
+                              </Button>
+                              <ArticleStatusBadge status={article.status as ArticleStatus} />
                               <DeleteArticleButton articleId={article.id} />
                             </div>
                           </div>
@@ -380,19 +340,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
 
               <TabsContent value="saved">
                 <Card className="shadow-soft border-0">
-                  <CardHeader>
-                    <CardTitle>مقالات ذخیره شده</CardTitle>
-                  </CardHeader>
+                  <CardHeader><CardTitle>مقالات ذخیره شده</CardTitle></CardHeader>
                   <CardContent>
                     {isLoadingSaved ? (
                       <div className="space-y-4">
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" />
                       </div>
                     ) : isErrorSaved ? (
-                      <p className="text-red-500">
-                        خطا در دریافت مقالات ذخیره شده.
-                      </p>
+                      <p className="text-red-500">خطا در دریافت مقالات ذخیره شده.</p>
                     ) : savedArticles && savedArticles.length > 0 ? (
                       <div className="space-y-6">
                         {savedArticles.map((article) => (
@@ -400,25 +355,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                             key={article.id}
                             id={article.id.toString()}
                             title={article.title}
-                            excerpt={
-                              article.content.substring(0, 150) + "..."
-                            }
+                            excerpt={article.content.substring(0, 150) + "..."}
                             image={article.coverImageUrl}
-                            author={{
-                              name: article.author.name || "ناشناس",
-                              avatar: user.avatarUrl,
-                            }}
-                            readTime={Math.ceil(
-                              article.content.length / 1000
-                            )}
-                            publishDate={new Intl.DateTimeFormat(
-                              "fa-IR"
-                            ).format(new Date(article.createdAt))}
+                            author={{ name: article.author.name || "ناشناس", avatar: user.avatarUrl }}
+                            readTime={Math.ceil(article.content.length / 1000)}
+                            publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                             claps={article._count.claps}
                             comments={article._count.comments}
-                            category={
-                              article.categories[0]?.name || "عمومی"
-                            }
+                            category={article.categories[0]?.name || "عمومی"}
                           />
                         ))}
                       </div>
@@ -428,21 +372,17 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                   </CardContent>
                 </Card>
               </TabsContent>
+
               <TabsContent value="clapped">
                 <Card className="shadow-soft border-0">
-                  <CardHeader>
-                    <CardTitle>مقالات تشویق شده</CardTitle>
-                  </CardHeader>
+                  <CardHeader><CardTitle>مقالات تشویق شده</CardTitle></CardHeader>
                   <CardContent>
-                    {isLoadingClapped ? (
+                     {isLoadingClapped ? (
                       <div className="space-y-4">
-                        <Skeleton className="h-24 w-full" />
-                        <Skeleton className="h-24 w-full" />
+                        <Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" />
                       </div>
                     ) : isErrorClapped ? (
-                      <p className="text-red-500">
-                        خطا در دریافت مقالات تشویق شده.
-                      </p>
+                      <p className="text-red-500">خطا در دریافت مقالات تشویق شده.</p>
                     ) : clappedArticles && clappedArticles.length > 0 ? (
                       <div className="space-y-6">
                         {clappedArticles.map((article) => (
@@ -450,25 +390,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                             key={article.id}
                             id={article.id.toString()}
                             title={article.title}
-                            excerpt={
-                              article.content.substring(0, 150) + "..."
-                            }
+                            excerpt={article.content.substring(0, 150) + "..."}
                             image={article.coverImageUrl}
-                            author={{
-                              name: article.author.name || "ناشناس",
-                              avatar: user.avatarUrl,
-                            }}
-                            readTime={Math.ceil(
-                              article.content.length / 1000
-                            )}
-                            publishDate={new Intl.DateTimeFormat(
-                              "fa-IR"
-                            ).format(new Date(article.createdAt))}
+                            author={{ name: article.author.name || "ناشناس", avatar: user.avatarUrl }}
+                            readTime={Math.ceil(article.content.length / 1000)}
+                            publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                             claps={article._count.claps}
                             comments={article._count.comments}
-                            category={
-                              article.categories[0]?.name || "عمومی"
-                            }
+                            category={article.categories[0]?.name || "عمومی"}
                           />
                         ))}
                       </div>
