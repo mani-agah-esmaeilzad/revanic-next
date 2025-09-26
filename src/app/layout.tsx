@@ -1,16 +1,25 @@
 // src/app/layout.tsx
-import "./globals.css";
 import type { Metadata } from "next";
+// --- تغییر اصلی: ما به طور کامل import مربوط به Viewport را حذف می‌کنیم ---
+import { Vazirmatn } from "next/font/google";
+import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import QueryProvider from "@/components/QueryProvider"; // <-- ایمپورت جدید
+import QueryProvider from "@/components/QueryProvider";
+import { InstallPWAButton } from "@/components/InstallPWAButton";
+
+const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 
 export const metadata: Metadata = {
-  title: "مجله روانیک | پلتفرم انتشار مقالات فارسی",
-  description: "مجله روانیک - پلتفرمی برای خواندن و نوشتن مقالات فارسی با کیفیت بالا",
+  title: "Revanic - پلتفرم تولید محتوا",
+  description: "جدیدترین مقالات و مطالب را در Revanic بخوانید و منتشر کنید.",
+  manifest: "/manifest.json",
+};
+
+// --- تغییر اصلی: ما نوع `: Viewport` را از اینجا حذف می‌کنیم ---
+export const viewport = {
+  themeColor: "#FFFFFF",
 };
 
 export default function RootLayout({
@@ -20,21 +29,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fa" dir="rtl">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
-      <body>
-        <QueryProvider> {/* <-- اضافه کردن پروایدر */}
-          <TooltipProvider>
-            <Header />
-            <main>{children}</main>
-            <Footer />
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </QueryProvider> {/* <-- بستن پروایدر */}
+      <body className={vazirmatn.className}>
+        <QueryProvider>
+          <Header />
+          <main className="min-h-screen">{children}</main>
+          <Footer />
+          <Toaster />
+          <InstallPWAButton />
+        </QueryProvider>
       </body>
     </html>
   );
