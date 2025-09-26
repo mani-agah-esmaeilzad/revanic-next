@@ -9,7 +9,6 @@ import ArticleCard from "@/components/ArticleCard";
 import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
 
-// تعریف تایپ صحیح برای payload توکن
 interface JwtPayload extends JWTPayload {
   userId: number;
 }
@@ -28,11 +27,12 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
         where: { status: 'APPROVED' },
         orderBy: { createdAt: 'desc' },
         include: {
-          author: { select: { name: true, avatarUrl: true } }, // <-- `avatarUrl` اضافه شد
+          author: { select: { name: true, avatarUrl: true } },
           _count: { select: { claps: true, comments: true } },
           categories: { select: { name: true } }
         }
       },
+      // کوئری برای شمارش دنبال‌کننده‌ها از قبل وجود داشت
       _count: { select: { followers: true, following: true } },
     },
   });
@@ -75,7 +75,6 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <Avatar className="h-32 w-32 mb-4 md:mb-0 border">
-                    {/* --- تغییر اصلی در این بخش اعمال شده --- */}
                     <AvatarImage src={author.avatarUrl || ''} alt={author.name || 'Author Avatar'} />
                     <AvatarFallback className="bg-muted text-muted-foreground font-bold text-4xl">
                       {author.name?.charAt(0) || 'A'}
@@ -84,6 +83,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                   <div className="flex-1 text-center md:text-right">
                     <h1 className="text-3xl font-bold text-foreground mb-2">{author.name}</h1>
                     <p className="text-muted-foreground mb-4">{author.bio}</p>
+                    {/* --- تغییر اصلی در این بخش اعمال شده است --- */}
                     <div className="flex justify-center md:justify-start gap-6 text-muted-foreground mb-4">
                       <div className="text-center">
                         <div className="font-bold text-lg text-foreground">{author.articles.length}</div>
@@ -115,7 +115,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                     id={article.id.toString()}
                     title={article.title}
                     excerpt={article.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
-                    author={{ name: article.author.name || 'ناشناس', avatar: article.author.avatarUrl || undefined }} // <-- `avatarUrl` پاس داده شد
+                    author={{ name: article.author.name || 'ناشناس', avatar: article.author.avatarUrl || undefined }}
                     readTime={Math.ceil(article.content.length / 1000)}
                     publishDate={new Intl.DateTimeFormat('fa-IR').format(article.createdAt)}
                     claps={article._count.claps}

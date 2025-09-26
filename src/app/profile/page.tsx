@@ -26,20 +26,28 @@ const ProfilePage = async () => {
   const dbUser = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      subscription: true, // دریافت اطلاعات اشتراک کاربر
+      subscription: true,
       articles: {
         orderBy: { createdAt: "desc" },
         include: {
           author: { select: { name: true } },
-          _count: { select: { claps: true, comments: true, views: true } }, // <-- *** اصلاح نهایی انجام شد ***
+          _count: { select: { claps: true, comments: true, views: true } },
           categories: { select: { name: true } },
+        },
+      },
+      // =======================================================================
+      // --- تغییر اصلی در این بخش اعمال شده است ---
+      // =======================================================================
+      _count: {
+        select: {
+          followers: true, // تعداد کسانی که این کاربر را دنبال می‌کنند
+          following: true, // تعداد کسانی که این کاربر دنبال می‌کند
         },
       },
     },
   });
 
   if (!dbUser) {
-    // اگر کاربر در دیتابیس پیدا نشد (مثلاً حذف شده باشد)
     redirect("/login");
   }
 
