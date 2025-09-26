@@ -1,9 +1,9 @@
 // src/app/articles/page.tsx
 import { prisma } from "@/lib/prisma";
 import ArticleCard from "@/components/ArticleCard";
-import { Pagination } from "@/components/Pagination"; // <-- ایمپورت کامپوننت جدید
+import { Pagination } from "@/components/Pagination";
 
-const ARTICLES_PER_PAGE = 10; // <-- تعداد مقالات در هر صفحه
+const ARTICLES_PER_PAGE = 10;
 
 interface ArticlesPageProps {
   searchParams: {
@@ -12,25 +12,21 @@ interface ArticlesPageProps {
 }
 
 const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
-  // 1. دریافت و اعتبارسنجی شماره صفحه فعلی
   const currentPage = Number(searchParams.page) || 1;
   if (currentPage < 1) {
-    // Or redirect to page 1
     return <p className="text-center">شماره صفحه نامعتبر است.</p>;
   }
 
-  // 2. دریافت تعداد کل مقالات و محاسبه تعداد صفحات
   const totalArticles = await prisma.article.count({
     where: { status: "APPROVED" },
   });
   const totalPages = Math.ceil(totalArticles / ARTICLES_PER_PAGE);
 
-  // 3. دریافت مقالات فقط برای صفحه فعلی
   const articles = await prisma.article.findMany({
     where: { status: "APPROVED" },
     orderBy: { createdAt: "desc" },
-    skip: (currentPage - 1) * ARTICLES_PER_PAGE, // <-- رد کردن مقالات صفحات قبلی
-    take: ARTICLES_PER_PAGE,                   // <-- دریافت فقط مقالات این صفحه
+    skip: (currentPage - 1) * ARTICLES_PER_PAGE,
+    take: ARTICLES_PER_PAGE,
     include: {
       author: { select: { name: true, avatarUrl: true } },
       categories: { select: { name: true } },
@@ -44,7 +40,6 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
         <h1 className="text-4xl font-bold text-center mb-8">
           آخرین مقالات
         </h1>
-
         {articles.length > 0 ? (
           <div className="space-y-6">
             {articles.map((article) => (
@@ -60,9 +55,9 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
                   name: article.author.name || "ناشناس",
                   avatar: article.author.avatarUrl || undefined,
                 }}
-                readTime={Math.ceil(article.content.length / 1000)}
+                readTime={article.readTimeMinutes || 1}
                 publishDate={new Intl.DateTimeFormat("fa-IR").format(
-                  article.createdAt
+                  new Date(article.createdAt)
                 )}
                 claps={article._count.claps}
                 comments={article._count.comments}
@@ -76,8 +71,6 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
             مقاله‌ای برای نمایش وجود ندارد.
           </p>
         )}
-
-        {/* 4. نمایش کامپوننت صفحه‌بندی */}
         <div className="mt-12">
           <Pagination totalPages={totalPages} currentPage={currentPage} />
         </div>

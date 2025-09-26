@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { calculateReadTime } from "@/lib/utils";
 
 export async function POST(req: Request) {
   const token = cookies().get("token")?.value;
@@ -15,14 +16,12 @@ export async function POST(req: Request) {
     const { payload } = await jwtVerify(token, secret);
     const userId = payload.userId as number;
 
-    // داده‌ها را بر اساس ساختار فرم شما دریافت می‌کنیم
     const { title, content, tags, categoryIds, coverImageUrl, publicationId, published } = await req.json();
 
     if (!title || !content) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
-    // اگر publicationId وجود داشت، بررسی کن که آیا کاربر عضو آن است یا خیر
     if (publicationId) {
       const membership = await prisma.usersOnPublications.findUnique({
         where: {
@@ -37,14 +36,17 @@ export async function POST(req: Request) {
       }
     }
 
+    const readTime = calculateReadTime(content);
+
     const newArticle = await prisma.article.create({
       data: {
         title,
         content,
         coverImageUrl,
+        readTimeMinutes: readTime,
         authorId: userId,
-        publicationId: publicationId, // اتصال مقاله به نشریه
-        status: published ? (publicationId ? "PENDING" : "APPROVED") : "DRAFT", // مدیریت وضعیت
+        publicationId: publicationId,
+        status: published ? (publicationId ? "PENDING" : "APPROVED") : "DRAFT",
         tags: {
           create: tags?.map((tagName: string) => ({
             tag: {

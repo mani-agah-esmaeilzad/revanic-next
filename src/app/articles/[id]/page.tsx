@@ -25,14 +25,9 @@ interface JwtPayload extends JWTPayload {
 
 const ArticlePage = async ({ params }: { params: { id: string } }) => {
   const articleId = parseInt(params.id, 10);
-
   if (isNaN(articleId)) {
     notFound();
   }
-  
-  // =======================================================================
-  //  1. دریافت اطلاعات کاربر و مقاله از دیتابیس
-  // =======================================================================
 
   let currentUserId: number | null = null;
   const token = cookies().get("token")?.value;
@@ -73,20 +68,30 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
-  await prisma.articleView.create({ data: { articleId: article.id } });
+  // --- دو عملیات همزمان: افزایش بازدید کلی و ثبت تاریخچه مطالعه ---
+  const updatePromises = [
+    prisma.articleView.create({ data: { articleId: article.id } })
+  ];
+
+  if (currentUserId) {
+    updatePromises.push(
+      prisma.readingHistory.upsert({
+        where: { userId_articleId: { userId: currentUserId, articleId: article.id } },
+        update: {}, // فقط `viewedAt` به خاطر @updatedAt آپدیت می‌شود
+        create: { userId: currentUserId, articleId: article.id },
+      })
+    );
+  }
+  
+  // اجرای همزمان هر دو درخواست دیتابیس
+  await Promise.all(updatePromises);
 
   const userClap = currentUserId ? article.claps.find(c => c.userId === currentUserId) : null;
   const userHasBookmarked = currentUserId ? article.bookmarks.some(b => b.userId === currentUserId) : false;
-
   const userIsFollowingAuthor = currentUserId ? !!(await prisma.follow.findUnique({
     where: { followerId_followingId: { followerId: currentUserId, followingId: article.authorId } },
   })) : false;
 
-
-  // =======================================================================
-  //  2. دریافت مقالات مرتبط
-  // =======================================================================
-  
   const relatedArticles = await prisma.article.findMany({
     where: {
       status: 'APPROVED',
@@ -100,7 +105,6 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
       _count: { select: { claps: true, comments: true } }
     }
   });
-
 
   const publishDate = new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" }).format(
     new Date(article.createdAt)
@@ -162,7 +166,6 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  {/* ===== FIX: Correct prop name to initialUserClaps ===== */}
                   <ClapButton
                     articleId={article.id}
                     initialTotalClaps={totalClaps}
@@ -231,8 +234,8 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
                          title={related.title}
                          excerpt={related.content.substring(0, 100).replace(/<[^>]*>?/gm, '') + "..."}
                          author={{ name: related.author.name || '', avatar: related.author.avatarUrl }}
-                         readTime={Math.ceil(related.content.length / 1000)}
-                         publishDate={new Intl.DateTimeFormat('fa-IR').format(related.createdAt)}
+                         readTime={related.readTimeMinutes || 1}
+                         publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(related.createdAt))}
                          claps={related._count.claps}
                          comments={related._count.comments}
                          category={related.categories[0]?.name || ''}

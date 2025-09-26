@@ -11,7 +11,7 @@ interface ArticleCardProps {
   excerpt: string;
   author: {
     name: string;
-    avatar?: string | null; // <-- تایپ `avatar` به‌روز شد
+    avatar?: string | null;
   };
   readTime: number;
   publishDate: string;
@@ -49,7 +49,6 @@ const ArticleCard = ({
             </p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                {/* --- تغییر اصلی در این بخش اعمال شده --- */}
                 <Avatar className="h-6 w-6">
                   <AvatarImage src={author.avatar || ''} />
                   <AvatarFallback className="text-xs bg-journal-green text-white">
@@ -63,7 +62,7 @@ const ArticleCard = ({
               <div className="flex items-center gap-4 text-xs text-journal-light">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  {readTime} دقیقه
+                  {readTime} دقیقه مطالعه
                 </div>
                 <div className="flex items-center gap-1">
                   <Hand className="h-3 w-3" />

@@ -19,6 +19,7 @@ export async function GET(
         const { payload } = await jwtVerify(token, secret);
         const currentUserId = payload.userId as number;
 
+        // First, check if the user is the owner.
         const publication = await prisma.publication.findUnique({
             where: { slug },
             include: {
@@ -31,22 +32,25 @@ export async function GET(
             },
         });
 
-        // اگر کاربر فعلی عضو این نشریه با نقش OWNER نباشد، دسترسی را رد کن
+        // If the query returns no members, it means the current user is not the owner.
         if (!publication || publication.members.length === 0) {
             return new NextResponse("Forbidden: You are not the owner of this publication.", { status: 403 });
         }
 
-        // اگر دسترسی تایید شد، تمام اطلاعات را برگردان
+        // If ownership is confirmed, fetch the full details.
         const publicationDetails = await prisma.publication.findUnique({
             where: { slug },
-            include: {
+            select: {
+                id: true,
+                name: true,
                 members: {
-                    include: {
+                    select: {
+                        role: true,
                         user: {
                             select: { id: true, name: true, avatarUrl: true }
                         }
                     },
-                    orderBy: { role: 'asc' } // OWNER ها اول نمایش داده شوند
+                    orderBy: { role: 'asc' } // Show OWNER first
                 }
             }
         });

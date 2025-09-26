@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Edit3, LogOut, Crown, Loader2, Pin, PinOff } from "lucide-react";
+import { Edit3, LogOut, Crown, Loader2, Pin, PinOff, History } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
 import { useRouter } from "next/navigation";
 import { ProfileSettings } from "./ProfileSettings";
@@ -21,6 +21,17 @@ import { useToast } from "@/components/ui/use-toast";
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
 // =======================================================================
+
+// تایپ انعطاف‌پذیر برای مقالاتی که از API های مختلف دریافت می‌شوند
+type FetchedArticle = Prisma.ArticleGetPayload<{
+  include: {
+    author: { select: { name: true, avatarUrl: true } }; // `avatarUrl` اینجا ضروری است
+    _count: { select: { claps: true, comments: true, views?: true } };
+    categories: { select: { name: true } };
+  }
+}>;
+
+// تایپ اصلی برای داده‌های کاربر که از صفحه سرور می‌آید
 type UserPayload = Prisma.UserGetPayload<{
   include: {
     subscription: true;
@@ -42,9 +53,8 @@ type UserPayload = Prisma.UserGetPayload<{
 }>;
 
 type UserData = UserPayload;
-type Article = UserData["articles"][0];
 type Subscription = UserData["subscription"];
-type ArticleStatus = Article["status"];
+type ArticleStatus = FetchedArticle["status"];
 
 interface ProfileClientProps {
   user: UserData;
@@ -53,28 +63,34 @@ interface ProfileClientProps {
 // =======================================================================
 //  2. توابع Fetcher
 // =======================================================================
-const fetchSavedArticles = async (): Promise<Article[]> => {
+const fetchSavedArticles = async (): Promise<FetchedArticle[]> => {
   const response = await fetch("/api/me/bookmarks");
   if (!response.ok) throw new Error("Failed to fetch saved articles");
   return response.json();
 };
 
-const fetchClappedArticles = async (): Promise<Article[]> => {
+const fetchClappedArticles = async (): Promise<FetchedArticle[]> => {
   const response = await fetch("/api/me/claps");
   if (!response.ok) throw new Error("Failed to fetch clapped articles");
   return response.json();
 };
 
 const pinArticleRequest = async (articleId: number | null) => {
-    const response = await fetch('/api/me/pin-article', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ articleId }),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to update pin status');
-    }
-    return response.json();
+  const response = await fetch('/api/me/pin-article', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ articleId }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update pin status');
+  }
+  return response.json();
+};
+
+const fetchReadingHistory = async (): Promise<FetchedArticle[]> => {
+  const response = await fetch("/api/me/reading-history");
+  if (!response.ok) throw new Error("Failed to fetch reading history");
+  return response.json();
 };
 
 // =======================================================================
@@ -130,65 +146,65 @@ const getSubscriptionText = (subscription: Subscription | null): string => {
 export const ProfileClient = ({ user }: ProfileClientProps) => {
   const joinDate = new Intl.DateTimeFormat("fa-IR").format(new Date(user.createdAt));
   const [activeTab, setActiveTab] = useState("articles");
-  
+
   const [avatarUrl, setAvatarUrl] = useState(user.avatarUrl);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [pinnedArticleId, setPinnedArticleId] = useState(user.pinnedArticleId);
 
-  const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<Article[]>({
+  const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<FetchedArticle[]>({
     queryKey: ['savedArticles'],
     queryFn: fetchSavedArticles,
     enabled: activeTab === 'saved',
   });
 
-  const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<Article[]>({
+  const { data: clappedArticles, isLoading: isLoadingClapped, isError: isErrorClapped } = useQuery<FetchedArticle[]>({
     queryKey: ['clappedArticles'],
     queryFn: fetchClappedArticles,
     enabled: activeTab === 'clapped',
   });
-  
+
+  const { data: historyArticles, isLoading: isLoadingHistory, isError: isErrorHistory } = useQuery<FetchedArticle[]>({
+    queryKey: ['readingHistory'],
+    queryFn: fetchReadingHistory,
+    enabled: activeTab === 'history',
+  });
+
   const pinMutation = useMutation({
-      mutationFn: pinArticleRequest,
-      onSuccess: (data) => {
-          setPinnedArticleId(data.pinnedArticleId);
-          toast({ title: "موفقیت", description: "وضعیت پین مقاله به‌روز شد." });
-          // Invalidate the author profile query to reflect changes on the public page
-          queryClient.invalidateQueries({ queryKey: ['author-profile', user.id.toString()] });
-      },
-      onError: () => {
-          toast({ title: "خطا", description: "عملیات ناموفق بود.", variant: "destructive" });
-      }
+    mutationFn: pinArticleRequest,
+    onSuccess: (data) => {
+      setPinnedArticleId(data.pinnedArticleId);
+      toast({ title: "موفقیت", description: "وضعیت پین مقاله به‌روز شد." });
+      queryClient.invalidateQueries({ queryKey: ['author-profile', user.id.toString()] });
+    },
+    onError: () => {
+      toast({ title: "خطا", description: "عملیات ناموفق بود.", variant: "destructive" });
+    }
   });
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('file', file);
-
-      try {
-          const response = await fetch('/api/me/avatar', {
-              method: 'POST',
-              body: formData,
-          });
-
-          if (!response.ok) throw new Error('Upload failed');
-          
-          const data = await response.json();
-          setAvatarUrl(data.url);
-          toast({ title: "موفقیت‌آمیز", description: "تصویر پروفایل شما با موفقیت به‌روز شد." });
-          
-      } catch (error) {
-          toast({ title: "خطا", description: "آپلود تصویر با خطا مواجه شد.", variant: "destructive" });
-      } finally {
-          setIsUploading(false);
-      }
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await fetch('/api/me/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) throw new Error('Upload failed');
+      const data = await response.json();
+      setAvatarUrl(data.url);
+      toast({ title: "موفقیت‌آمیز", description: "تصویر پروفایل شما با موفقیت به‌روز شد." });
+    } catch (error) {
+      toast({ title: "خطا", description: "آپلود تصویر با خطا مواجه شد.", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -200,33 +216,16 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex flex-col items-center md:items-start">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                      accept="image/*"
-                    />
-                    <Avatar 
-                      className="h-32 w-32 mb-4 cursor-pointer relative group"
-                      onClick={() => !isUploading && fileInputRef.current?.click()}
-                    >
+                    <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
+                    <Avatar className="h-32 w-32 mb-4 cursor-pointer relative group" onClick={() => !isUploading && fileInputRef.current?.click()}>
                       <AvatarImage src={avatarUrl || ""} />
-                      <AvatarFallback className="bg-journal-green text-white font-bold text-4xl">
-                        {user.name?.charAt(0) || "U"}
-                      </AvatarFallback>
+                      <AvatarFallback className="bg-journal-green text-white font-bold text-4xl">{user.name?.charAt(0) || "U"}</AvatarFallback>
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
                         {isUploading ? <Loader2 className="h-8 w-8 text-white animate-spin" /> : <Edit3 className="h-8 w-8 text-white" />}
                       </div>
                     </Avatar>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Edit3 className="h-4 w-4" />}
+                    <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                      {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Edit3 className="h-4 w-4" />}
                       {isUploading ? 'در حال آپلود...' : 'تغییر تصویر'}
                     </Button>
                   </div>
@@ -236,23 +235,16 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                         <h1 className="text-3xl font-bold text-journal mb-2">{user.name}</h1>
                         <p className="text-journal-light mb-2">{user.email}</p>
                         <div className="flex items-center gap-2 mb-4">
-                          <Badge
-                            variant="secondary"
-                            className="flex items-center gap-1"
-                          >
+                          <Badge variant="secondary" className="flex items-center gap-1">
                             <Crown className="h-3 w-3" />
                             اشتراک {getSubscriptionText(user.subscription)}
                           </Badge>
-                          <span className="text-sm text-journal-light">
-                            عضو از {joinDate}
-                          </span>
+                          <span className="text-sm text-journal-light">عضو از {joinDate}</span>
                         </div>
                       </div>
                       <LogoutButton />
                     </div>
-                    <p className="text-journal-light mb-6">
-                      {user.bio || "بیوگرافی شما در اینجا نمایش داده می‌شود."}
-                    </p>
+                    <p className="text-journal-light mb-6">{user.bio || "بیوگرافی شما در اینجا نمایش داده می‌شود."}</p>
                     <div className="grid grid-cols-3 gap-6">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-journal">{user.articles.length}</div>
@@ -273,9 +265,10 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
             </Card>
 
             <Tabs defaultValue="articles" className="w-full" onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-5 mb-8">
+              <TabsList className="grid w-full grid-cols-6 mb-8">
                 <TabsTrigger value="articles">مقالات من</TabsTrigger>
                 <TabsTrigger value="analytics">آمار</TabsTrigger>
+                <TabsTrigger value="history">تاریخچه مطالعه</TabsTrigger>
                 <TabsTrigger value="saved">ذخیره شده</TabsTrigger>
                 <TabsTrigger value="clapped">تشویق شده</TabsTrigger>
                 <TabsTrigger value="settings">تنظیمات</TabsTrigger>
@@ -288,10 +281,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                     <div className="space-y-6">
                       {user.articles.length > 0 ? (
                         user.articles.map((article) => (
-                          <div
-                            key={article.id}
-                            className={`flex items-center gap-4 p-2 rounded-lg hover:bg-muted transition-colors ${pinnedArticleId === article.id ? 'bg-primary/10' : ''}`}
-                          >
+                          <div key={article.id} className={`flex items-center gap-4 p-2 rounded-lg hover:bg-muted transition-colors ${pinnedArticleId === article.id ? 'bg-primary/10' : ''}`}>
                             <div className="flex-grow">
                               <ArticleCard
                                 id={article.id.toString()}
@@ -299,7 +289,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                                 excerpt={article.content.substring(0, 150) + "..."}
                                 image={article.coverImageUrl}
                                 author={{ name: user.name || "Unknown", avatar: user.avatarUrl }}
-                                readTime={Math.ceil(article.content.length / 1000)}
+                                readTime={article.readTimeMinutes || 1}
                                 publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                                 claps={article._count.claps}
                                 comments={article._count.comments}
@@ -307,28 +297,15 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                               />
                             </div>
                             <div className="flex flex-col items-center gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => pinMutation.mutate(article.id)}
-                                disabled={pinMutation.isPending}
-                                className="h-8 w-8 p-0"
-                                title={pinnedArticleId === article.id ? "برداشتن از پین" : "پین کردن"}
-                              >
-                                {pinnedArticleId === article.id ? (
-                                  <PinOff className="h-4 w-4 text-primary" />
-                                ) : (
-                                  <Pin className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                                )}
+                              <Button variant="ghost" size="sm" onClick={() => pinMutation.mutate(article.id)} disabled={pinMutation.isPending} className="h-8 w-8 p-0" title={pinnedArticleId === article.id ? "برداشتن از پین" : "پین کردن"}>
+                                {pinnedArticleId === article.id ? <PinOff className="h-4 w-4 text-primary" /> : <Pin className="h-4 w-4 text-muted-foreground hover:text-primary" />}
                               </Button>
                               <ArticleStatusBadge status={article.status as ArticleStatus} />
                               <DeleteArticleButton articleId={article.id} />
                             </div>
                           </div>
                         ))
-                      ) : (
-                        <p>شما هنوز مقاله‌ای ننوشته‌اید.</p>
-                      )}
+                      ) : (<p>شما هنوز مقاله‌ای ننوشته‌اید.</p>)}
                     </div>
                   </CardContent>
                 </Card>
@@ -338,14 +315,46 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                 <AnalyticsDashboard />
               </TabsContent>
 
+              <TabsContent value="history">
+                <Card className="shadow-soft border-0">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><History className="h-5 w-5" />تاریخچه مطالعه</CardTitle>
+                    <CardDescription>آخرین مقالاتی که مطالعه کرده‌اید.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingHistory ? (
+                      <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>
+                    ) : isErrorHistory ? (
+                      <p className="text-red-500 text-center">خطا در دریافت تاریخچه مطالعه.</p>
+                    ) : historyArticles && historyArticles.length > 0 ? (
+                      <div className="space-y-6">
+                        {historyArticles.map((article) => (
+                          <ArticleCard
+                            key={article.id}
+                            id={article.id.toString()}
+                            title={article.title}
+                            excerpt={article.content.substring(0, 150) + "..."}
+                            image={article.coverImageUrl}
+                            author={{ name: article.author.name || "ناشناس", avatar: article.author.avatarUrl }}
+                            readTime={article.readTimeMinutes || 1}
+                            publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
+                            claps={article._count.claps}
+                            comments={article._count.comments}
+                            category={article.categories[0]?.name || "عمومی"}
+                          />
+                        ))}
+                      </div>
+                    ) : (<p className="text-center text-muted-foreground py-8">تاریخچه مطالعه شما خالی است.</p>)}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="saved">
                 <Card className="shadow-soft border-0">
                   <CardHeader><CardTitle>مقالات ذخیره شده</CardTitle></CardHeader>
                   <CardContent>
                     {isLoadingSaved ? (
-                      <div className="space-y-4">
-                        <Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" />
-                      </div>
+                      <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>
                     ) : isErrorSaved ? (
                       <p className="text-red-500">خطا در دریافت مقالات ذخیره شده.</p>
                     ) : savedArticles && savedArticles.length > 0 ? (
@@ -357,8 +366,8 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                             title={article.title}
                             excerpt={article.content.substring(0, 150) + "..."}
                             image={article.coverImageUrl}
-                            author={{ name: article.author.name || "ناشناس", avatar: user.avatarUrl }}
-                            readTime={Math.ceil(article.content.length / 1000)}
+                            author={{ name: article.author.name || "ناشناس", avatar: article.author.avatarUrl }}
+                            readTime={article.readTimeMinutes || 1}
                             publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                             claps={article._count.claps}
                             comments={article._count.comments}
@@ -366,9 +375,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                           />
                         ))}
                       </div>
-                    ) : (
-                      <p>شما هنوز هیچ مقاله‌ای را ذخیره نکرده‌اید.</p>
-                    )}
+                    ) : (<p>شما هنوز هیچ مقاله‌ای را ذخیره نکرده‌اید.</p>)}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -377,10 +384,8 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                 <Card className="shadow-soft border-0">
                   <CardHeader><CardTitle>مقالات تشویق شده</CardTitle></CardHeader>
                   <CardContent>
-                     {isLoadingClapped ? (
-                      <div className="space-y-4">
-                        <Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" />
-                      </div>
+                    {isLoadingClapped ? (
+                      <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>
                     ) : isErrorClapped ? (
                       <p className="text-red-500">خطا در دریافت مقالات تشویق شده.</p>
                     ) : clappedArticles && clappedArticles.length > 0 ? (
@@ -392,8 +397,8 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                             title={article.title}
                             excerpt={article.content.substring(0, 150) + "..."}
                             image={article.coverImageUrl}
-                            author={{ name: article.author.name || "ناشناس", avatar: user.avatarUrl }}
-                            readTime={Math.ceil(article.content.length / 1000)}
+                            author={{ name: article.author.name || "ناشناس", avatar: article.author.avatarUrl }}
+                            readTime={article.readTimeMinutes || 1}
                             publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
                             claps={article._count.claps}
                             comments={article._count.comments}
@@ -401,9 +406,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                           />
                         ))}
                       </div>
-                    ) : (
-                      <p>شما هنوز هیچ مقاله‌ای را تشویق نکرده‌اید.</p>
-                    )}
+                    ) : (<p>شما هنوز هیچ مقاله‌ای را تشویق نکرده‌اید.</p>)}
                   </CardContent>
                 </Card>
               </TabsContent>

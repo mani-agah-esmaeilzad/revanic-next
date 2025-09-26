@@ -34,6 +34,9 @@ model User {
   updatedAt              DateTime       @updatedAt
   publications           UsersOnPublications[]
   highlights             Highlight[]
+  
+  // --- فیلد جدید برای تاریخچه مطالعه ---
+  readingHistory         ReadingHistory[]
 }
 
 model Article {
@@ -42,7 +45,7 @@ model Article {
   content         String
   readTimeMinutes Int?
   coverImageUrl   String?
-  status          String   @default("PENDING") // 'PENDING', 'APPROVED', 'REJECTED', 'DRAFT'
+  status          String   @default("PENDING")
   author          User     @relation("AuthoredArticles", fields: [authorId], references: [id], onDelete: Cascade)
   authorId        Int
   pinnedByUsers   User[]   @relation("PinnedArticle")
@@ -60,6 +63,9 @@ model Article {
   highlights    Highlight[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+
+  // --- فیلد جدید برای تاریخچه مطالعه ---
+  history       ReadingHistory[]
 }
 
 model Publication {
@@ -79,7 +85,7 @@ model UsersOnPublications {
   userId        Int
   publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   publicationId Int
-  role          String      @default("WRITER") // "OWNER", "EDITOR", "WRITER"
+  role          String      @default("WRITER")
   assignedAt    DateTime    @default(now())
 
   @@id([userId, publicationId])
@@ -195,4 +201,15 @@ model Highlight {
 
   @@index([articleId])
   @@index([userId])
+}
+
+model ReadingHistory {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  articleId Int
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  viewedAt  DateTime @updatedAt
+
+  @@unique([userId, articleId])
 }
