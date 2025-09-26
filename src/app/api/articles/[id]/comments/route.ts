@@ -19,45 +19,63 @@ export async function POST(
       return new NextResponse("Invalid article ID", { status: 400 });
     }
 
-    // 1. Authenticate user
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = payload.userId as number;
-    if (!userId) {
-      return new NextResponse("Invalid token payload", { status: 401 });
-    }
+    const userId = payload.userId as number; // This is the actor
 
-    // 2. Parse request body for text and parentId
     const { text, parentId } = await req.json();
     if (!text) {
       return new NextResponse("Comment text is required", { status: 400 });
     }
 
-    // 3. Create the comment in the database
     const newComment = await prisma.comment.create({
       data: {
         text,
         userId,
         articleId,
-        parentId, // <-- `parentId` اینجا اضافه شد. اگر null باشد، یک کامنت اصلی ثبت می‌شود
+        parentId,
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatarUrl: true, // <-- `avatarUrl` کاربر را هم برمی‌گردانیم
-          },
-        },
+        user: { select: { id: true, name: true, avatarUrl: true } },
+        article: { select: { title: true } } // Include article title for the notification
       },
     });
 
-    return NextResponse.json(newComment, { status: 201 });
-    
+    // =======================================================================
+    // --- تغییر اصلی در این بخش اعمال شده است ---
+    // =======================================================================
+    // If the comment is a reply (has a parentId), create a notification
+    if (parentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { userId: true } // We only need the ID of the original commenter
+      });
+
+      // Ensure we're not notifying the user about their own reply
+      // and the parent comment exists
+      if (parentComment && parentComment.userId !== userId) {
+        await prisma.notification.create({
+          data: {
+            type: 'COMMENT_REPLY',
+            message: `${newComment.user.name || 'کاربری'} به نظر شما در مقاله "${newComment.article.title}" پاسخ داد.`,
+            userId: parentComment.userId, // The user to notify
+            actorId: userId,               // The user who replied
+            articleId: articleId,
+          }
+        });
+      }
+    }
+    // =======================================================================
+
+    // Return only the necessary comment data to the client
+    const { article, ...commentResponse } = newComment;
+
+    return NextResponse.json(commentResponse, { status: 201 });
+
   } catch (error) {
     console.error("COMMENT_POST_ERROR", error);
     if (error instanceof Error && error.name === "JWTExpired") {
-        return new NextResponse("Token has expired", { status: 401 });
+      return new NextResponse("Token has expired", { status: 401 });
     }
     return new NextResponse("Internal Server Error", { status: 500 });
   }

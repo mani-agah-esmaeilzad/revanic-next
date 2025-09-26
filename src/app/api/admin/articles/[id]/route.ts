@@ -1,71 +1,86 @@
 // src/app/api/admin/articles/[id]/route.ts
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { z } from 'zod';
-import { Resend } from 'resend';
-import { ArticleStatusEmail } from '@/emails/ArticleStatusEmail';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
 
-// Add this line to force dynamic rendering
-export const dynamic = 'force-dynamic';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const statusUpdateSchema = z.object({
-    status: z.enum(['APPROVED', 'REJECTED']),
-});
-
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+// Helper function to check for admin role
+async function isAdmin(token: string | undefined): Promise<boolean> {
+    if (!token) return false;
     try {
-        const articleId = Number(params.id);
-        if (isNaN(articleId)) {
-            return new NextResponse('Invalid Article ID', { status: 400 });
+        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+        const { payload } = await jwtVerify(token, secret);
+        return payload.role === "ADMIN";
+    } catch (error) {
+        return false;
+    }
+}
+
+export async function PUT(
+    req: Request,
+    { params }: { params: { id: string } }
+) {
+    const token = cookies().get("token")?.value;
+    if (!(await isAdmin(token))) {
+        return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    try {
+        const articleId = parseInt(params.id, 10);
+        const { status } = await req.json();
+
+        if (!["APPROVED", "REJECTED", "PENDING"].includes(status)) {
+            return new NextResponse("Invalid status", { status: 400 });
         }
-
-        const body = await req.json();
-        const validation = statusUpdateSchema.safeParse(body);
-
-        if (!validation.success) {
-            return new NextResponse(validation.error.message, { status: 400 });
-        }
-
-        const { status } = validation.data;
 
         const updatedArticle = await prisma.article.update({
             where: { id: articleId },
             data: { status },
-            include: { author: true }, // for author email and name
         });
 
-        // Create in-site notification
-        await prisma.notification.create({
-            data: {
-                type: status === 'APPROVED' ? 'ARTICLE_APPROVED' : 'ARTICLE_REJECTED',
-                message: `مقاله شما با عنوان "${updatedArticle.title}" ${status === 'APPROVED' ? 'تایید و منتشر شد' : 'رد شد'}.`,
-                userId: updatedArticle.authorId,
-                articleId: articleId,
-            }
-        });
+        // =======================================================================
+        // --- تغییر اصلی در این بخش اعمال شده است ---
+        // =======================================================================
+        if (status === "APPROVED" || status === "REJECTED") {
+            const statusText = status === "APPROVED" ? "تایید شد" : "رد شد";
+            const notificationType = status === "APPROVED" ? 'ARTICLE_APPROVED' : 'ARTICLE_REJECTED';
 
-        // --- Send article status email ---
-        try {
-            await resend.emails.send({
-                from: 'Revanic <alerts@resend.dev>',
-                to: [updatedArticle.author.email],
-                subject: `وضعیت مقاله شما: ${updatedArticle.title}`,
-                react: ArticleStatusEmail({
-                    authorName: updatedArticle.author.name || '',
-                    articleTitle: updatedArticle.title,
-                    status: status,
-                    articleId: updatedArticle.id
-                }),
+            await prisma.notification.create({
+                data: {
+                    type: notificationType,
+                    message: `مقاله شما با عنوان "${updatedArticle.title}" ${statusText}.`,
+                    userId: updatedArticle.authorId, // Notify the author of the article
+                    articleId: updatedArticle.id,
+                    // actorId can be null or the admin's ID if you want to track it
+                }
             });
-        } catch (emailError) {
-            console.error("Failed to send article status email:", emailError);
         }
+        // =======================================================================
 
         return NextResponse.json(updatedArticle);
     } catch (error) {
-        console.error('ADMIN_UPDATE_ARTICLE_STATUS_ERROR', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        console.error("UPDATE_ARTICLE_STATUS_ERROR", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
+}
+
+export async function DELETE(
+    req: Request,
+    { params }: { params: { id: string } }
+) {
+    const token = cookies().get("token")?.value;
+    if (!(await isAdmin(token))) {
+        return new NextResponse("Unauthorized", { status: 403 });
+    }
+
+    try {
+        const articleId = parseInt(params.id, 10);
+        await prisma.article.delete({
+            where: { id: articleId }
+        });
+        return new NextResponse(null, { status: 204 });
+    } catch (error) {
+        console.error("DELETE_ARTICLE_ERROR", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
