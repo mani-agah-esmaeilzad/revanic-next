@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Clock, Hand, MessageCircle } from "lucide-react"; // <-- Heart به Hand تغییر کرد
+import { Clock, Hand, MessageCircle } from "lucide-react";
 import Image from "next/image";
 
 interface ArticleCardProps {
@@ -11,11 +11,11 @@ interface ArticleCardProps {
   excerpt: string;
   author: {
     name: string;
-    avatar?: string;
+    avatar?: string | null; // <-- تایپ `avatar` به‌روز شد
   };
   readTime: number;
   publishDate: string;
-  claps: number; // <-- اصلاح شد
+  claps: number;
   comments: number;
   category: string;
   image?: string | null;
@@ -28,7 +28,7 @@ const ArticleCard = ({
   author,
   readTime,
   publishDate,
-  claps, // <-- اصلاح شد
+  claps,
   comments,
   category,
   image
@@ -49,8 +49,9 @@ const ArticleCard = ({
             </p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
+                {/* --- تغییر اصلی در این بخش اعمال شده --- */}
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={author.avatar} />
+                  <AvatarImage src={author.avatar || ''} />
                   <AvatarFallback className="text-xs bg-journal-green text-white">
                     {author.name.charAt(0)}
                   </AvatarFallback>
@@ -65,8 +66,8 @@ const ArticleCard = ({
                   {readTime} دقیقه
                 </div>
                 <div className="flex items-center gap-1">
-                  <Hand className="h-3 w-3" /> {/* <-- اصلاح شد */}
-                  {claps} {/* <-- اصلاح شد */}
+                  <Hand className="h-3 w-3" />
+                  {claps}
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageCircle className="h-3 w-3" />
