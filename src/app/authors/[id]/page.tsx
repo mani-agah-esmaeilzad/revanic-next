@@ -1,10 +1,11 @@
+// src/app/authors/[id]/page.tsx
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { jwtVerify, JWTPayload } from "jose";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import ArticleCard from "@/components/ArticleCard"; // *** اصلاح شد: ایمپورت به صورت default ***
+import ArticleCard from "@/components/ArticleCard";
 import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
 
@@ -24,10 +25,10 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     where: { id: authorId },
     include: {
       articles: {
-        where: { status: 'APPROVED' }, // *** اصلاح شد: استفاده از status ***
+        where: { status: 'APPROVED' },
         orderBy: { createdAt: 'desc' },
         include: {
-          author: { select: { name: true } }, // اضافه شد تا ArticleCard نویسنده را داشته باشد
+          author: { select: { name: true, avatarUrl: true } }, // <-- `avatarUrl` اضافه شد
           _count: { select: { claps: true, comments: true } },
           categories: { select: { name: true } }
         }
@@ -50,7 +51,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
       const { payload } = await jwtVerify(token, secret);
-      currentUserId = (payload as JwtPayload).userId; // *** اصلاح شد: استفاده از تایپ صحیح ***
+      currentUserId = (payload as JwtPayload).userId;
 
       if (currentUserId) {
         const follow = await prisma.follow.findUnique({
@@ -74,7 +75,8 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row items-center gap-6">
                   <Avatar className="h-32 w-32 mb-4 md:mb-0 border">
-                    <AvatarImage src={undefined} />
+                    {/* --- تغییر اصلی در این بخش اعمال شده --- */}
+                    <AvatarImage src={author.avatarUrl || ''} alt={author.name || 'Author Avatar'} />
                     <AvatarFallback className="bg-muted text-muted-foreground font-bold text-4xl">
                       {author.name?.charAt(0) || 'A'}
                     </AvatarFallback>
@@ -113,10 +115,10 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                     id={article.id.toString()}
                     title={article.title}
                     excerpt={article.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
-                    author={{ name: article.author.name || 'ناشناس' }}
+                    author={{ name: article.author.name || 'ناشناس', avatar: article.author.avatarUrl || undefined }} // <-- `avatarUrl` پاس داده شد
                     readTime={Math.ceil(article.content.length / 1000)}
                     publishDate={new Intl.DateTimeFormat('fa-IR').format(article.createdAt)}
-                    claps={article._count.claps} // *** اصلاح شد: استفاده از claps به جای likes ***
+                    claps={article._count.claps}
                     comments={article._count.comments}
                     category={article.categories[0]?.name || 'عمومی'}
                     image={article.coverImageUrl}
