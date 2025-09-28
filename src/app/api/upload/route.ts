@@ -20,22 +20,21 @@ export async function POST(req: Request) {
   }
 
   try {
-    // 1. خواندن فایل و تبدیل آن به بافر
+    // ۱. خواندن فایل و تبدیل آن به بافر
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // 2. بهینه‌سازی تصویر با Sharp (اختیاری اما پیشنهادی)
+    // ۲. بهینه‌سازی تصویر با Sharp (اختیاری اما پیشنهادی)
     const jpegBuffer = await sharp(buffer)
       .jpeg({ quality: 80 })
       .toBuffer();
 
-    // 3. آپلود بافر تصویر در Cloudinary
-    // Cloudinary نیاز به یک استریم خواندنی (readable stream) دارد
+    // ۳. آپلود بافر تصویر در Cloudinary به صورت استریم
     const uploadResult = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           // می‌توانید پوشه‌ای در Cloudinary برای آپلودها تعیین کنید
-          folder: 'revanic_uploads',
+          folder: 'revanic_uploads', 
         },
         (error, result) => {
           if (error) {
@@ -49,11 +48,11 @@ export async function POST(req: Request) {
       uploadStream.end(jpegBuffer);
     });
 
-    // تایپ نتیجه را برای دسترسی به url بررسی می‌کنیم
+    // بررسی نوع نتیجه برای دسترسی امن به url
     const result = uploadResult as { secure_url?: string };
 
     if (result.secure_url) {
-      // 4. بازگرداندن URL امن تصویر از Cloudinary
+      // ۴. بازگرداندن URL امن تصویر از Cloudinary
       return NextResponse.json({ success: true, url: result.secure_url });
     } else {
       throw new Error("Cloudinary upload failed, no secure_url returned.");
@@ -61,7 +60,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Upload failed:', error);
-    // جزئیات بیشتری از خطا را لاگ می‌گیریم
     const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
     return NextResponse.json({ success: false, error: 'Upload failed', details: errorMessage }, { status: 500 });
   }
