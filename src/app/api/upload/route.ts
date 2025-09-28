@@ -1,7 +1,15 @@
+// src/app/api/upload/route.ts
 import { NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 import sharp from 'sharp';
+
+// پیکربندی Cloudinary با استفاده از متغیرهای محیطی
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
 
 export async function POST(req: Request) {
   const data = await req.formData();
@@ -12,29 +20,49 @@ export async function POST(req: Request) {
   }
 
   try {
+    // 1. خواندن فایل و تبدیل آن به بافر
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // تبدیل تصویر به JPEG
+    // 2. بهینه‌سازی تصویر با Sharp (اختیاری اما پیشنهادی)
     const jpegBuffer = await sharp(buffer)
       .jpeg({ quality: 80 })
       .toBuffer();
 
-    // نام فایل جدید
-    const originalName = file.name.split('.').slice(0, -1).join('.') || 'image';
-    const newFilename = `${Date.now()}_${originalName}.jpeg`;
+    // 3. آپلود بافر تصویر در Cloudinary
+    // Cloudinary نیاز به یک استریم خواندنی (readable stream) دارد
+    const uploadResult = await new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          // می‌توانید پوشه‌ای در Cloudinary برای آپلودها تعیین کنید
+          folder: 'revanic_uploads',
+        },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result);
+          }
+        }
+      );
+      // ارسال بافر به استریم
+      uploadStream.end(jpegBuffer);
+    });
 
-    const uploadsDir = join(process.cwd(), 'public/uploads');
-    await mkdir(uploadsDir, { recursive: true });
+    // تایپ نتیجه را برای دسترسی به url بررسی می‌کنیم
+    const result = uploadResult as { secure_url?: string };
 
-    const filePath = join(uploadsDir, newFilename);
-    await writeFile(filePath, jpegBuffer);
-
-    const publicUrl = `/uploads/${newFilename}`;
-    return NextResponse.json({ success: true, url: publicUrl });
+    if (result.secure_url) {
+      // 4. بازگرداندن URL امن تصویر از Cloudinary
+      return NextResponse.json({ success: true, url: result.secure_url });
+    } else {
+      throw new Error("Cloudinary upload failed, no secure_url returned.");
+    }
 
   } catch (error) {
     console.error('Upload failed:', error);
-    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+    // جزئیات بیشتری از خطا را لاگ می‌گیریم
+    const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
+    return NextResponse.json({ success: false, error: 'Upload failed', details: errorMessage }, { status: 500 });
   }
 }
