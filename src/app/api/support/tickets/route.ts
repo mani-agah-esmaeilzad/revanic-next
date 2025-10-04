@@ -3,12 +3,23 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import {
+  SUPPORT_STATUS_TEXTS,
+  SUPPORT_PRIORITY_TEXTS,
+  type SupportTicketPriorityKey,
+} from "@/lib/support";
 
-const statusTexts = {
-  OPEN: "در انتظار پاسخ",
-  ANSWERED: "پاسخ داده شده",
-  CLOSED: "بسته شده",
-};
+const statusTexts = SUPPORT_STATUS_TEXTS;
+const priorityTexts = SUPPORT_PRIORITY_TEXTS;
+
+type SupportTicketPriority = SupportTicketPriorityKey;
+
+interface AttachmentPayload {
+  url: string;
+  mimeType: string;
+  size: number;
+  filename?: string;
+}
 
 async function getAuthenticatedUserId() {
   const token = cookies().get("token")?.value;
@@ -51,6 +62,7 @@ export async function GET() {
                 avatarUrl: true,
               },
             },
+            attachments: true,
           },
         },
       },
@@ -60,6 +72,7 @@ export async function GET() {
       tickets.map((ticket) => ({
         ...ticket,
         statusLabel: statusTexts[ticket.status],
+        priorityLabel: priorityTexts[ticket.priority],
       }))
     );
   } catch (error) {
@@ -84,6 +97,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const title: string = body?.title;
     const message: string = body?.message;
+    const priorityInput = body?.priority as SupportTicketPriority | undefined;
+    const attachmentsInput: AttachmentPayload[] = Array.isArray(body?.attachments)
+      ? body.attachments
+          .map((item: AttachmentPayload) => ({
+            url: typeof item?.url === "string" ? item.url : "",
+            mimeType: typeof item?.mimeType === "string" ? item.mimeType : "",
+            size: Number(item?.size) || 0,
+            filename: typeof item?.filename === "string" ? item.filename : undefined,
+          }))
+          .filter((item: AttachmentPayload) => item.url && item.mimeType && item.size > 0)
+      : [];
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -99,15 +123,34 @@ export async function POST(request: Request) {
       );
     }
 
+    if (priorityInput && !priorityTexts[priorityInput]) {
+      return NextResponse.json(
+        { message: "اولویت انتخاب‌شده معتبر نیست." },
+        { status: 400 }
+      );
+    }
+
     const ticket = await prisma.supportTicket.create({
       data: {
         title: title.trim(),
         userId,
+        priority: priorityInput ?? "NORMAL",
         messages: {
           create: {
             body: message.trim(),
             authorId: userId,
             authorRole: "USER",
+            attachments:
+              attachmentsInput.length > 0
+                ? {
+                    create: attachmentsInput.map((item) => ({
+                      url: item.url,
+                      mimeType: item.mimeType,
+                      size: item.size,
+                      filename: item.filename,
+                    })),
+                  }
+                : undefined,
           },
         },
       },
@@ -123,6 +166,7 @@ export async function POST(request: Request) {
                 avatarUrl: true,
               },
             },
+            attachments: true,
           },
         },
       },
@@ -132,6 +176,7 @@ export async function POST(request: Request) {
       {
         ...ticket,
         statusLabel: statusTexts[ticket.status],
+        priorityLabel: priorityTexts[ticket.priority],
       },
       { status: 201 }
     );

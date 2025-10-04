@@ -26,15 +26,7 @@ const runtimeCaching = [
             expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
         },
     },
-    {
-        urlPattern: ({ url }) => url.pathname.startsWith("/api"),
-        handler: "NetworkFirst",
-        options: {
-            cacheName: "revanic-api",
-            networkTimeoutSeconds: 10,
-            expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-        },
-    },
+    // مسیرهای API خصوصی به‌صورت عمدی کش نمی‌شوند تا داده‌های کاربر در Cache Storage باقی نماند.
 ];
 
 const withPWA = require("next-pwa")({

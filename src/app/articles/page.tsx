@@ -3,6 +3,27 @@ import { prisma } from "@/lib/prisma";
 import ArticleCard from "@/components/ArticleCard";
 import { Pagination } from "@/components/Pagination";
 
+const EXCERPT_LIMIT = 200;
+
+const extractPlainText = (html: string) =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const buildExcerpt = (text: string, limit: number) => {
+  if (!text) return "";
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit).trimEnd()}…`;
+};
+
+const estimateReadTime = (stored: number | null | undefined, plainText: string) => {
+  if (stored && stored > 0) return stored;
+  const words = plainText.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+};
+
 const ARTICLES_PER_PAGE = 10;
 
 interface ArticlesPageProps {
@@ -78,29 +99,32 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
         </h1>
         {articles.length > 0 ? (
           <div className="space-y-6">
-            {articles.map((article) => (
-              <ArticleCard
-                key={article.id}
-                id={article.id.toString()}
-                title={article.title}
-                excerpt={
-                  article.content.substring(0, 200).replace(/<[^>]*>?/gm, "") +
-                  "..."
-                }
-                author={{
-                  name: article.author.name || "ناشناس",
-                  avatar: article.author.avatarUrl || undefined,
-                }}
-                readTime={article.readTimeMinutes || 1}
-                publishDate={new Intl.DateTimeFormat("fa-IR").format(
-                  new Date(article.createdAt)
-                )}
-                claps={article._count.claps}
-                comments={article._count.comments}
-                category={article.categories[0]?.name || "عمومی"}
-                image={article.coverImageUrl}
-              />
-            ))}
+            {articles.map((article) => {
+              const plainText = extractPlainText(article.content);
+              const excerpt = buildExcerpt(plainText, EXCERPT_LIMIT);
+              const readTime = estimateReadTime(article.readTimeMinutes, plainText);
+
+              return (
+                <ArticleCard
+                  key={article.id}
+                  id={article.id.toString()}
+                  title={article.title}
+                  excerpt={excerpt}
+                  author={{
+                    name: article.author.name || "ناشناس",
+                    avatar: article.author.avatarUrl || undefined,
+                  }}
+                  readTime={readTime}
+                  publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                    new Date(article.createdAt)
+                  )}
+                  claps={article._count.claps}
+                  comments={article._count.comments}
+                  category={article.categories[0]?.name || "عمومی"}
+                  image={article.coverImageUrl}
+                />
+              );
+            })}
           </div>
         ) : (
           <p className="text-center text-muted-foreground py-16">

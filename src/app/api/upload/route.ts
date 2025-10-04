@@ -1,6 +1,9 @@
 // src/app/api/upload/route.ts
-import { NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
+import { NextResponse } from "next/server";
+import { v2 as cloudinary } from "cloudinary";
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 // پیکربندی Cloudinary با استفاده از متغیرهای محیطی
 cloudinary.config({
@@ -14,10 +17,33 @@ export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   const data = await req.formData();
-  const file: File | null = data.get('file') as unknown as File;
+  const file = data.get("file");
 
-  if (!file) {
-    return NextResponse.json({ success: false, error: "No file found" }, { status: 400 });
+  if (!(file instanceof File)) {
+    return NextResponse.json(
+      { success: false, error: "فایلی برای آپلود ارسال نشده است." },
+      { status: 400 }
+    );
+  }
+
+  if (!ALLOWED_MIME_TYPES.includes(file.type as (typeof ALLOWED_MIME_TYPES)[number])) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "فرمت فایل پشتیبانی نمی‌شود. تنها فرمت‌های JPEG، PNG و WebP مجاز هستند.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (file.size > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "حجم فایل بیشتر از حد مجاز (۵ مگابایت) است.",
+      },
+      { status: 400 }
+    );
   }
 
   try {
@@ -27,16 +53,17 @@ export async function POST(req: Request) {
 
     // ۲. تلاش برای بهینه‌سازی تصویر با Sharp، در صورت موجود نبودن، بافر اصلی استفاده می‌شود
     let optimizedBuffer = buffer;
-    try {
-      type SharpModule = typeof import('sharp');
-      const imported = await import('sharp');
-      const sharpFactory =
-        ((imported as unknown as { default?: SharpModule }).default ?? (imported as unknown as SharpModule));
-      optimizedBuffer = await sharpFactory(buffer)
-        .jpeg({ quality: 80 })
-        .toBuffer();
-    } catch (optimizationError) {
-      console.warn('Sharp unavailable, skipping image optimization:', optimizationError);
+    const shouldOptimize = file.type === "image/jpeg";
+    if (shouldOptimize) {
+      try {
+        type SharpModule = typeof import("sharp");
+        const imported = await import("sharp");
+        const sharpFactory =
+          ((imported as unknown as { default?: SharpModule }).default ?? (imported as unknown as SharpModule));
+        optimizedBuffer = await sharpFactory(buffer).jpeg({ quality: 80 }).toBuffer();
+      } catch (optimizationError) {
+        console.warn("Sharp unavailable, skipping image optimization:", optimizationError);
+      }
     }
 
     // ۳. آپلود بافر تصویر در Cloudinary به صورت استریم
@@ -69,8 +96,11 @@ export async function POST(req: Request) {
     }
 
   } catch (error) {
-    console.error('Upload failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
-    return NextResponse.json({ success: false, error: 'Upload failed', details: errorMessage }, { status: 500 });
+    console.error("Upload failed:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown upload error";
+    return NextResponse.json(
+      { success: false, error: "آپلود فایل با خطا مواجه شد.", details: errorMessage },
+      { status: 500 }
+    );
   }
 }

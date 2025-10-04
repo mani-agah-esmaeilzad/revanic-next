@@ -3,14 +3,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma, SupportTicketStatus } from "@prisma/client";
 import { requireAdminSession } from "@/lib/admin-auth";
+import {
+  SUPPORT_STATUS_TEXTS,
+  SUPPORT_PRIORITY_TEXTS,
+  type SupportTicketPriorityKey,
+} from "@/lib/support";
 
-const statusTexts = {
-  OPEN: "در انتظار پاسخ",
-  ANSWERED: "پاسخ داده شده",
-  CLOSED: "بسته شده",
-};
+const statusTexts = SUPPORT_STATUS_TEXTS;
+const priorityTexts = SUPPORT_PRIORITY_TEXTS;
 
 const allowedStatuses: SupportTicketStatus[] = ["OPEN", "ANSWERED", "CLOSED"];
+type SupportTicketPriority = SupportTicketPriorityKey;
 
 export async function POST(
   request: Request,
@@ -30,10 +33,11 @@ export async function POST(
     const body = await request.json();
     const message: string | undefined = body?.message?.trim();
     const status = body?.status as SupportTicketStatus | undefined;
+    const priority = body?.priority as SupportTicketPriority | undefined;
 
-    if (!message && !status) {
+    if (!message && !status && !priority) {
       return NextResponse.json(
-        { message: "لطفاً متن پاسخ یا وضعیت جدید را ارسال کنید." },
+        { message: "لطفاً متن پاسخ، وضعیت جدید یا اولویت تازه را ارسال کنید." },
         { status: 400 }
       );
     }
@@ -41,6 +45,13 @@ export async function POST(
     if (status && !allowedStatuses.includes(status)) {
       return NextResponse.json(
         { message: "وضعیت انتخاب شده معتبر نیست." },
+        { status: 400 }
+      );
+    }
+
+    if (priority && !priorityTexts[priority]) {
+      return NextResponse.json(
+        { message: "اولویت انتخاب‌شده معتبر نیست." },
         { status: 400 }
       );
     }
@@ -77,6 +88,10 @@ export async function POST(
         updateData.status = status;
       }
 
+      if (priority) {
+        updateData.priority = priority;
+      }
+
       await tx.supportTicket.update({
         where: { id: ticketId },
         data: updateData,
@@ -105,6 +120,7 @@ export async function POST(
                 avatarUrl: true,
               },
             },
+            attachments: true,
           },
         },
       },
@@ -113,6 +129,7 @@ export async function POST(
     return NextResponse.json({
       ...refreshedTicket,
       statusLabel: refreshedTicket ? statusTexts[refreshedTicket.status] : undefined,
+      priorityLabel: refreshedTicket ? priorityTexts[refreshedTicket.priority] : undefined,
     });
   } catch (error) {
     console.error("ADMIN_SUPPORT_REPLY_ERROR", error);

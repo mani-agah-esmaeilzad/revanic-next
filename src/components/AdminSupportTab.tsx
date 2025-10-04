@@ -1,7 +1,7 @@
 // src/components/AdminSupportTab.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import type { SupportTicketPriorityKey, SupportTicketStatusKey } from "@/lib/support";
 
 interface SupportAuthor {
   id: number;
@@ -18,19 +21,31 @@ interface SupportAuthor {
   avatarUrl: string | null;
 }
 
+interface SupportAttachment {
+  id: number;
+  url: string;
+  mimeType: string;
+  size: number;
+  filename: string | null;
+  createdAt: string;
+}
+
 interface SupportMessage {
   id: number;
   body: string;
   authorRole: "USER" | "ADMIN";
   createdAt: string;
   author: SupportAuthor | null;
+  attachments: SupportAttachment[];
 }
 
 interface SupportTicket {
   id: number;
   title: string;
-  status: "OPEN" | "ANSWERED" | "CLOSED";
+  status: SupportTicketStatusKey;
   statusLabel: string;
+  priority: SupportTicketPriorityKey;
+  priorityLabel: string;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -42,20 +57,52 @@ interface SupportTicket {
   messages: SupportMessage[];
 }
 
-const statusOptions: { value: SupportTicket["status"]; label: string }[] = [
+const statusOptions: { value: SupportTicketStatusKey; label: string }[] = [
   { value: "OPEN", label: "باز" },
   { value: "ANSWERED", label: "پاسخ داده شده" },
   { value: "CLOSED", label: "بسته شده" },
 ];
 
-const statusStyles: Record<SupportTicket["status"], string> = {
+const priorityOptions: { value: SupportTicketPriorityKey; label: string }[] = [
+  { value: "HIGH", label: "فوری" },
+  { value: "NORMAL", label: "معمولی" },
+  { value: "LOW", label: "کم" },
+];
+
+const statusStyles: Record<SupportTicketStatusKey, string> = {
   OPEN: "bg-blue-100 text-blue-800",
   ANSWERED: "bg-green-100 text-green-800",
   CLOSED: "bg-gray-200 text-gray-800",
 };
 
-async function fetchAdminTickets(): Promise<SupportTicket[]> {
-  const response = await fetch("/api/admin/support/tickets");
+const priorityStyles: Record<SupportTicketPriorityKey, string> = {
+  HIGH: "bg-red-100 text-red-800",
+  NORMAL: "bg-amber-100 text-amber-800",
+  LOW: "bg-slate-100 text-slate-800",
+};
+
+const priorityWeight: Record<SupportTicketPriorityKey, number> = {
+  HIGH: 3,
+  NORMAL: 2,
+  LOW: 1,
+};
+
+interface AdminTicketFilters {
+  status?: SupportTicketStatusKey | "";
+  priority?: SupportTicketPriorityKey | "";
+  search?: string;
+}
+
+async function fetchAdminTickets(filters: AdminTicketFilters): Promise<SupportTicket[]> {
+  const params = new URLSearchParams();
+  if (filters.status) params.set("status", filters.status);
+  if (filters.priority) params.set("priority", filters.priority);
+  if (filters.search) params.set("q", filters.search);
+
+  const response = await fetch(
+    `/api/admin/support/tickets${params.toString() ? `?${params.toString()}` : ""}`,
+    { credentials: "include" }
+  );
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ message: "خطای ناشناخته" }));
     throw new Error(payload?.message ?? "دریافت تیکت‌ها با خطا مواجه شد.");
@@ -66,14 +113,16 @@ async function fetchAdminTickets(): Promise<SupportTicket[]> {
 interface ReplyInput {
   ticketId: number;
   message?: string;
-  status?: SupportTicket["status"];
+  status?: SupportTicketStatusKey;
+  priority?: SupportTicketPriorityKey;
 }
 
 async function replyToTicket(input: ReplyInput): Promise<SupportTicket> {
   const response = await fetch(`/api/admin/support/tickets/${input.ticketId}/reply`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: input.message, status: input.status }),
+    body: JSON.stringify({ message: input.message, status: input.status, priority: input.priority }),
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -89,7 +138,39 @@ export const AdminSupportTab = () => {
   const { toast } = useToast();
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
-  const [nextStatus, setNextStatus] = useState<SupportTicket["status"] | "">("");
+  const [nextStatus, setNextStatus] = useState<SupportTicketStatusKey | "">("");
+  const [nextPriority, setNextPriority] = useState<SupportTicketPriorityKey | "">("");
+  const [statusFilter, setStatusFilter] = useState<SupportTicketStatusKey | "">("");
+  const [priorityFilter, setPriorityFilter] = useState<SupportTicketPriorityKey | "">("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const sseErrorShownRef = useRef(false);
+
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 400);
+    return () => clearTimeout(handle);
+  }, [searchTerm]);
+
+  const filters = useMemo<AdminTicketFilters>(
+    () => ({
+      status: statusFilter || undefined,
+      priority: priorityFilter || undefined,
+      search: debouncedSearch || undefined,
+    }),
+    [statusFilter, priorityFilter, debouncedSearch]
+  );
+
+  const filtersKey = useMemo(
+    () =>
+      JSON.stringify({
+        status: filters.status ?? "",
+        priority: filters.priority ?? "",
+        search: filters.search ?? "",
+      }),
+    [filters]
+  );
 
   const {
     data: tickets,
@@ -97,8 +178,8 @@ export const AdminSupportTab = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ["admin", "supportTickets"],
-    queryFn: fetchAdminTickets,
+    queryKey: ["admin", "supportTickets", filtersKey],
+    queryFn: () => fetchAdminTickets(filters),
   });
 
   const replyMutation = useMutation({
@@ -110,6 +191,7 @@ export const AdminSupportTab = () => {
       });
       setReplyMessage("");
       setNextStatus("");
+      setNextPriority("");
       queryClient.invalidateQueries({ queryKey: ["admin", "supportTickets"] });
     },
     onError: (err: unknown) => {
@@ -122,9 +204,47 @@ export const AdminSupportTab = () => {
     },
   });
 
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filters.status) params.set("status", filters.status);
+    if (filters.priority) params.set("priority", filters.priority);
+    if (filters.search) params.set("q", filters.search);
+
+    const source = new EventSource(
+      `/api/admin/support/tickets/stream${params.toString() ? `?${params.toString()}` : ""}`
+    );
+
+    source.onmessage = (event) => {
+      const payload = JSON.parse(event.data) as SupportTicket[];
+      queryClient.setQueryData(["admin", "supportTickets", filtersKey], payload);
+      sseErrorShownRef.current = false;
+    };
+
+    source.onerror = () => {
+      if (!sseErrorShownRef.current) {
+        toast({
+          variant: "destructive",
+          title: "ارتباط زنده قطع شد",
+          description: "در حال تلاش برای برقراری مجدد ارتباط با سرور هستیم.",
+        });
+        sseErrorShownRef.current = true;
+      }
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [filters, filtersKey, queryClient, toast]);
+
   const orderedTickets = useMemo(() => {
     if (!tickets) return [];
-    return [...tickets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return [...tickets].sort((a, b) => {
+      const priorityDiff = priorityWeight[b.priority] - priorityWeight[a.priority];
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [tickets]);
 
   useEffect(() => {
@@ -145,11 +265,11 @@ export const AdminSupportTab = () => {
       return;
     }
 
-    if (!replyMessage.trim() && !nextStatus) {
+    if (!replyMessage.trim() && !nextStatus && !nextPriority) {
       toast({
         variant: "destructive",
         title: "اطلاعات ناقص",
-        description: "لطفاً متن پاسخ یا وضعیت جدید را مشخص کنید.",
+        description: "لطفاً متن پاسخ، وضعیت یا اولویت جدید را مشخص کنید.",
       });
       return;
     }
@@ -158,14 +278,56 @@ export const AdminSupportTab = () => {
       ticketId: selectedTicket.id,
       message: replyMessage.trim() || undefined,
       status: nextStatus || undefined,
+      priority: nextPriority || undefined,
     });
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
       <Card className="h-full">
         <CardHeader>
           <CardTitle>لیست تیکت‌ها</CardTitle>
+          <div className="mt-4 grid gap-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => setStatusFilter(value as SupportTicketStatusKey | "")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="وضعیت: همه" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="">همه وضعیت‌ها</SelectItem>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={priorityFilter}
+                onValueChange={(value) => setPriorityFilter(value as SupportTicketPriorityKey | "")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اولویت: همه" />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value="">همه اولویت‌ها</SelectItem>
+                  {priorityOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Input
+              placeholder="جستجو در عنوان یا کاربر"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -181,23 +343,38 @@ export const AdminSupportTab = () => {
           ) : orderedTickets.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">هنوز تیکتی ثبت نشده است.</div>
           ) : (
-            <ScrollArea className="h-[480px]">
+            <ScrollArea className="h-[520px]">
               <div className="divide-y">
                 {orderedTickets.map((ticket) => (
                   <button
                     key={ticket.id}
                     onClick={() => setSelectedTicketId(ticket.id)}
-                    className={`flex w-full flex-col items-start gap-2 px-4 py-3 text-right transition ${
+                    className={`flex w-full flex-col items-start gap-2 border-r-4 px-4 py-3 text-right transition ${
                       selectedTicketId === ticket.id ? "bg-muted" : "hover:bg-muted/60"
+                    } ${
+                      ticket.priority === "HIGH"
+                        ? "border-red-500"
+                        : ticket.priority === "NORMAL"
+                        ? "border-amber-400"
+                        : "border-transparent"
                     }`}
                   >
                     <div className="flex w-full items-center justify-between">
                       <span className="text-sm font-semibold text-journal">{ticket.title}</span>
-                      <Badge className={statusStyles[ticket.status]}>{ticket.statusLabel}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge className={priorityStyles[ticket.priority]}>{ticket.priorityLabel}</Badge>
+                        <Badge className={statusStyles[ticket.status]}>{ticket.statusLabel}</Badge>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {ticket.user.name || ticket.user.email}
-                    </span>
+                    <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+                      <span>{ticket.user.name || ticket.user.email}</span>
+                      <span>
+                        {new Intl.DateTimeFormat("fa-IR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        }).format(new Date(ticket.createdAt))}
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -218,21 +395,28 @@ export const AdminSupportTab = () => {
           ) : (
             <div className="space-y-6">
               <div className="space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-lg font-semibold text-journal">{selectedTicket.title}</p>
                     <p className="text-sm text-muted-foreground">
                       توسط {selectedTicket.user.name || selectedTicket.user.email}
                     </p>
                   </div>
-                  <Badge className={statusStyles[selectedTicket.status]}>{selectedTicket.statusLabel}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={priorityStyles[selectedTicket.priority]}>
+                      {selectedTicket.priorityLabel}
+                    </Badge>
+                    <Badge className={statusStyles[selectedTicket.status]}>{selectedTicket.statusLabel}</Badge>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  تاریخ ثبت: {new Intl.DateTimeFormat("fa-IR", { dateStyle: "full", timeStyle: "short" }).format(new Date(selectedTicket.createdAt))}
+                  تاریخ ثبت: {new Intl.DateTimeFormat("fa-IR", { dateStyle: "full", timeStyle: "short" }).format(
+                    new Date(selectedTicket.createdAt)
+                  )}
                 </p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-journal">مکالمه</h3>
                 <div className="space-y-3">
                   {selectedTicket.messages.map((message) => (
@@ -254,12 +438,65 @@ export const AdminSupportTab = () => {
                         </span>
                       </div>
                       <p className="mt-3 text-sm leading-7 text-journal-light">{message.body}</p>
+                      {message.attachments.length > 0 && (
+                        <div className="mt-3 space-y-2">
+                          <span className="text-xs font-medium text-muted-foreground">پیوست‌ها</span>
+                          <ul className="space-y-1 text-sm">
+                            {message.attachments.map((attachment) => (
+                              <li key={attachment.id}>
+                                <a
+                                  href={attachment.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary underline-offset-2 hover:underline"
+                                >
+                                  {attachment.filename || "دانلود فایل"}
+                                </a>
+                                <span className="mr-2 text-xs text-muted-foreground">
+                                  ({Math.max(1, Math.round(attachment.size / 1024))} کیلوبایت)
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
 
               <form className="space-y-4" onSubmit={handleReply}>
+                <div className="grid gap-2 md:grid-cols-2">
+                  <Select value={nextStatus} onValueChange={(value) => setNextStatus(value as SupportTicketStatusKey | "")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="تغییر وضعیت" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">بدون تغییر وضعیت</SelectItem>
+                      {statusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={nextPriority}
+                    onValueChange={(value) => setNextPriority(value as SupportTicketPriorityKey | "")}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="تغییر اولویت" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">بدون تغییر اولویت</SelectItem>
+                      {priorityOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-journal">پاسخ پشتیبانی</label>
                   <Textarea
@@ -268,24 +505,6 @@ export const AdminSupportTab = () => {
                     onChange={(event) => setReplyMessage(event.target.value)}
                     placeholder="پاسخ خود را برای کاربر بنویسید..."
                   />
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-sm">
-                  <span className="text-journal">وضعیت تیکت:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {statusOptions.map((option) => (
-                      <Button
-                        type="button"
-                        key={option.value}
-                        variant={nextStatus === option.value ? "default" : "outline"}
-                        size="sm"
-                        onClick={() =>
-                          setNextStatus((current) => (current === option.value ? "" : option.value))
-                        }
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
                 </div>
                 <div className="flex justify-end">
                   <Button type="submit" disabled={replyMutation.isPending}>

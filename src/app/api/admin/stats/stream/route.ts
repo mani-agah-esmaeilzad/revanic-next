@@ -10,6 +10,10 @@ const sendEvent = (controller: ReadableStreamDefaultController, data: unknown) =
   controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
 };
 
+const sendHeartbeat = (controller: ReadableStreamDefaultController) => {
+  controller.enqueue(encoder.encode(`: keep-alive\n\n`));
+};
+
 export async function GET(request: Request) {
   const token = cookies().get("token")?.value;
   if (!token) {
@@ -32,6 +36,7 @@ export async function GET(request: Request) {
 
     let active = true;
     let interval: NodeJS.Timeout | undefined;
+    let heartbeat: NodeJS.Timeout | undefined;
     let lastPayload = "";
 
     const stream = new ReadableStream({
@@ -52,10 +57,18 @@ export async function GET(request: Request) {
           pushStats();
         }, 10000);
 
+        heartbeat = setInterval(() => {
+          if (!active) return;
+          sendHeartbeat(controller);
+        }, 15000);
+
         const abort = () => {
           active = false;
           if (interval) {
             clearInterval(interval);
+          }
+          if (heartbeat) {
+            clearInterval(heartbeat);
           }
           controller.close();
         };
@@ -66,6 +79,9 @@ export async function GET(request: Request) {
         active = false;
         if (interval) {
           clearInterval(interval);
+        }
+        if (heartbeat) {
+          clearInterval(heartbeat);
         }
       },
     });
