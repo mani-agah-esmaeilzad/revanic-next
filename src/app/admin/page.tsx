@@ -55,20 +55,66 @@ const AdminDashboardPage = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let source: EventSource | null = null;
+        let reconnectTimer: NodeJS.Timeout | null = null;
+        let cancelled = false;
+
         const fetchStats = async () => {
             try {
                 const response = await fetch('/api/admin/stats');
                 if (response.ok) {
                     const data = await response.json();
-                    setStats(data);
+                    if (!cancelled) {
+                        setStats(data);
+                        setIsLoading(false);
+                    }
+                } else {
+                    setIsLoading(false);
                 }
             } catch (error) {
                 console.error("Failed to fetch admin stats:", error);
-            } finally {
                 setIsLoading(false);
             }
         };
+
+        const startStream = () => {
+            source = new EventSource('/api/admin/stats/stream');
+
+            source.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (!cancelled) {
+                        setStats(data);
+                        setIsLoading(false);
+                    }
+                } catch (error) {
+                    console.error('Failed to parse admin stats stream payload', error);
+                }
+            };
+
+            source.onerror = () => {
+                console.warn('Admin stats stream disconnected, retrying...');
+                source?.close();
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(() => {
+                        reconnectTimer = null;
+                        startStream();
+                    }, 10000);
+                }
+                fetchStats();
+            };
+        };
+
         fetchStats();
+        startStream();
+
+        return () => {
+            cancelled = true;
+            source?.close();
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+            }
+        };
     }, []);
 
     if (isLoading || !stats) {

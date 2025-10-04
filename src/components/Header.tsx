@@ -81,16 +81,32 @@ const Header = () => {
                     <Logo size="lg" />
                   </SheetHeader>
                   <div className="flex flex-col gap-6 py-8">
-                    <Link href="/articles" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
+                    <Link
+                      href="/articles"
+                      onClick={handleLinkClick}
+                      className="text-lg text-journal-light hover:text-journal transition-colors"
+                    >
                       مقالات
                     </Link>
-                    <Link href="/authors" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
+                    <Link
+                      href="/authors"
+                      onClick={handleLinkClick}
+                      className="text-lg text-journal-light hover:text-journal transition-colors"
+                    >
                       نویسندگان
                     </Link>
-                    <Link href="/categories" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
+                    <Link
+                      href="/categories"
+                      onClick={handleLinkClick}
+                      className="text-lg text-journal-light hover:text-journal transition-colors"
+                    >
                       دسته‌بندی‌ها
                     </Link>
-                    <Link href="/about" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
+                    <Link
+                      href="/about"
+                      onClick={handleLinkClick}
+                      className="text-lg text-journal-light hover:text-journal transition-colors"
+                    >
                       درباره ما
                     </Link>
                     <hr className="border-border" />
