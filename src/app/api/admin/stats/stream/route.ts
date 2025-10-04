@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
 import { getAdminDashboardStats } from "@/lib/admin/statsService";
-import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/admin-auth";
 
 const encoder = new TextEncoder();
 
@@ -15,22 +13,10 @@ const sendHeartbeat = (controller: ReadableStreamDefaultController) => {
 };
 
 export async function GET(request: Request) {
-  const token = cookies().get("token")?.value;
-  if (!token) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
   try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    const userId = payload.userId as number;
+    const adminSession = await requireAdminSession();
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-
-    if (!user || user.role !== "ADMIN") {
+    if (!adminSession) {
       return new NextResponse("Forbidden", { status: 403 });
     }
 
