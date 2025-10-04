@@ -88,10 +88,18 @@ const priorityWeight: Record<SupportTicketPriorityKey, number> = {
 };
 
 interface AdminTicketFilters {
-  status?: SupportTicketStatusKey | "";
-  priority?: SupportTicketPriorityKey | "";
+  status?: SupportTicketStatusKey;
+  priority?: SupportTicketPriorityKey;
   search?: string;
 }
+
+const ALL_FILTER_VALUE = "ALL" as const;
+const NO_CHANGE_VALUE = "NONE" as const;
+
+type StatusFilterValue = SupportTicketStatusKey | typeof ALL_FILTER_VALUE;
+type PriorityFilterValue = SupportTicketPriorityKey | typeof ALL_FILTER_VALUE;
+type StatusUpdateValue = SupportTicketStatusKey | typeof NO_CHANGE_VALUE;
+type PriorityUpdateValue = SupportTicketPriorityKey | typeof NO_CHANGE_VALUE;
 
 async function fetchAdminTickets(filters: AdminTicketFilters): Promise<SupportTicket[]> {
   const params = new URLSearchParams();
@@ -138,10 +146,10 @@ export const AdminSupportTab = () => {
   const { toast } = useToast();
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
-  const [nextStatus, setNextStatus] = useState<SupportTicketStatusKey | "">("");
-  const [nextPriority, setNextPriority] = useState<SupportTicketPriorityKey | "">("");
-  const [statusFilter, setStatusFilter] = useState<SupportTicketStatusKey | "">("");
-  const [priorityFilter, setPriorityFilter] = useState<SupportTicketPriorityKey | "">("");
+  const [nextStatus, setNextStatus] = useState<StatusUpdateValue>(NO_CHANGE_VALUE);
+  const [nextPriority, setNextPriority] = useState<PriorityUpdateValue>(NO_CHANGE_VALUE);
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>(ALL_FILTER_VALUE);
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilterValue>(ALL_FILTER_VALUE);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const sseErrorShownRef = useRef(false);
@@ -155,8 +163,8 @@ export const AdminSupportTab = () => {
 
   const filters = useMemo<AdminTicketFilters>(
     () => ({
-      status: statusFilter || undefined,
-      priority: priorityFilter || undefined,
+      status: statusFilter === ALL_FILTER_VALUE ? undefined : statusFilter,
+      priority: priorityFilter === ALL_FILTER_VALUE ? undefined : priorityFilter,
       search: debouncedSearch || undefined,
     }),
     [statusFilter, priorityFilter, debouncedSearch]
@@ -165,8 +173,8 @@ export const AdminSupportTab = () => {
   const filtersKey = useMemo(
     () =>
       JSON.stringify({
-        status: filters.status ?? "",
-        priority: filters.priority ?? "",
+        status: filters.status ?? ALL_FILTER_VALUE,
+        priority: filters.priority ?? ALL_FILTER_VALUE,
         search: filters.search ?? "",
       }),
     [filters]
@@ -190,8 +198,8 @@ export const AdminSupportTab = () => {
         description: "پیام شما برای کاربر ارسال شد.",
       });
       setReplyMessage("");
-      setNextStatus("");
-      setNextPriority("");
+      setNextStatus(NO_CHANGE_VALUE);
+      setNextPriority(NO_CHANGE_VALUE);
       queryClient.invalidateQueries({ queryKey: ["admin", "supportTickets"] });
     },
     onError: (err: unknown) => {
@@ -265,7 +273,10 @@ export const AdminSupportTab = () => {
       return;
     }
 
-    if (!replyMessage.trim() && !nextStatus && !nextPriority) {
+    const hasStatusChange = nextStatus !== NO_CHANGE_VALUE;
+    const hasPriorityChange = nextPriority !== NO_CHANGE_VALUE;
+
+    if (!replyMessage.trim() && !hasStatusChange && !hasPriorityChange) {
       toast({
         variant: "destructive",
         title: "اطلاعات ناقص",
@@ -277,8 +288,8 @@ export const AdminSupportTab = () => {
     replyMutation.mutate({
       ticketId: selectedTicket.id,
       message: replyMessage.trim() || undefined,
-      status: nextStatus || undefined,
-      priority: nextPriority || undefined,
+      status: hasStatusChange ? nextStatus : undefined,
+      priority: hasPriorityChange ? nextPriority : undefined,
     });
   };
 
@@ -291,13 +302,13 @@ export const AdminSupportTab = () => {
             <div className="grid grid-cols-2 gap-2">
               <Select
                 value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as SupportTicketStatusKey | "")}
+                onValueChange={(value) => setStatusFilter(value as StatusFilterValue)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="وضعیت: همه" />
                 </SelectTrigger>
                 <SelectContent align="end">
-                  <SelectItem value="">همه وضعیت‌ها</SelectItem>
+                  <SelectItem value={ALL_FILTER_VALUE}>همه وضعیت‌ها</SelectItem>
                   {statusOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -307,13 +318,13 @@ export const AdminSupportTab = () => {
               </Select>
               <Select
                 value={priorityFilter}
-                onValueChange={(value) => setPriorityFilter(value as SupportTicketPriorityKey | "")}
+                onValueChange={(value) => setPriorityFilter(value as PriorityFilterValue)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="اولویت: همه" />
                 </SelectTrigger>
                 <SelectContent align="end">
-                  <SelectItem value="">همه اولویت‌ها</SelectItem>
+                  <SelectItem value={ALL_FILTER_VALUE}>همه اولویت‌ها</SelectItem>
                   {priorityOptions.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -467,12 +478,12 @@ export const AdminSupportTab = () => {
 
               <form className="space-y-4" onSubmit={handleReply}>
                 <div className="grid gap-2 md:grid-cols-2">
-                  <Select value={nextStatus} onValueChange={(value) => setNextStatus(value as SupportTicketStatusKey | "")}>
+                  <Select value={nextStatus} onValueChange={(value) => setNextStatus(value as StatusUpdateValue)}>
                     <SelectTrigger>
                       <SelectValue placeholder="تغییر وضعیت" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">بدون تغییر وضعیت</SelectItem>
+                      <SelectItem value={NO_CHANGE_VALUE}>بدون تغییر وضعیت</SelectItem>
                       {statusOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
@@ -482,13 +493,13 @@ export const AdminSupportTab = () => {
                   </Select>
                   <Select
                     value={nextPriority}
-                    onValueChange={(value) => setNextPriority(value as SupportTicketPriorityKey | "")}
+                    onValueChange={(value) => setNextPriority(value as PriorityUpdateValue)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="تغییر اولویت" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">بدون تغییر اولویت</SelectItem>
+                      <SelectItem value={NO_CHANGE_VALUE}>بدون تغییر اولویت</SelectItem>
                       {priorityOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
