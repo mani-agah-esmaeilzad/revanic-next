@@ -1,22 +1,30 @@
 // src/components/ProfileClient.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Edit3, LogOut, Crown, Loader2, Pin, PinOff, History } from "lucide-react";
+import { Edit3, LogOut, Crown, Loader2, Pin, PinOff, History, Download } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
 import { useRouter } from "next/navigation";
 import { ProfileSettings } from "./ProfileSettings";
 import { DeleteArticleButton } from "./DeleteArticleButton";
 import { Skeleton } from "./ui/skeleton";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, QueryFunctionContext } from "@tanstack/react-query";
 import { Prisma } from "@prisma/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
@@ -30,6 +38,19 @@ type FetchedArticle = Prisma.ArticleGetPayload<{
     categories: { select: { name: true } };
   }
 }>;
+
+type ReadingHistoryItem = {
+  viewedAt: string;
+  article: FetchedArticle;
+};
+
+const HISTORY_RANGE_LABELS: Record<string, string> = {
+  "7d": "۷ روز اخیر",
+  "30d": "۳۰ روز اخیر",
+  "90d": "۹۰ روز اخیر",
+  "365d": "۱ سال اخیر",
+  all: "همه زمان‌ها",
+};
 
 // تایپ اصلی برای داده‌های کاربر که از صفحه سرور می‌آید
 type UserPayload = Prisma.UserGetPayload<{
@@ -87,8 +108,33 @@ const pinArticleRequest = async (articleId: number | null) => {
   return response.json();
 };
 
-const fetchReadingHistory = async (): Promise<FetchedArticle[]> => {
-  const response = await fetch("/api/me/reading-history");
+const fetchReadingHistory = async (
+  { queryKey }: QueryFunctionContext<
+    [
+      string,
+      { search?: string; range: string; categoryId?: number | null }
+    ]
+  >
+): Promise<ReadingHistoryItem[]> => {
+  const [, params] = queryKey;
+  const urlParams = new URLSearchParams();
+
+  if (params.search) {
+    urlParams.set("q", params.search);
+  }
+
+  if (params.range) {
+    urlParams.set("range", params.range);
+  }
+
+  if (params.categoryId) {
+    urlParams.set("categoryId", params.categoryId.toString());
+  }
+
+  const queryString = urlParams.toString();
+  const response = await fetch(
+    `/api/me/reading-history${queryString ? `?${queryString}` : ""}`
+  );
   if (!response.ok) throw new Error("Failed to fetch reading history");
   return response.json();
 };
@@ -154,6 +200,45 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
   const queryClient = useQueryClient();
 
   const [pinnedArticleId, setPinnedArticleId] = useState(user.pinnedArticleId);
+  const [historyRange, setHistoryRange] = useState("30d");
+  const [historySearch, setHistorySearch] = useState("");
+  const [debouncedHistorySearch, setDebouncedHistorySearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedHistorySearch(historySearch.trim());
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [historySearch]);
+
+  const historyFilters = useMemo(
+    () => ({
+      search: debouncedHistorySearch || undefined,
+      range: historyRange,
+    }),
+    [debouncedHistorySearch, historyRange]
+  );
+
+  const currentRangeLabel = HISTORY_RANGE_LABELS[historyRange] ?? HISTORY_RANGE_LABELS["30d"];
+
+  const handleExportHistory = () => {
+    const params = new URLSearchParams();
+    if (debouncedHistorySearch) {
+      params.set("q", debouncedHistorySearch);
+    }
+    if (historyRange) {
+      params.set("range", historyRange);
+    }
+
+    const queryString = params.toString();
+    if (typeof window !== "undefined") {
+      window.open(
+        `/api/me/reading-history/export${queryString ? `?${queryString}` : ""}`,
+        "_blank"
+      );
+    }
+  };
 
   const { data: savedArticles, isLoading: isLoadingSaved, isError: isErrorSaved } = useQuery<FetchedArticle[]>({
     queryKey: ['savedArticles'],
@@ -167,8 +252,8 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
     enabled: activeTab === 'clapped',
   });
 
-  const { data: historyArticles, isLoading: isLoadingHistory, isError: isErrorHistory } = useQuery<FetchedArticle[]>({
-    queryKey: ['readingHistory'],
+  const { data: historyArticles, isLoading: isLoadingHistory, isError: isErrorHistory } = useQuery<ReadingHistoryItem[]>({
+    queryKey: ['readingHistory', historyFilters],
     queryFn: fetchReadingHistory,
     enabled: activeTab === 'history',
   });
@@ -319,29 +404,84 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                 <Card className="shadow-soft border-0">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2"><History className="h-5 w-5" />تاریخچه مطالعه</CardTitle>
-                    <CardDescription>آخرین مقالاتی که مطالعه کرده‌اید.</CardDescription>
+                    <CardDescription>
+                      آخرین مقالاتی که مطالعه کرده‌اید. نتایج را بر اساس بازه زمانی یا جست‌وجوی متن محدود کنید.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                      <Input
+                        value={historySearch}
+                        onChange={(event) => setHistorySearch(event.target.value)}
+                        placeholder="جست‌وجو بر اساس عنوان یا محتوای مقاله"
+                        className="md:max-w-sm"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Select value={historyRange} onValueChange={setHistoryRange}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="بازه" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="7d">۷ روز اخیر</SelectItem>
+                            <SelectItem value="30d">۳۰ روز اخیر</SelectItem>
+                            <SelectItem value="90d">۹۰ روز اخیر</SelectItem>
+                            <SelectItem value="365d">۱ سال اخیر</SelectItem>
+                            <SelectItem value="all">همه زمان‌ها</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="outline"
+                          onClick={handleExportHistory}
+                          disabled={isLoadingHistory || (historyArticles?.length ?? 0) === 0}
+                        >
+                          <Download className="ml-2 h-4 w-4" />
+                          خروجی CSV
+                        </Button>
+                      </div>
+                    </div>
                     {isLoadingHistory ? (
                       <div className="space-y-4"><Skeleton className="h-24 w-full" /><Skeleton className="h-24 w-full" /></div>
                     ) : isErrorHistory ? (
                       <p className="text-red-500 text-center">خطا در دریافت تاریخچه مطالعه.</p>
                     ) : historyArticles && historyArticles.length > 0 ? (
                       <div className="space-y-6">
-                        {historyArticles.map((article) => (
-                          <ArticleCard
-                            key={article.id}
-                            id={article.id.toString()}
-                            title={article.title}
-                            excerpt={article.content.substring(0, 150) + "..."}
-                            image={article.coverImageUrl}
-                            author={{ name: article.author.name || "ناشناس", avatar: article.author.avatarUrl }}
-                            readTime={article.readTimeMinutes || 1}
-                            publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(article.createdAt))}
-                            claps={article._count.claps}
-                            comments={article._count.comments}
-                            category={article.categories[0]?.name || "عمومی"}
-                          />
+                        {historyArticles.map(({ article, viewedAt }) => (
+                          <div key={`${article.id}-${viewedAt}`} className="space-y-2">
+                            {(() => {
+                              const plainContent = article.content.replace(/<[^>]*>?/gm, "");
+                              const preview = plainContent.substring(0, 150);
+                              return (
+                                <ArticleCard
+                              id={article.id.toString()}
+                              title={article.title}
+                                  excerpt={
+                                    preview + (plainContent.length > 150 ? "..." : "")
+                                  }
+                              image={article.coverImageUrl}
+                              author={{
+                                name: article.author.name || "ناشناس",
+                                avatar: article.author.avatarUrl,
+                              }}
+                              readTime={article.readTimeMinutes || 1}
+                              publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                                new Date(article.createdAt)
+                              )}
+                              claps={article._count.claps}
+                              comments={article._count.comments}
+                                  category={article.categories[0]?.name || "عمومی"}
+                                />
+                              );
+                            })()}
+                            <div className="flex justify-between text-xs text-muted-foreground px-2">
+                              <span>
+                                آخرین مطالعه: {new Intl.DateTimeFormat("fa-IR", {
+                                  dateStyle: "medium",
+                                  timeStyle: "short",
+                                }).format(new Date(viewedAt))}
+                              </span>
+                              <span>بازه فعال: {currentRangeLabel}</span>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     ) : (<p className="text-center text-muted-foreground py-8">تاریخچه مطالعه شما خالی است.</p>)}
