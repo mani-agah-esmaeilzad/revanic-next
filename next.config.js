@@ -1,9 +1,51 @@
 // next.config.js
+const runtimeCaching = [
+    {
+        urlPattern: /^https?:\/\/res\.cloudinary\.com\/.*$/,
+        handler: "CacheFirst",
+        options: {
+            cacheName: "revanic-images",
+            expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            cacheableResponse: { statuses: [0, 200] },
+        },
+    },
+    {
+        urlPattern: /^https?:\/\/fonts\.gstatic\.com\/.*$/,
+        handler: "CacheFirst",
+        options: {
+            cacheName: "revanic-fonts",
+            expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
+        },
+    },
+    {
+        urlPattern: ({ request }) => request.destination === "document" || request.destination === "script",
+        handler: "NetworkFirst",
+        options: {
+            cacheName: "revanic-pages",
+            networkTimeoutSeconds: 10,
+            expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
+        },
+    },
+    {
+        urlPattern: ({ url }) => url.pathname.startsWith("/api"),
+        handler: "NetworkFirst",
+        options: {
+            cacheName: "revanic-api",
+            networkTimeoutSeconds: 10,
+            expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
+        },
+    },
+];
+
 const withPWA = require("next-pwa")({
     dest: "public",
     register: true,
     skipWaiting: true,
-    disable: process.env.NODE_ENV === "development", // PWA را در حالت توسعه غیرفعال می‌کند
+    disable: process.env.NODE_ENV === "development",
+    runtimeCaching,
+    fallbacks: {
+        document: "/offline",
+    },
 });
 
 /** @type {import('next').NextConfig} */
