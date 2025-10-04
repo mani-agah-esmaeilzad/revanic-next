@@ -44,6 +44,14 @@ type ReadingHistoryItem = {
   article: FetchedArticle;
 };
 
+type HistoryFilters = {
+  search?: string;
+  range: string;
+  categoryId?: number | null;
+};
+
+type HistoryQueryKey = readonly ["readingHistory", HistoryFilters];
+
 const HISTORY_RANGE_LABELS: Record<string, string> = {
   "7d": "۷ روز اخیر",
   "30d": "۳۰ روز اخیر",
@@ -109,12 +117,7 @@ const pinArticleRequest = async (articleId: number | null) => {
 };
 
 const fetchReadingHistory = async (
-  { queryKey }: QueryFunctionContext<
-    readonly [
-      string,
-      { search?: string; range: string; categoryId?: number | null }
-    ]
-  >
+  { queryKey }: QueryFunctionContext<HistoryQueryKey>
 ): Promise<ReadingHistoryItem[]> => {
   const [, params] = queryKey;
   const urlParams = new URLSearchParams();
@@ -212,12 +215,17 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
     return () => clearTimeout(timer);
   }, [historySearch]);
 
-  const historyFilters = useMemo(
+  const historyFilters = useMemo<HistoryFilters>(
     () => ({
       search: debouncedHistorySearch || undefined,
       range: historyRange,
     }),
     [debouncedHistorySearch, historyRange]
+  );
+
+  const historyQueryKey = useMemo<HistoryQueryKey>(
+    () => ["readingHistory", historyFilters],
+    [historyFilters]
   );
 
   const currentRangeLabel = HISTORY_RANGE_LABELS[historyRange] ?? HISTORY_RANGE_LABELS["30d"];
@@ -252,10 +260,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
     enabled: activeTab === 'clapped',
   });
 
-  const { data: historyArticles, isLoading: isLoadingHistory, isError: isErrorHistory } = useQuery<ReadingHistoryItem[]>({
-    queryKey: ['readingHistory', historyFilters],
+  const {
+    data: historyArticles,
+    isLoading: isLoadingHistory,
+    isError: isErrorHistory,
+  } = useQuery<ReadingHistoryItem[], Error, ReadingHistoryItem[], HistoryQueryKey>({
+    queryKey: historyQueryKey,
     queryFn: fetchReadingHistory,
-    enabled: activeTab === 'history',
+    enabled: activeTab === "history",
   });
 
   const pinMutation = useMutation({
@@ -445,46 +457,48 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                       <p className="text-red-500 text-center">خطا در دریافت تاریخچه مطالعه.</p>
                     ) : historyArticles && historyArticles.length > 0 ? (
                       <div className="space-y-6">
-                        {historyArticles.map(({ article, viewedAt }) => (
-                          <div key={`${article.id}-${viewedAt}`} className="space-y-2">
-                            {(() => {
-                              const plainContent = article.content.replace(/<[^>]*>?/gm, "");
-                              const preview = plainContent.substring(0, 150);
-                              return (
-                                <ArticleCard
-                              id={article.id.toString()}
-                              title={article.title}
-                                  excerpt={
-                                    preview + (plainContent.length > 150 ? "..." : "")
-                                  }
-                              image={article.coverImageUrl}
-                              author={{
-                                name: article.author.name || "ناشناس",
-                                avatar: article.author.avatarUrl,
-                              }}
-                              readTime={article.readTimeMinutes || 1}
-                              publishDate={new Intl.DateTimeFormat("fa-IR").format(
-                                new Date(article.createdAt)
-                              )}
-                              claps={article._count.claps}
-                              comments={article._count.comments}
-                                  category={article.categories[0]?.name || "عمومی"}
-                                />
-                              );
-                            })()}
-                            <div className="flex justify-between text-xs text-muted-foreground px-2">
-                              <span>
-                                آخرین مطالعه: {new Intl.DateTimeFormat("fa-IR", {
-                                  dateStyle: "medium",
-                                  timeStyle: "short",
-                                }).format(new Date(viewedAt))}
-                              </span>
-                              <span>بازه فعال: {currentRangeLabel}</span>
+                        {historyArticles.map(({ article, viewedAt }) => {
+                          const plainContent = article.content.replace(/<[^>]*>?/gm, "");
+                          const preview = plainContent.substring(0, 150);
+                          const excerpt = preview + (plainContent.length > 150 ? "..." : "");
+
+                          return (
+                            <div key={`${article.id}-${viewedAt}`} className="space-y-2">
+                              <ArticleCard
+                                id={article.id.toString()}
+                                title={article.title}
+                                excerpt={excerpt}
+                                image={article.coverImageUrl}
+                                author={{
+                                  name: article.author.name || "ناشناس",
+                                  avatar: article.author.avatarUrl,
+                                }}
+                                readTime={article.readTimeMinutes || 1}
+                                publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                                  new Date(article.createdAt)
+                                )}
+                                claps={article._count.claps}
+                                comments={article._count.comments}
+                                category={article.categories[0]?.name || "عمومی"}
+                              />
+                              <div className="flex justify-between text-xs text-muted-foreground px-2">
+                                <span>
+                                  آخرین مطالعه: {new Intl.DateTimeFormat("fa-IR", {
+                                    dateStyle: "medium",
+                                    timeStyle: "short",
+                                  }).format(new Date(viewedAt))}
+                                </span>
+                                <span>بازه فعال: {currentRangeLabel}</span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                    ) : (<p className="text-center text-muted-foreground py-8">تاریخچه مطالعه شما خالی است.</p>)}
+                    ) : (
+                      <p className="text-center text-muted-foreground py-8">
+                        تاریخچه مطالعه شما خالی است.
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
