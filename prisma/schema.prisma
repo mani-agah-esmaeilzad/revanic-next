@@ -34,9 +34,11 @@ model User {
   updatedAt              DateTime       @updatedAt
   publications           UsersOnPublications[]
   highlights             Highlight[]
-  
+
   // --- فیلد جدید برای تاریخچه مطالعه ---
   readingHistory         ReadingHistory[]
+  supportTickets         SupportTicket[]
+  supportMessages        SupportMessage[] @relation("SupportMessageAuthor")
 }
 
 model Article {
@@ -66,6 +68,58 @@ model Article {
 
   // --- فیلد جدید برای تاریخچه مطالعه ---
   history       ReadingHistory[]
+}
+
+model SupportTicket {
+  id        Int                   @id @default(autoincrement())
+  title     String
+  status    SupportTicketStatus   @default(OPEN)
+  priority  SupportTicketPriority @default(NORMAL)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  messages  SupportMessage[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+}
+
+model SupportMessage {
+  id          Int                      @id @default(autoincrement())
+  body        String
+  authorRole  SupportMessageAuthorRole
+  ticket      SupportTicket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId    Int
+  author      User?                    @relation("SupportMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorId    Int?
+  attachments SupportAttachment[]
+  createdAt   DateTime                 @default(now())
+}
+
+model SupportAttachment {
+  id        Int            @id @default(autoincrement())
+  url       String
+  mimeType  String
+  size      Int
+  filename  String?
+  message   SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId Int
+  createdAt DateTime       @default(now())
+}
+
+enum SupportTicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum SupportMessageAuthorRole {
+  USER
+  ADMIN
 }
 
 model Publication {

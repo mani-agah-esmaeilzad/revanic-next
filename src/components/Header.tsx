@@ -41,6 +41,9 @@ const Header = () => {
             <Link href="/categories" className="text-journal-light hover:text-journal transition-colors">
               دسته‌بندی‌ها
             </Link>
+            <Link href="/support" className="text-journal-light hover:text-journal transition-colors">
+              پشتیبانی
+            </Link>
             <Link href="/about" className="text-journal-light hover:text-journal transition-colors">
               درباره ما
             </Link>
@@ -89,6 +92,9 @@ const Header = () => {
                     </Link>
                     <Link href="/categories" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
                       دسته‌بندی‌ها
+                    </Link>
+                    <Link href="/support" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
+                      پشتیبانی
                     </Link>
                     <Link href="/about" onClick={handleLinkClick} className="text-lg text-journal-light hover:text-journal transition-colors">
                       درباره ما
