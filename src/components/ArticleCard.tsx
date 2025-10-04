@@ -6,13 +6,14 @@ import { Clock, Hand, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-interface ArticleCardProps {
+export interface ArticleCardProps {
   id: string | number;
   title: string;
   excerpt?: string | null;
   author: {
     name: string | null;
     avatar?: string | null;
+    avatarUrl?: string | null;
   };
   readTime?: number | null;
   publishDate?: string | null;
@@ -38,6 +39,7 @@ const ArticleCard = ({
 }: ArticleCardProps) => {
   const articleId = typeof id === "number" ? id.toString() : id;
   const authorName = author.name?.trim() || "ناشناس";
+  const avatarSource = author.avatar ?? author.avatarUrl ?? "";
   const excerptText = excerpt?.trim() || "";
   const safeReadTime = readTime && readTime > 0 ? readTime : 1;
   const safePublishDate = publishDate?.trim() || null;
@@ -73,7 +75,7 @@ const ArticleCard = ({
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-journal-light">
                 <Avatar className="h-7 w-7">
-                  <AvatarImage src={author.avatar || ""} />
+                  <AvatarImage src={avatarSource} />
                   <AvatarFallback className="bg-journal-green text-white">
                     {avatarInitial}
                   </AvatarFallback>

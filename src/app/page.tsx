@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
+import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
 import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
@@ -11,45 +12,32 @@ import { CommunitySpotlight } from "@/components/CommunitySpotlight";
 import { getFeaturedCommunityStories } from "@/lib/community";
 import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
 
-export const dynamic = "force-dynamic";
-
-const Index = async () => {
-  const [
-    articleCount,
-    authorCount,
-    dailyReadersCount,
-    communityStories,
-    upcomingEditorialEntries,
-  ] = await Promise.all([
-    prisma.article.count({ where: { status: "APPROVED" } }),
-    prisma.user.count({
-      where: {
-        articles: { some: { status: "APPROVED" } },
-      },
-    }),
-    prisma.articleView.count({
-      where: {
-        viewedAt: {
-          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        },
-      },
-    }),
-    getFeaturedCommunityStories(3),
-    getUpcomingEditorialEntries(3),
-  ]);
-
-  const featuredArticles = await prisma.article.findMany({
-    where: { status: "APPROVED" },
-    orderBy: [
-      { claps: { _count: "desc" } },
-      { views: { _count: "desc" } },
-      { createdAt: "desc" },
-    ],
-    take: 3,
-    include: {
-      author: { select: { name: true, avatarUrl: true } },
-      categories: { select: { name: true } },
-      _count: { select: { claps: true, comments: true } },
+const Index = () => {
+  // Sample articles data
+  const featuredArticles: ArticleCardProps[] = [
+    {
+      id: "1",
+      title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
+      excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
+      author: { name: "علی رضایی", avatar: "" },
+      readTime: 8,
+      publishDate: "۳ روز پیش",
+      claps: 124, // <-- تغییر از likes به claps
+      comments: 23,
+      category: "فناوری",
+      image: ""
+    },
+    {
+      id: "2",
+      title: "سفری به دل تاریخ ایران باستان",
+      excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
+      author: { name: "مریم احمدی", avatar: "" },
+      readTime: 12,
+      publishDate: "یک هفته پیش",
+      claps: 89, // <-- تغییر از likes به claps
+      comments: 15,
+      category: "تاریخ",
+      image: ""
     },
   });
 
