@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { PublicationCard } from "@/components/PublicationCard";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Users, FileText, Sparkles } from "lucide-react";
+import { ensureCommunityStories, getStoriesGroupedByPublication } from "@/lib/community";
+import { formatDistanceToNow } from "date-fns";
+import { faIR } from "date-fns/locale";
 
 const PublicationsPage = async () => {
   const publications = await prisma.publication.findMany({
@@ -10,6 +14,16 @@ const PublicationsPage = async () => {
     },
     orderBy: { createdAt: "desc" },
   });
+
+  await ensureCommunityStories();
+
+  const storiesByPublication = await getStoriesGroupedByPublication(
+    publications.map((publication) => publication.id)
+  );
+
+  const publicationsWithStories = publications.filter(
+    (publication) => storiesByPublication[publication.id]?.length
+  );
 
   const totalPublications = publications.length;
   const totalMembers = publications.reduce((sum, publication) => sum + publication._count.members, 0);
@@ -100,6 +114,63 @@ const PublicationsPage = async () => {
                 <p className="text-muted-foreground text-lg">
                   هنوز هیچ انتشاراتی ثبت نشده است.
                 </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-16 bg-journal-cream/40">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div className="text-center space-y-3">
+              <h2 className="text-2xl font-bold text-foreground">داستان‌های موفقیت انتشارات</h2>
+              <p className="text-muted-foreground">
+                روایت‌هایی از همکاری تیمی در نشریات مختلف روانیک که می‌تواند الهام‌بخش برنامهٔ بعدی شما باشد.
+              </p>
+            </div>
+
+            {publicationsWithStories.length > 0 ? (
+              publicationsWithStories.map((publication) => {
+                const stories = storiesByPublication[publication.id] ?? [];
+                return (
+                  <div key={publication.id} className="space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                      <h3 className="text-xl font-semibold text-foreground">{publication.name}</h3>
+                      <span className="text-sm text-muted-foreground">
+                        {stories.length.toLocaleString("fa-IR")} روایت ثبت شده
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {stories.map((story) => (
+                        <Card key={story.id} className="border-0 shadow-soft bg-white/80">
+                          <CardContent className="p-6 space-y-3 text-sm">
+                            <Badge variant="secondary" className="bg-journal-cream text-journal-green w-fit">
+                              {story.achievement || "دستاورد تیمی"}
+                            </Badge>
+                            <h4 className="text-lg font-semibold text-foreground">{story.title}</h4>
+                            <p className="text-muted-foreground leading-relaxed line-clamp-3">
+                              {story.excerpt}
+                            </p>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <span>{story.contributorName}</span>
+                              <span>
+                                {formatDistanceToNow(new Date(story.createdAt), {
+                                  locale: faIR,
+                                  addSuffix: true,
+                                })}
+                              </span>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                هنوز داستانی برای انتشارات ثبت نشده است. از طریق پشتیبانی تجربهٔ خود را ارسال کنید.
               </div>
             )}
           </div>

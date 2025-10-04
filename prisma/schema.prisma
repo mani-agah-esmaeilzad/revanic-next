@@ -105,6 +105,33 @@ model SupportAttachment {
   createdAt DateTime       @default(now())
 }
 
+model CommunityStory {
+  id               Int           @id @default(autoincrement())
+  slug             String        @unique
+  title            String
+  excerpt          String
+  achievement      String?
+  quote            String?
+  contributorName  String
+  contributorRole  String?
+  featuredImageUrl String?
+  publicationId    Int?
+  publication      Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model EditorialCalendarEntry {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  focus       String
+  description String?
+  publishDate DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum SupportTicketStatus {
   OPEN
   ANSWERED
@@ -132,6 +159,7 @@ model Publication {
   updatedAt   DateTime              @updatedAt
   articles    Article[]
   members     UsersOnPublications[]
+  communityStories CommunityStory[]
 }
 
 model UsersOnPublications {
