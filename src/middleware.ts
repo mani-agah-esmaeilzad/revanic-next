@@ -6,8 +6,10 @@ export const config = {
   matcher: [
     '/profile/:path*',
     '/write/:path*',
+    '/support/:path*',
     '/admin/:path*',
-    '/api/admin/:path*'
+    '/api/admin/:path*',
+    '/api/support/:path*'
   ],
 };
 
