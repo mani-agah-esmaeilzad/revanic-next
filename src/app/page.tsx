@@ -1,50 +1,68 @@
 // src/app/page.tsx
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
+import { formatDistanceToNow } from "date-fns";
+import { faIR } from "date-fns/locale";
 
-const Index = () => {
-  // Sample articles data
-  const featuredArticles = [
-    {
-      id: "1",
-      title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
-      excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
-      author: { name: "علی رضایی", avatar: "" },
-      readTime: 8,
-      publishDate: "۳ روز پیش",
-      claps: 124, // <-- تغییر از likes به claps
-      comments: 23,
-      category: "فناوری",
-      image: ""
+const Index = async () => {
+  const [articleCount, authorCount, dailyReadersCount] = await Promise.all([
+    prisma.article.count({ where: { status: "APPROVED" } }),
+    prisma.user.count({
+      where: {
+        articles: { some: { status: "APPROVED" } },
+      },
+    }),
+    prisma.articleView.count({
+      where: {
+        viewedAt: {
+          gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+        },
+      },
+    }),
+  ]);
+
+  const featuredArticles = await prisma.article.findMany({
+    where: { status: "APPROVED" },
+    orderBy: [
+      { claps: { _count: "desc" } },
+      { views: { _count: "desc" } },
+      { createdAt: "desc" },
+    ],
+    take: 3,
+    include: {
+      author: { select: { name: true, avatarUrl: true } },
+      categories: { select: { name: true } },
+      _count: { select: { claps: true, comments: true } },
     },
-    {
-      id: "2",
-      title: "سفری به دل تاریخ ایران باستان",
-      excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
-      author: { name: "مریم احمدی", avatar: "" },
-      readTime: 12,
-      publishDate: "یک هفته پیش",
-      claps: 89, // <-- تغییر از likes به claps
-      comments: 15,
-      category: "تاریخ",
-      image: ""
-    },
-    {
-      id: "3",
-      title: "روان‌شناسی رنگ‌ها در معماری مدرن",
-      excerpt: "تأثیر رنگ‌ها بر روحیه انسان و چگونگی استفاده از این دانش در طراحی فضاهای زندگی و کار.",
-      author: { name: "محمد حسینی", avatar: "" },
-      readTime: 6,
-      publishDate: "۲ هفته پیش",
-      claps: 67, // <-- تغییر از likes به claps
-      comments: 8,
-      category: "هنر و معماری",
-      image: ""
-    }
-  ];
+  });
+
+  const formattedArticles = featuredArticles.map((article) => {
+    const plainContent = article.content.replace(/<[^>]*>?/gm, "");
+    const publishDate = formatDistanceToNow(new Date(article.createdAt), {
+      addSuffix: true,
+      locale: faIR,
+    });
+
+    return {
+      id: article.id.toString(),
+      title: article.title,
+      excerpt: plainContent.substring(0, 180) + (plainContent.length > 180 ? "..." : ""),
+      author: {
+        name: article.author.name || "ناشناس",
+        avatar: article.author.avatarUrl || undefined,
+      },
+      readTime: article.readTimeMinutes || Math.max(1, Math.round(plainContent.length / 900)),
+      publishDate,
+      claps: article._count.claps,
+      comments: article._count.comments,
+      category: article.categories[0]?.name || "عمومی",
+      image: article.coverImageUrl,
+    };
+  });
 
   return (
     <>
@@ -91,16 +109,22 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۱۲۰۰+</div>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {articleCount.toLocaleString("fa-IR")}
+              </div>
               <p className="text-journal-light">مقاله منتشر شده</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۳۵۰+</div>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {authorCount.toLocaleString("fa-IR")}
+              </div>
               <p className="text-journal-light">نویسنده فعال</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۸۵۰۰+</div>
-              <p className="text-journal-light">خواننده روزانه</p>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {dailyReadersCount.toLocaleString("fa-IR")}
+              </div>
+              <p className="text-journal-light">بازدید ۲۴ ساعت گذشته</p>
             </div>
           </div>
         </div>
@@ -116,11 +140,17 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-6">
-            {featuredArticles.map((article) => (
-              <ArticleCard key={article.id} {...article} />
-            ))}
-          </div>
+          {formattedArticles.length > 0 ? (
+            <div className="max-w-4xl mx-auto space-y-6">
+              {formattedArticles.map((article) => (
+                <ArticleCard key={article.id} {...article} />
+              ))}
+            </div>
+          ) : (
+            <div className="max-w-3xl mx-auto text-center py-16 text-journal-light">
+              هنوز مقاله تایید شده‌ای برای نمایش وجود ندارد. اولین نفری باشید که می‌نویسد!
+            </div>
+          )}
 
           <div className="text-center mt-12">
             <Link href="/articles">

@@ -8,6 +8,8 @@ const ARTICLES_PER_PAGE = 10;
 interface ArticlesPageProps {
   searchParams: {
     page?: string;
+    category?: string;
+    categoryId?: string;
   };
 }
 
@@ -17,13 +19,45 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
     return <p className="text-center">شماره صفحه نامعتبر است.</p>;
   }
 
+  const { category, categoryId } = searchParams;
+  let activeCategoryTitle: string | null = null;
+
+  if (categoryId) {
+    const categoryRecord = await prisma.category.findUnique({
+      where: { id: Number(categoryId) },
+      select: { name: true },
+    });
+    activeCategoryTitle = categoryRecord?.name || null;
+  } else if (category) {
+    activeCategoryTitle = decodeURIComponent(category);
+  }
+
+  const categoryFilter = categoryId
+    ? {
+        categories: {
+          some: { id: Number(categoryId) },
+        },
+      }
+    : activeCategoryTitle
+    ? {
+        categories: {
+          some: { name: activeCategoryTitle },
+        },
+      }
+    : undefined;
+
+  const where = {
+    status: "APPROVED" as const,
+    ...(categoryFilter || {}),
+  };
+
   const totalArticles = await prisma.article.count({
-    where: { status: "APPROVED" },
+    where,
   });
   const totalPages = Math.ceil(totalArticles / ARTICLES_PER_PAGE);
 
   const articles = await prisma.article.findMany({
-    where: { status: "APPROVED" },
+    where,
     orderBy: { createdAt: "desc" },
     skip: (currentPage - 1) * ARTICLES_PER_PAGE,
     take: ARTICLES_PER_PAGE,
@@ -38,7 +72,9 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold text-center mb-8">
-          آخرین مقالات
+          {categoryFilter
+            ? `مقالات مرتبط با ${activeCategoryTitle?.trim() || "موضوع انتخابی"}`
+            : "آخرین مقالات"}
         </h1>
         {articles.length > 0 ? (
           <div className="space-y-6">
