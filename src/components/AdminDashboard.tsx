@@ -6,15 +6,17 @@ import { AdminUsersTab } from './AdminUsersTab';
 import { AdminArticlesTab } from './AdminArticlesTab';
 import { AdminCommentsTab } from './AdminCommentsTab';
 import { AdminSubscriptionsTab } from './AdminSubscriptionsTab'; // <-- ایمپورت جدید
+import { AdminSupportTab } from './AdminSupportTab';
 
 export const AdminDashboard = () => {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="users">کاربران</TabsTrigger>
         <TabsTrigger value="articles">مقالات</TabsTrigger>
         <TabsTrigger value="comments">نظرات</TabsTrigger>
         <TabsTrigger value="subscriptions">اشتراک‌ها</TabsTrigger> {/* <-- تب جدید */}
+        <TabsTrigger value="support">تیکت‌ها</TabsTrigger>
       </TabsList>
       <TabsContent value="users">
         <AdminUsersTab />
@@ -27,6 +29,9 @@ export const AdminDashboard = () => {
       </TabsContent>
       <TabsContent value="subscriptions">
         <AdminSubscriptionsTab /> {/* <-- محتوای تب جدید */}
+      </TabsContent>
+      <TabsContent value="support">
+        <AdminSupportTab />
       </TabsContent>
     </Tabs>
   );
