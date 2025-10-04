@@ -1,7 +1,6 @@
 // src/app/api/upload/route.ts
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
-import sharp from 'sharp';
 
 // پیکربندی Cloudinary با استفاده از متغیرهای محیطی
 cloudinary.config({
@@ -10,6 +9,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
   secure: true,
 });
+
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   const data = await req.formData();
@@ -22,12 +23,21 @@ export async function POST(req: Request) {
   try {
     // ۱. خواندن فایل و تبدیل آن به بافر
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = Buffer.from(bytes) as Buffer;
 
-    // ۲. بهینه‌سازی تصویر با Sharp (اختیاری اما پیشنهادی)
-    const jpegBuffer = await sharp(buffer)
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    // ۲. تلاش برای بهینه‌سازی تصویر با Sharp، در صورت موجود نبودن، بافر اصلی استفاده می‌شود
+    let optimizedBuffer = buffer;
+    try {
+      type SharpModule = typeof import('sharp');
+      const imported = await import('sharp');
+      const sharpFactory =
+        ((imported as unknown as { default?: SharpModule }).default ?? (imported as unknown as SharpModule));
+      optimizedBuffer = await sharpFactory(buffer)
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    } catch (optimizationError) {
+      console.warn('Sharp unavailable, skipping image optimization:', optimizationError);
+    }
 
     // ۳. آپلود بافر تصویر در Cloudinary به صورت استریم
     const uploadResult = await new Promise((resolve, reject) => {
@@ -45,7 +55,7 @@ export async function POST(req: Request) {
         }
       );
       // ارسال بافر به استریم
-      uploadStream.end(jpegBuffer);
+      uploadStream.end(optimizedBuffer);
     });
 
     // بررسی نوع نتیجه برای دسترسی امن به url
