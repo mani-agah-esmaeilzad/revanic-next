@@ -4,124 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import {
-  Laptop,
-  History,
-  Palette,
-  FlaskConical,
-  Globe,
-  Building,
-  DollarSign,
-  Dumbbell,
-  Heart,
-  Leaf,
-  BookOpen,
-  Music,
-  LucideIcon,
-} from "lucide-react";
+import { LucideIcon } from "lucide-react";
+import { ensureDefaultCategories, resolveCategoryDefinition } from "@/lib/categories";
 
 type CategoryWithStats = {
   id: number;
   name: string;
-  slug: string;
   description: string;
   icon: LucideIcon;
   color: string;
   articleCount: number;
 };
 
-const CATEGORY_METADATA: Record<string, { icon: LucideIcon; color: string; description: string }> = {
-  technology: {
-    icon: Laptop,
-    color: "bg-blue-500",
-    description: "آخرین نوآوری‌ها، هوش مصنوعی و آینده دنیای دیجیتال",
-  },
-  history: {
-    icon: History,
-    color: "bg-amber-500",
-    description: "سفر به گذشته و روایت تمدن‌های تاثیرگذار جهان",
-  },
-  art: {
-    icon: Palette,
-    color: "bg-purple-500",
-    description: "معماری، طراحی و الهامات خلاقانه هنرمندان",
-  },
-  science: {
-    icon: FlaskConical,
-    color: "bg-green-500",
-    description: "کشفیات تازه و تحلیل یافته‌های علمی",
-  },
-  culture: {
-    icon: Globe,
-    color: "bg-rose-500",
-    description: "جامعه، سبک زندگی و روایت‌های فرهنگی",
-  },
-  politics: {
-    icon: Building,
-    color: "bg-red-500",
-    description: "تحولات سیاسی ایران و جهان با نگاه تحلیلی",
-  },
-  economy: {
-    icon: DollarSign,
-    color: "bg-emerald-500",
-    description: "کسب‌وکارها، بازار سرمایه و اقتصاد هوشمند",
-  },
-  sports: {
-    icon: Dumbbell,
-    color: "bg-orange-500",
-    description: "اخبار، تحلیل مسابقات و پشت‌صحنه قهرمانان",
-  },
-  health: {
-    icon: Heart,
-    color: "bg-pink-500",
-    description: "پزشکی، تندرستی و سبک زندگی سالم",
-  },
-  environment: {
-    icon: Leaf,
-    color: "bg-teal-500",
-    description: "طبیعت، تغییرات اقلیمی و پایداری زیست‌بوم",
-  },
-  literature: {
-    icon: BookOpen,
-    color: "bg-indigo-500",
-    description: "کتاب‌ها، نقد ادبی و دنیای واژگان فارسی",
-  },
-  music: {
-    icon: Music,
-    color: "bg-violet-500",
-    description: "آهنگسازان، آلبوم‌های تازه و تحلیل سبک‌ها",
-  },
-};
-
-const FALLBACK_COLOR = "bg-slate-500";
-
-const createSlug = (name: string) =>
-  name
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\u0600-\u06FF\w-]+/g, "");
-
-const getCategoryMetadata = (slug: string, name: string) => {
-  const fallbackDescription = `جدیدترین مقالات مرتبط با ${name}`;
-  const metadata = CATEGORY_METADATA[slug];
-
-  if (!metadata) {
-    return {
-      description: fallbackDescription,
-      icon: BookOpen,
-      color: FALLBACK_COLOR,
-    };
-  }
-
-  return {
-    description: metadata.description,
-    icon: metadata.icon,
-    color: metadata.color,
-  };
-};
-
 const Categories = async () => {
+  await ensureDefaultCategories();
+
   const categoriesFromDb = await prisma.category.findMany({
     orderBy: { name: "asc" },
     include: {
@@ -133,13 +30,11 @@ const Categories = async () => {
   });
 
   const categories: CategoryWithStats[] = categoriesFromDb.map((category) => {
-    const slug = createSlug(category.name);
-    const { color, description, icon } = getCategoryMetadata(slug, category.name);
+    const { color, description, icon } = resolveCategoryDefinition(category.name);
 
     return {
       id: category.id,
       name: category.name,
-      slug,
       description,
       icon,
       color,
