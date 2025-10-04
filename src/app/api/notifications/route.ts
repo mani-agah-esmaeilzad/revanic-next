@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { getNotificationsSnapshot } from '@/lib/notifications';
 
 // GET: دریافت تمام نوتیفیکیشن‌های کاربر
 export async function GET() {
@@ -19,20 +20,9 @@ export async function GET() {
             return new NextResponse('Invalid token payload', { status: 401 });
         }
 
-        const notifications = await prisma.notification.findMany({
-            where: { userId },
-            include: {
-                actor: { select: { id: true, name: true } } // اطلاعات کاربری که رویداد را ایجاد کرده
-            },
-            orderBy: { createdAt: 'desc' },
-            take: 20, // دریافت ۲۰ نوتیفیکیشن آخر
-        });
+        const snapshot = await getNotificationsSnapshot(userId);
 
-        const unreadCount = await prisma.notification.count({
-            where: { userId, isRead: false }
-        });
-
-        return NextResponse.json({ notifications, unreadCount });
+        return NextResponse.json(snapshot);
     } catch (error) {
         console.error('GET_NOTIFICATIONS_ERROR', error);
         return new NextResponse('Internal Server Error', { status: 500 });
