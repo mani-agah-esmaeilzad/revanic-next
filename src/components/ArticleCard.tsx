@@ -7,18 +7,18 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface ArticleCardProps {
-  id: string;
+  id: string | number;
   title: string;
-  excerpt: string;
+  excerpt?: string | null;
   author: {
-    name: string;
+    name: string | null;
     avatar?: string | null;
   };
-  readTime: number;
-  publishDate: string;
-  claps: number;
-  comments: number;
-  category: string;
+  readTime?: number | null;
+  publishDate?: string | null;
+  claps?: number | null;
+  comments?: number | null;
+  category?: string | null;
   image?: string | null;
   className?: string;
 }
@@ -36,6 +36,16 @@ const ArticleCard = ({
   image,
   className,
 }: ArticleCardProps) => {
+  const articleId = typeof id === "number" ? id.toString() : id;
+  const authorName = author.name?.trim() || "ناشناس";
+  const excerptText = excerpt?.trim() || "";
+  const safeReadTime = readTime && readTime > 0 ? readTime : 1;
+  const safePublishDate = publishDate?.trim() || null;
+  const safeClaps = claps ?? 0;
+  const safeComments = comments ?? 0;
+  const safeCategory = category?.trim() || "عمومی";
+  const avatarInitial = authorName.charAt(0) || "ر";
+
   return (
     <Card
       className={cn(
@@ -45,39 +55,49 @@ const ArticleCard = ({
     >
       <CardContent className="p-0">
         <Link
-          href={`/articles/${id}`}
+          href={`/articles/${articleId}`}
           className="flex flex-col gap-4 p-6 md:flex-row md:items-stretch"
         >
           <div className="flex-1 space-y-3">
-            <div className="text-xs font-medium text-journal-orange">{category}</div>
+            <div className="text-xs font-medium text-journal-orange">{safeCategory}</div>
             <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors line-clamp-2">
               {title}
             </h3>
-            <p className="text-journal-light text-sm leading-relaxed line-clamp-3">{excerpt}</p>
+            {excerptText ? (
+              <p className="text-journal-light text-sm leading-relaxed line-clamp-3">{excerptText}</p>
+            ) : (
+              <p className="text-journal-light/70 text-sm leading-relaxed">
+                پیش‌نمایش این مقاله هنوز آماده نیست.
+              </p>
+            )}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-journal-light">
                 <Avatar className="h-7 w-7">
                   <AvatarImage src={author.avatar || ""} />
                   <AvatarFallback className="bg-journal-green text-white">
-                    {author.name.charAt(0)}
+                    {avatarInitial}
                   </AvatarFallback>
                 </Avatar>
-                <span>{author.name}</span>
-                <span className="hidden sm:inline">•</span>
-                <span>{publishDate}</span>
+                <span>{authorName}</span>
+                {safePublishDate ? (
+                  <>
+                    <span className="hidden sm:inline">•</span>
+                    <span>{safePublishDate}</span>
+                  </>
+                ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-journal-light">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
-                  {readTime} دقیقه مطالعه
+                  {safeReadTime} دقیقه مطالعه
                 </div>
                 <div className="flex items-center gap-1">
                   <Hand className="h-3.5 w-3.5" />
-                  {claps}
+                  {safeClaps}
                 </div>
                 <div className="flex items-center gap-1">
                   <MessageCircle className="h-3.5 w-3.5" />
-                  {comments}
+                  {safeComments}
                 </div>
               </div>
             </div>
