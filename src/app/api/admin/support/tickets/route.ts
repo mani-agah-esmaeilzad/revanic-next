@@ -1,8 +1,7 @@
 // src/app/api/admin/support/tickets/route.ts
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { requireAdminSession } from "@/lib/admin-auth";
 
 const statusTexts = {
   OPEN: "در انتظار پاسخ",
@@ -10,34 +9,9 @@ const statusTexts = {
   CLOSED: "بسته شده",
 };
 
-interface AdminPayload {
-  userId?: number;
-  role?: string;
-}
-
-async function requireAdmin() {
-  const token = cookies().get("token")?.value;
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    const adminPayload = payload as AdminPayload;
-    if (adminPayload.role === "ADMIN" && typeof adminPayload.userId === "number") {
-      return adminPayload.userId;
-    }
-    return null;
-  } catch (error) {
-    console.error("ADMIN_SUPPORT_AUTH_ERROR", error);
-    return null;
-  }
-}
-
 export async function GET() {
-  const adminId = await requireAdmin();
-  if (!adminId) {
+  const adminSession = await requireAdminSession();
+  if (!adminSession) {
     return NextResponse.json({ message: "دسترسی غیرمجاز." }, { status: 403 });
   }
 
