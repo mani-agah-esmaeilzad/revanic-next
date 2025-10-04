@@ -8,6 +8,8 @@ import Logo from "@/components/Logo";
 import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
 
+export const dynamic = "force-dynamic";
+
 const Index = async () => {
   const [articleCount, authorCount, dailyReadersCount] = await Promise.all([
     prisma.article.count({ where: { status: "APPROVED" } }),
