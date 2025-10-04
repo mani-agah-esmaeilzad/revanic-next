@@ -1,28 +1,15 @@
 // src/app/api/admin/articles/[id]/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
-
-// Helper function to check for admin role
-async function isAdmin(token: string | undefined): Promise<boolean> {
-    if (!token) return false;
-    try {
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-        const { payload } = await jwtVerify(token, secret);
-        return payload.role === "ADMIN";
-    } catch (error) {
-        return false;
-    }
-}
+import { requireAdminSession } from "@/lib/admin-auth";
 
 export async function PUT(
     req: Request,
     { params }: { params: { id: string } }
 ) {
-    const token = cookies().get("token")?.value;
-    if (!(await isAdmin(token))) {
-        return new NextResponse("Unauthorized", { status: 403 });
+    const adminSession = await requireAdminSession();
+    if (!adminSession) {
+        return NextResponse.json({ message: "دسترسی غیرمجاز." }, { status: 403 });
     }
 
     try {
@@ -30,7 +17,7 @@ export async function PUT(
         const { status } = await req.json();
 
         if (!["APPROVED", "REJECTED", "PENDING"].includes(status)) {
-            return new NextResponse("Invalid status", { status: 400 });
+            return NextResponse.json({ message: "وضعیت انتخاب‌شده معتبر نیست." }, { status: 400 });
         }
 
         const updatedArticle = await prisma.article.update({
@@ -60,7 +47,7 @@ export async function PUT(
         return NextResponse.json(updatedArticle);
     } catch (error) {
         console.error("UPDATE_ARTICLE_STATUS_ERROR", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        return NextResponse.json({ message: "خطای داخلی سرور" }, { status: 500 });
     }
 }
 
@@ -68,9 +55,9 @@ export async function DELETE(
     req: Request,
     { params }: { params: { id: string } }
 ) {
-    const token = cookies().get("token")?.value;
-    if (!(await isAdmin(token))) {
-        return new NextResponse("Unauthorized", { status: 403 });
+    const adminSession = await requireAdminSession();
+    if (!adminSession) {
+        return NextResponse.json({ message: "دسترسی غیرمجاز." }, { status: 403 });
     }
 
     try {
@@ -81,6 +68,6 @@ export async function DELETE(
         return new NextResponse(null, { status: 204 });
     } catch (error) {
         console.error("DELETE_ARTICLE_ERROR", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        return NextResponse.json({ message: "خطای داخلی سرور" }, { status: 500 });
     }
 }
