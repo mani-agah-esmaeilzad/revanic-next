@@ -162,7 +162,19 @@ const Index = async () => {
 
           <div className="mx-auto max-w-4xl space-y-6">
             {featuredArticles.map((article) => (
-              <ArticleCard key={article.id} {...article} />
+              <ArticleCard
+                key={article.id}
+                id={article.id}
+                title={article.title}
+                excerpt={article.excerpt}
+                author={article.author}
+                readTime={article.readTime}
+                publishDate={article.publishDate}
+                claps={article.claps}
+                comments={article.comments}
+                category={article.category}
+                image={article.image}
+              />
             ))}
           </div>
 
