@@ -34,9 +34,11 @@ model User {
   updatedAt              DateTime       @updatedAt
   publications           UsersOnPublications[]
   highlights             Highlight[]
-  
+
   // --- فیلد جدید برای تاریخچه مطالعه ---
   readingHistory         ReadingHistory[]
+  supportTickets         SupportTicket[]
+  supportMessages        SupportMessage[] @relation("SupportMessageAuthor")
 }
 
 model Article {
@@ -68,6 +70,85 @@ model Article {
   history       ReadingHistory[]
 }
 
+model SupportTicket {
+  id        Int                   @id @default(autoincrement())
+  title     String
+  status    SupportTicketStatus   @default(OPEN)
+  priority  SupportTicketPriority @default(NORMAL)
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  messages  SupportMessage[]
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+}
+
+model SupportMessage {
+  id          Int                      @id @default(autoincrement())
+  body        String
+  authorRole  SupportMessageAuthorRole
+  ticket      SupportTicket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId    Int
+  author      User?                    @relation("SupportMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorId    Int?
+  attachments SupportAttachment[]
+  createdAt   DateTime                 @default(now())
+}
+
+model SupportAttachment {
+  id        Int            @id @default(autoincrement())
+  url       String
+  mimeType  String
+  size      Int
+  filename  String?
+  message   SupportMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId Int
+  createdAt DateTime       @default(now())
+}
+
+model CommunityStory {
+  id               Int           @id @default(autoincrement())
+  slug             String        @unique
+  title            String
+  excerpt          String
+  achievement      String?
+  quote            String?
+  contributorName  String
+  contributorRole  String?
+  featuredImageUrl String?
+  publicationId    Int?
+  publication      Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model EditorialCalendarEntry {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  title       String
+  focus       String
+  description String?
+  publishDate DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum SupportTicketStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum SupportMessageAuthorRole {
+  USER
+  ADMIN
+}
+
 model Publication {
   id          Int                   @id @default(autoincrement())
   name        String                @unique
@@ -78,6 +159,7 @@ model Publication {
   updatedAt   DateTime              @updatedAt
   articles    Article[]
   members     UsersOnPublications[]
+  communityStories CommunityStory[]
 }
 
 model UsersOnPublications {
