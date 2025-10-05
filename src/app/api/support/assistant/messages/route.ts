@@ -44,9 +44,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "درخواست نامعتبر است." }, { status: 400 });
   }
 
-  type MessagePayload = { message?: unknown };
-  const maybeMessage = (body as MessagePayload | null | undefined)?.message;
-  const message = typeof maybeMessage === "string" ? maybeMessage.trim() : "";
+  const parsedBody = (body ?? {}) as { message?: unknown };
+  const message = typeof parsedBody.message === "string" ? parsedBody.message.trim() : "";
 
   if (!message) {
     return NextResponse.json(

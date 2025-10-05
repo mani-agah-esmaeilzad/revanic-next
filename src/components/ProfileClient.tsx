@@ -21,6 +21,7 @@ import {
   UserCog,
 } from "lucide-react";
 import ArticleCard from "@/components/ArticleCard";
+import SeriesCard from "@/components/SeriesCard";
 import { useRouter } from "next/navigation";
 import { ProfileSettings } from "./ProfileSettings";
 import { DeleteArticleButton } from "./DeleteArticleButton";
@@ -39,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import type { SeriesListItem } from "@/lib/series";
 
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
@@ -127,6 +129,15 @@ const fetchSavedArticles = async (): Promise<FetchedArticle[]> => {
 const fetchClappedArticles = async (): Promise<FetchedArticle[]> => {
   const response = await fetch("/api/me/claps");
   if (!response.ok) throw new Error("Failed to fetch clapped articles");
+  return response.json();
+};
+
+const fetchFollowedSeries = async (): Promise<SeriesListItem[]> => {
+  const response = await fetch("/api/me/series");
+  if (response.status === 401) {
+    return [];
+  }
+  if (!response.ok) throw new Error("Failed to fetch followed series");
   return response.json();
 };
 
@@ -284,6 +295,16 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
     queryKey: ['clappedArticles'],
     queryFn: fetchClappedArticles,
     enabled: activeTab === 'clapped',
+  });
+
+  const {
+    data: followedSeries,
+    isLoading: isLoadingSeries,
+    isError: isErrorSeries,
+  } = useQuery<SeriesListItem[]>({
+    queryKey: ['followedSeries'],
+    queryFn: fetchFollowedSeries,
+    enabled: activeTab === 'series',
   });
 
   const {
@@ -491,6 +512,9 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                     </TabsTrigger>
                     <TabsTrigger value="clapped" className="whitespace-nowrap px-4 py-2 text-sm sm:flex-1">
                       تشویق شده
+                    </TabsTrigger>
+                    <TabsTrigger value="series" className="whitespace-nowrap px-4 py-2 text-sm sm:flex-1">
+                      سری‌های دنبال‌شده
                     </TabsTrigger>
                     <TabsTrigger value="settings" className="whitespace-nowrap px-4 py-2 text-sm sm:flex-1">
                       تنظیمات
@@ -723,6 +747,34 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                       </div>
                     ) : (
                       <p className="py-6 text-center text-muted-foreground">شما هنوز هیچ مقاله‌ای را تشویق نکرده‌اید.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="series">
+                <Card className="border-0 shadow-soft">
+                  <CardHeader>
+                    <CardTitle>سری‌های دنبال‌شده</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingSeries ? (
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <Skeleton className="h-64 w-full" />
+                        <Skeleton className="h-64 w-full" />
+                      </div>
+                    ) : isErrorSeries ? (
+                      <p className="text-red-500">خطا در دریافت سری‌های دنبال‌شده.</p>
+                    ) : followedSeries && followedSeries.length > 0 ? (
+                      <div className="grid gap-6 sm:grid-cols-2">
+                        {followedSeries.map((series) => (
+                          <SeriesCard key={series.id} series={series} />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="py-6 text-center text-muted-foreground">
+                        هنوز سری‌ای را دنبال نکرده‌اید. به صفحه سری‌ها بروید و اولین مجموعه مورد علاقه خود را بیابید.
+                      </p>
                     )}
                   </CardContent>
                 </Card>

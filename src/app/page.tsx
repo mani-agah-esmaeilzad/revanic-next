@@ -15,111 +15,46 @@ import {
 import { getFeaturedCommunityStories } from "@/lib/community";
 import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
 
-type EditorialHighlight = {
-  title: string;
-  focus: string;
-  description: string | null;
-  date: Date;
-};
-
-const Index = async () => {
-  const now = new Date();
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-  const [
-    articleCount,
-    authorCount,
-    dailyReadersCount,
-    upcomingEditorialEntries,
-    communityStoryRecords,
-    featuredArticleRecords,
-  ] = await Promise.all([
-    prisma.article.count({ where: { status: "APPROVED" } }),
-    prisma.user.count({
-      where: {
-        articles: { some: { status: "APPROVED" } },
-      },
-    }),
-    prisma.articleView.count({
-      where: {
-        viewedAt: {
-          gte: twentyFourHoursAgo,
-        },
-      },
-    }),
-    getUpcomingEditorialEntries(3),
-    getFeaturedCommunityStories(3),
-    prisma.article.findMany({
-      where: { status: "APPROVED" },
-      orderBy: [
-        { claps: { _count: "desc" } },
-        { views: { _count: "desc" } },
-        { createdAt: "desc" },
-      ],
-      take: 3,
-      include: {
-        author: { select: { name: true, avatarUrl: true } },
-        categories: { select: { name: true } },
-        _count: { select: { claps: true, comments: true } },
-      },
-    }),
-  ]);
-
-  const featuredArticles: ArticleCardProps[] = featuredArticleRecords.map((article) => {
-    const plainContent = article.content.replace(/<[^>]*>?/gm, "");
-    const excerpt = plainContent.substring(0, 180);
-    const publishDate = formatDistanceToNow(article.createdAt, {
-      addSuffix: true,
-      locale: faIR,
-    });
-
-    return {
-      id: article.id,
-      title: article.title,
-      excerpt: excerpt + (plainContent.length > 180 ? "..." : ""),
-      author: {
-        name: article.author?.name ?? "ناشناس",
-        avatarUrl: article.author?.avatarUrl ?? undefined,
-      },
-      readTime:
-        article.readTimeMinutes ??
-        Math.max(1, Math.round(plainContent.length / 900)),
-      publishDate,
-      claps: article._count.claps,
-      comments: article._count.comments,
-      category: article.categories[0]?.name ?? "عمومی",
-      image: article.coverImageUrl,
-    };
-  });
-
-  const editorialHighlights: EditorialHighlight[] = upcomingEditorialEntries.map(
-    (entry) => ({
-      title: entry.title,
-      focus: entry.focus,
-      description: entry.description,
-      date: entry.publishDate,
-    })
-  );
-
-  const communityStories: CommunitySpotlightStory[] = communityStoryRecords.map(
-    (story) => ({
-      id: story.id,
-      slug: story.slug,
-      title: story.title,
-      excerpt: story.excerpt,
-      achievement: story.achievement,
-      quote: story.quote,
-      contributorName: story.contributorName,
-      contributorRole: story.contributorRole,
-      featuredImageUrl: story.featuredImageUrl,
-      publication: story.publication
-        ? {
-            name: story.publication.name,
-            slug: story.publication.slug,
-          }
-        : null,
-    })
-  );
+const Index = () => {
+  // Sample articles data
+  const featuredArticles: ArticleCardProps[] = [
+    {
+      id: "1",
+      title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
+      excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
+      author: { name: "علی رضایی", avatar: "" },
+      readTime: 8,
+      publishDate: "۳ روز پیش",
+      claps: 124, // <-- تغییر از likes به claps
+      comments: 23,
+      category: "فناوری",
+      image: ""
+    },
+    {
+      id: "2",
+      title: "سفری به دل تاریخ ایران باستان",
+      excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
+      author: { name: "مریم احمدی", avatar: "" },
+      readTime: 12,
+      publishDate: "یک هفته پیش",
+      claps: 89, // <-- تغییر از likes به claps
+      comments: 15,
+      category: "تاریخ",
+      image: ""
+    },
+    {
+      id: "3",
+      title: "روان‌شناسی رنگ‌ها در معماری مدرن",
+      excerpt: "تأثیر رنگ‌ها بر روحیه انسان و چگونگی استفاده از این دانش در طراحی فضاهای زندگی و کار.",
+      author: { name: "محمد حسینی", avatar: "" },
+      readTime: 6,
+      publishDate: "۲ هفته پیش",
+      claps: 67, // <-- تغییر از likes به claps
+      comments: 8,
+      category: "هنر و معماری",
+      image: ""
+    }
+  ];
 
   return (
     <>
@@ -198,27 +133,21 @@ const Index = async () => {
           </div>
 
           <div className="mx-auto max-w-4xl space-y-6">
-            {featuredArticles.length > 0 ? (
-              featuredArticles.map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  id={article.id}
-                  title={article.title}
-                  excerpt={article.excerpt}
-                  author={article.author}
-                  readTime={article.readTime}
-                  publishDate={article.publishDate}
-                  claps={article.claps}
-                  comments={article.comments}
-                  category={article.category}
-                  image={article.image}
-                />
-              ))
-            ) : (
-              <div className="rounded-3xl border border-dashed border-journal-cream bg-white/70 p-10 text-center text-journal-light">
-                هنوز مقاله تایید شده‌ای برای نمایش وجود ندارد. اولین نفری باشید که می‌نویسد!
-              </div>
-            )}
+            {featuredArticles.map((article) => (
+              <ArticleCard
+                key={article.id}
+                id={article.id}
+                title={article.title}
+                excerpt={article.excerpt}
+                author={article.author}
+                readTime={article.readTime}
+                publishDate={article.publishDate}
+                claps={article.claps}
+                comments={article.comments}
+                category={article.category}
+                image={article.image}
+              />
+            ))}
           </div>
 
           <div className="mt-10 text-center sm:mt-12">
@@ -231,65 +160,27 @@ const Index = async () => {
         </div>
       </section>
 
-      {/* Editorial Highlights */}
-      <section className="py-20 bg-journal-cream/40">
+      {/* Series Preview */}
+      <section className="bg-journal-cream/40 py-14">
         <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12 space-y-3">
-              <h2 className="text-3xl font-bold text-journal">برنامهٔ سردبیری پیش‌رو</h2>
-              <p className="text-journal-light max-w-3xl mx-auto">
-                نگاهی به رویدادها و پرونده‌های ویژهٔ سه ماه آینده بیندازید تا مقالهٔ خود را در زمان مناسب منتشر کنید.
+          <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center sm:flex-row sm:gap-10 sm:text-right">
+            <div className="flex-1 space-y-3">
+              <h2 className="text-2xl font-bold text-journal sm:text-3xl">سری‌های داستانی روانیک</h2>
+              <p className="text-sm text-journal-light sm:text-base">
+                مجموعه‌ای از مقالات دنباله‌دار که موضوعات مهم را مرحله‌به‌مرحله روایت می‌کند. با دنبال‌کردن هر سری
+                می‌توانید پیشرفت خود را ثبت کنید و قسمت بعدی را از دست ندهید.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {editorialHighlights.map((highlight) => (
-                <div
-                  key={highlight.title}
-                  className="rounded-2xl bg-white/80 border border-journal-cream shadow-soft p-6 space-y-3"
-                >
-                  <div className="flex items-center justify-between text-sm text-journal-light">
-                    <span>{highlight.focus}</span>
-                    <span>{highlight.date.toLocaleDateString("fa-IR", { month: "long", day: "numeric" })}</span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-journal">{highlight.title}</h3>
-                  {highlight.description ? (
-                    <p className="text-sm text-journal-light leading-relaxed">{highlight.description}</p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-
-            <div className="text-center mt-12">
-              <Link href="/editorial-guide">
-                <Button className="bg-journal-green hover:bg-journal text-white" size="lg">
-                  مشاهده راهنمای لحن و تقویم
+            <div className="flex flex-col gap-3 sm:w-auto">
+              <Link href="/series">
+                <Button size="lg" className="w-full sm:w-auto">
+                  مشاهده سری‌ها
                 </Button>
               </Link>
+              <Link href="/articles" className="text-sm text-journal-green underline-offset-4 hover:underline">
+                جدیدترین قسمت‌ها را در فهرست مقالات ببینید
+              </Link>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <CommunitySpotlight stories={communityStories} />
-
-      {/* Insights Banner */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto bg-white/80 border border-journal-cream rounded-3xl shadow-soft p-10 space-y-4 text-center">
-            <h2 className="text-3xl font-bold text-journal">گزارش رشد جامعه را دنبال کنید</h2>
-            <p className="text-journal-light text-lg">
-              آمار زندهٔ مقالات، نویسندگان و دسته‌های محبوب را در گزارش داستانی Insights بخوانید و به برنامه‌ریزی تیم خود سرعت بدهید.
-            </p>
-            <Link href="/insights">
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-journal-green text-journal-green hover:bg-journal-green hover:text-white"
-              >
-                مشاهده گزارش ماهانه
-              </Button>
-            </Link>
           </div>
         </div>
       </section>
