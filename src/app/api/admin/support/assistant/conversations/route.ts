@@ -29,14 +29,16 @@ export async function GET() {
       },
     });
 
-    const payload = sessions.map((session) => ({
+    type SessionWithRelations = (typeof sessions)[number];
+    type SessionMessage = SessionWithRelations["messages"][number];
+    const payload = sessions.map((session: SessionWithRelations) => ({
       id: session.id,
       status: session.status,
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       user: session.user,
       messageCount: session.messages.length,
-      messages: session.messages.map((message) => ({
+      messages: session.messages.map((message: SessionMessage) => ({
         id: message.id,
         role: message.role,
         content: message.content,

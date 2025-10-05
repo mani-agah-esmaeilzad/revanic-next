@@ -8,50 +8,118 @@ import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
 import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
-import { CommunitySpotlight } from "@/components/CommunitySpotlight";
+import {
+  CommunitySpotlight,
+  type CommunitySpotlightStory,
+} from "@/components/CommunitySpotlight";
 import { getFeaturedCommunityStories } from "@/lib/community";
 import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
 
-const Index = () => {
-  // Sample articles data
-  const featuredArticles: ArticleCardProps[] = [
-    {
-      id: "1",
-      title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
-      excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
-      author: { name: "علی رضایی", avatar: "" },
-      readTime: 8,
-      publishDate: "۳ روز پیش",
-      claps: 124, // <-- تغییر از likes به claps
-      comments: 23,
-      category: "فناوری",
-      image: ""
-    },
-    {
-      id: "2",
-      title: "سفری به دل تاریخ ایران باستان",
-      excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
-      author: { name: "مریم احمدی", avatar: "" },
-      readTime: 12,
-      publishDate: "یک هفته پیش",
-      claps: 89, // <-- تغییر از likes به claps
-      comments: 15,
-      category: "تاریخ",
-      image: ""
-    },
-    {
-      id: "3",
-      title: "روان‌شناسی رنگ‌ها در معماری مدرن",
-      excerpt: "تأثیر رنگ‌ها بر روحیه انسان و چگونگی استفاده از این دانش در طراحی فضاهای زندگی و کار.",
-      author: { name: "محمد حسینی", avatar: "" },
-      readTime: 6,
-      publishDate: "۲ هفته پیش",
-      claps: 67, // <-- تغییر از likes به claps
-      comments: 8,
-      category: "هنر و معماری",
-      image: ""
-    }
-  ];
+type EditorialHighlight = {
+  title: string;
+  focus: string;
+  description: string | null;
+  date: Date;
+};
+
+const Index = async () => {
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const [
+    articleCount,
+    authorCount,
+    dailyReadersCount,
+    upcomingEditorialEntries,
+    communityStoryRecords,
+    featuredArticleRecords,
+  ] = await Promise.all([
+    prisma.article.count({ where: { status: "APPROVED" } }),
+    prisma.user.count({
+      where: {
+        articles: { some: { status: "APPROVED" } },
+      },
+    }),
+    prisma.articleView.count({
+      where: {
+        viewedAt: {
+          gte: twentyFourHoursAgo,
+        },
+      },
+    }),
+    getUpcomingEditorialEntries(3),
+    getFeaturedCommunityStories(3),
+    prisma.article.findMany({
+      where: { status: "APPROVED" },
+      orderBy: [
+        { claps: { _count: "desc" } },
+        { views: { _count: "desc" } },
+        { createdAt: "desc" },
+      ],
+      take: 3,
+      include: {
+        author: { select: { name: true, avatarUrl: true } },
+        categories: { select: { name: true } },
+        _count: { select: { claps: true, comments: true } },
+      },
+    }),
+  ]);
+
+  const featuredArticles: ArticleCardProps[] = featuredArticleRecords.map((article) => {
+    const plainContent = article.content.replace(/<[^>]*>?/gm, "");
+    const excerpt = plainContent.substring(0, 180);
+    const publishDate = formatDistanceToNow(article.createdAt, {
+      addSuffix: true,
+      locale: faIR,
+    });
+
+    return {
+      id: article.id,
+      title: article.title,
+      excerpt: excerpt + (plainContent.length > 180 ? "..." : ""),
+      author: {
+        name: article.author?.name ?? "ناشناس",
+        avatarUrl: article.author?.avatarUrl ?? undefined,
+      },
+      readTime:
+        article.readTimeMinutes ??
+        Math.max(1, Math.round(plainContent.length / 900)),
+      publishDate,
+      claps: article._count.claps,
+      comments: article._count.comments,
+      category: article.categories[0]?.name ?? "عمومی",
+      image: article.coverImageUrl,
+    };
+  });
+
+  const editorialHighlights: EditorialHighlight[] = upcomingEditorialEntries.map(
+    (entry) => ({
+      title: entry.title,
+      focus: entry.focus,
+      description: entry.description,
+      date: entry.publishDate,
+    })
+  );
+
+  const communityStories: CommunitySpotlightStory[] = communityStoryRecords.map(
+    (story) => ({
+      id: story.id,
+      slug: story.slug,
+      title: story.title,
+      excerpt: story.excerpt,
+      achievement: story.achievement,
+      quote: story.quote,
+      contributorName: story.contributorName,
+      contributorRole: story.contributorRole,
+      featuredImageUrl: story.featuredImageUrl,
+      publication: story.publication
+        ? {
+            name: story.publication.name,
+            slug: story.publication.slug,
+          }
+        : null,
+    })
+  );
 
   return (
     <>
@@ -130,21 +198,27 @@ const Index = () => {
           </div>
 
           <div className="mx-auto max-w-4xl space-y-6">
-            {featuredArticles.map((article) => (
-              <ArticleCard
-                key={article.id}
-                id={article.id}
-                title={article.title}
-                excerpt={article.excerpt}
-                author={article.author}
-                readTime={article.readTime}
-                publishDate={article.publishDate}
-                claps={article.claps}
-                comments={article.comments}
-                category={article.category}
-                image={article.image}
-              />
-            ))}
+            {featuredArticles.length > 0 ? (
+              featuredArticles.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  id={article.id}
+                  title={article.title}
+                  excerpt={article.excerpt}
+                  author={article.author}
+                  readTime={article.readTime}
+                  publishDate={article.publishDate}
+                  claps={article.claps}
+                  comments={article.comments}
+                  category={article.category}
+                  image={article.image}
+                />
+              ))
+            ) : (
+              <div className="rounded-3xl border border-dashed border-journal-cream bg-white/70 p-10 text-center text-journal-light">
+                هنوز مقاله تایید شده‌ای برای نمایش وجود ندارد. اولین نفری باشید که می‌نویسد!
+              </div>
+            )}
           </div>
 
           <div className="mt-10 text-center sm:mt-12">

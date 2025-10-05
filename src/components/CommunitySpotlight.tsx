@@ -44,17 +44,6 @@ export const CommunitySpotlight = ({ stories }: CommunitySpotlightProps) => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {stories.map((story) => (
             <Card key={story.id} className="h-full border-0 shadow-soft bg-white/90 backdrop-blur">
-              {story.featuredImageUrl && (
-                <div className="relative w-full h-40">
-                  <Image
-                    src={story.featuredImageUrl}
-                    alt={story.title}
-                    fill
-                    className="object-cover rounded-t-lg"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
-                </div>
-              )}
               <CardHeader className="space-y-2">
                 {story.publication ? (
                   <Link
