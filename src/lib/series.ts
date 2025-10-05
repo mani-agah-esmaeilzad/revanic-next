@@ -1,5 +1,4 @@
 // src/lib/series.ts
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type SeriesListItem = {
@@ -42,6 +41,33 @@ export type SeriesDetail = {
   }>;
 };
 
+type ReadingHistoryRecord = { articleId: number };
+
+type SeriesRecord = {
+  id: number;
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  coverImageUrl?: string | null;
+  status: string;
+  curator?: { name?: string | null } | null;
+  followers: Array<{ userId: number }>;
+  articles: Array<{
+    id: number;
+    order: number;
+    releaseAt: Date | null;
+    article: {
+      id: number;
+      title: string;
+      content: string;
+      readTimeMinutes: number | null;
+      coverImageUrl?: string | null;
+      createdAt: Date;
+    };
+  }>;
+};
+
 const SERIES_SELECT = {
   id: true,
   slug: true,
@@ -70,7 +96,7 @@ const SERIES_SELECT = {
     },
     orderBy: { order: "asc" as const },
   },
-} satisfies Prisma.SeriesSelect;
+} as const;
 
 function stripHtml(content: string) {
   return content.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim();
@@ -89,19 +115,27 @@ function estimateReadTimeMinutes(value: number | null, content: string) {
 }
 
 export async function getPublishedSeriesList(userId?: number | null): Promise<SeriesListItem[]> {
-  const [seriesRecords, history] = await Promise.all([
-    prisma.series.findMany({
+  const client = prisma as any;
+  const seriesDelegate = client.series;
+  const historyDelegate = client.readingHistory;
+
+  if (!seriesDelegate) {
+    return [];
+  }
+
+  const [seriesRecords, history] = (await Promise.all([
+    seriesDelegate.findMany({
       where: { status: "PUBLISHED" },
       orderBy: { updatedAt: "desc" },
       select: SERIES_SELECT,
     }),
-    userId
-      ? prisma.readingHistory.findMany({
+    userId && historyDelegate
+      ? historyDelegate.findMany({
           where: { userId },
           select: { articleId: true },
         })
-      : Promise.resolve([]),
-  ]);
+      : Promise.resolve<ReadingHistoryRecord[]>([]),
+  ])) as [SeriesRecord[], ReadingHistoryRecord[]];
 
   const readSet = new Set(history.map((item) => item.articleId));
 
@@ -136,24 +170,33 @@ export async function getSeriesDetail(
   slug: string,
   userId?: number | null
 ): Promise<SeriesDetail | null> {
-  const series = await prisma.series.findUnique({
+  const client = prisma as any;
+  const seriesDelegate = client.series;
+  const historyDelegate = client.readingHistory;
+  const followDelegate = client.seriesFollow;
+
+  if (!seriesDelegate) {
+    return null;
+  }
+
+  const series = (await seriesDelegate.findUnique({
     where: { slug },
     select: SERIES_SELECT,
-  });
+  })) as SeriesRecord | null;
 
   if (!series || series.status !== "PUBLISHED") {
     return null;
   }
 
-  const [history, follow] = await Promise.all([
-    userId
-      ? prisma.readingHistory.findMany({
+  const [history, follow] = (await Promise.all([
+    userId && historyDelegate
+      ? historyDelegate.findMany({
           where: { userId },
           select: { articleId: true },
         })
-      : Promise.resolve([]),
-    userId
-      ? prisma.seriesFollow.findUnique({
+      : Promise.resolve<ReadingHistoryRecord[]>([]),
+    userId && followDelegate
+      ? followDelegate.findUnique({
           where: {
             userId_seriesId: {
               userId,
@@ -162,7 +205,7 @@ export async function getSeriesDetail(
           },
         })
       : Promise.resolve(null),
-  ]);
+  ])) as [ReadingHistoryRecord[], any];
 
   const readSet = new Set(history.map((item) => item.articleId));
   const articles = series.articles.map((entry) => {
@@ -200,7 +243,10 @@ export async function getSeriesDetail(
 }
 
 export async function followSeries(seriesId: number, userId: number) {
-  await prisma.seriesFollow.upsert({
+  const delegate = (prisma as any).seriesFollow;
+  if (!delegate) return;
+
+  await delegate.upsert({
     where: {
       userId_seriesId: {
         userId,
@@ -216,7 +262,10 @@ export async function followSeries(seriesId: number, userId: number) {
 }
 
 export async function unfollowSeries(seriesId: number, userId: number) {
-  await prisma.seriesFollow.deleteMany({
+  const delegate = (prisma as any).seriesFollow;
+  if (!delegate) return;
+
+  await delegate.deleteMany({
     where: {
       userId,
       seriesId,

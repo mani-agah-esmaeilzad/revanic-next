@@ -6,7 +6,7 @@ import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
-import { formatDistanceToNow } from "date-fns";
+import { subDays } from "date-fns";
 import { faIR } from "date-fns/locale";
 import {
   CommunitySpotlight,
@@ -15,7 +15,7 @@ import {
 import { getFeaturedCommunityStories } from "@/lib/community";
 import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
 
-const Index = () => {
+const Index = async () => {
   // Sample articles data
   const featuredArticles: ArticleCardProps[] = [
     {
@@ -55,6 +55,12 @@ const Index = () => {
       image: ""
     }
   ];
+
+  const [articleCount, authorCount, dailyReadersCount] = await Promise.all([
+    prisma.article.count({ where: { status: "APPROVED" } }),
+    prisma.user.count({ where: { articles: { some: { status: "APPROVED" } } } }),
+    prisma.articleView.count({ where: { viewedAt: { gte: subDays(new Date(), 1) } } }),
+  ]);
 
   return (
     <>
