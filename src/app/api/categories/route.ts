@@ -1,9 +1,11 @@
 // src/app/api/categories/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { ensureDefaultCategories } from '@/lib/categories';
 
 export async function GET() {
     try {
+        await ensureDefaultCategories();
         const categories = await prisma.category.findMany({
             orderBy: {
                 name: 'asc',
