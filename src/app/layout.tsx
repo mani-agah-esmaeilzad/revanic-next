@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
 import QueryProvider from "@/components/QueryProvider";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
+import { SupportAssistantWidget } from "@/components/SupportAssistantWidget";
 
 const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 
@@ -36,6 +37,7 @@ export default function RootLayout({
           <Footer />
           <Toaster />
           <InstallPWAButton />
+          <SupportAssistantWidget />
         </QueryProvider>
       </body>
     </html>
