@@ -39,6 +39,7 @@ model User {
   readingHistory         ReadingHistory[]
   supportTickets         SupportTicket[]
   supportMessages        SupportMessage[] @relation("SupportMessageAuthor")
+  assistantChatSessions  AssistantChatSession[]
 }
 
 model Article {
@@ -105,6 +106,35 @@ model SupportAttachment {
   createdAt DateTime       @default(now())
 }
 
+model AssistantChatSession {
+  id        Int                    @id @default(autoincrement())
+  user      User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?
+  status    AssistantChatStatus    @default(ACTIVE)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  messages  AssistantChatMessage[]
+  feedback  AssistantChatFeedback?
+}
+
+model AssistantChatMessage {
+  id        Int                     @id @default(autoincrement())
+  session   AssistantChatSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId Int
+  role      AssistantChatMessageRole
+  content   String
+  createdAt DateTime                @default(now())
+}
+
+model AssistantChatFeedback {
+  id        Int                   @id @default(autoincrement())
+  session   AssistantChatSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId Int                   @unique
+  rating    Int?
+  comment   String?
+  createdAt DateTime              @default(now())
+}
+
 model CommunityStory {
   id               Int           @id @default(autoincrement())
   slug             String        @unique
@@ -147,6 +177,18 @@ enum SupportTicketPriority {
 enum SupportMessageAuthorRole {
   USER
   ADMIN
+}
+
+enum AssistantChatStatus {
+  ACTIVE
+  COMPLETED
+  CLOSED
+}
+
+enum AssistantChatMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
 }
 
 model Publication {

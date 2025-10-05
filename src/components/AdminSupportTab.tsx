@@ -13,6 +13,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import type { SupportTicketPriorityKey, SupportTicketStatusKey } from "@/lib/support";
+import type {
+  AssistantChatMessageRole,
+  AssistantChatStatus,
+} from "@prisma/client";
 
 interface SupportAuthor {
   id: number;
@@ -57,6 +61,35 @@ interface SupportTicket {
   messages: SupportMessage[];
 }
 
+interface AssistantChatMessage {
+  id: number;
+  role: AssistantChatMessageRole;
+  content: string;
+  createdAt: string;
+}
+
+interface AssistantChatFeedback {
+  rating: number | null;
+  comment: string | null;
+  createdAt: string;
+}
+
+interface AssistantChatSessionSummary {
+  id: number;
+  status: AssistantChatStatus;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: number;
+    name: string | null;
+    email: string | null;
+    avatarUrl: string | null;
+  } | null;
+  messageCount: number;
+  messages: AssistantChatMessage[];
+  feedback: AssistantChatFeedback | null;
+}
+
 const statusOptions: { value: SupportTicketStatusKey; label: string }[] = [
   { value: "OPEN", label: "باز" },
   { value: "ANSWERED", label: "پاسخ داده شده" },
@@ -85,6 +118,12 @@ const priorityWeight: Record<SupportTicketPriorityKey, number> = {
   HIGH: 3,
   NORMAL: 2,
   LOW: 1,
+};
+
+const assistantStatusLabels: Record<AssistantChatStatus, string> = {
+  ACTIVE: "در حال گفتگو",
+  COMPLETED: "پایان یافته",
+  CLOSED: "بسته شده",
 };
 
 interface AdminTicketFilters {
@@ -139,6 +178,28 @@ async function replyToTicket(input: ReplyInput): Promise<SupportTicket> {
   }
 
   return response.json();
+}
+
+async function fetchAssistantConversations(): Promise<AssistantChatSessionSummary[]> {
+  const response = await fetch("/api/admin/support/assistant/conversations", {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ message: "خطای ناشناخته" }));
+    throw new Error(payload?.message ?? "دریافت گفتگوهای دستیار انجام نشد.");
+  }
+  return response.json();
+}
+
+function formatDateTime(iso: string) {
+  try {
+    return new Intl.DateTimeFormat("fa-IR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    }).format(new Date(iso));
+  } catch {
+    return iso;
+  }
 }
 
 export const AdminSupportTab = () => {
@@ -293,9 +354,20 @@ export const AdminSupportTab = () => {
     });
   };
 
+  const {
+    data: assistantConversations,
+    isLoading: isLoadingAssistant,
+    isError: isAssistantError,
+    error: assistantError,
+  } = useQuery({
+    queryKey: ["admin", "assistantConversations"],
+    queryFn: fetchAssistantConversations,
+  });
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-      <Card className="h-full">
+    <div className="space-y-8">
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <Card className="h-full">
         <CardHeader>
           <CardTitle>لیست تیکت‌ها</CardTitle>
           <div className="mt-4 grid gap-3">
@@ -392,9 +464,9 @@ export const AdminSupportTab = () => {
             </ScrollArea>
           )}
         </CardContent>
-      </Card>
+        </Card>
 
-      <Card className="h-full">
+        <Card className="h-full">
         <CardHeader>
           <CardTitle>جزئیات تیکت</CardTitle>
         </CardHeader>
@@ -526,7 +598,103 @@ export const AdminSupportTab = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </div>
+
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground">گفتگوهای دستیار هوشمند</h2>
+          <span className="text-xs text-muted-foreground">
+            این بخش خلاصهٔ چت کاربران با دستیار Gemini را نمایش می‌دهد.
+          </span>
+        </div>
+        {isLoadingAssistant ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+            <Skeleton className="h-36 w-full" />
+          </div>
+        ) : isAssistantError ? (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {assistantError instanceof Error
+              ? assistantError.message
+              : "دریافت گفتگوهای دستیار با خطا مواجه شد."}
+          </div>
+        ) : !assistantConversations || assistantConversations.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-muted p-6 text-sm text-muted-foreground">
+            تاکنون گفتگوی هوشمندی ثبت نشده است.
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {assistantConversations.map((conversation) => (
+              <Card key={conversation.id} className="overflow-hidden">
+                <CardHeader className="flex flex-col gap-2 bg-muted/40">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base font-semibold">
+                      جلسه #{conversation.id}
+                    </CardTitle>
+                    <Badge className="bg-primary/10 text-primary">
+                      {assistantStatusLabels[conversation.status]}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                    <span>
+                      آخرین به‌روزرسانی: {formatDateTime(conversation.updatedAt)}
+                    </span>
+                    <span>تعداد پیام: {conversation.messageCount}</span>
+                    {conversation.user ? (
+                      <span>
+                        کاربر: {conversation.user.name ?? conversation.user.email ?? "بدون نام"}
+                      </span>
+                    ) : (
+                      <span>کاربر مهمان</span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4 py-4">
+                  <div className="space-y-3">
+                    {conversation.messages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`flex ${msg.role === "USER" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className={`max-w-[85%] rounded-2xl px-4 py-2 text-sm leading-relaxed ${
+                            msg.role === "USER"
+                              ? "bg-primary/10 text-primary-foreground"
+                              : "bg-muted text-foreground"
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                          <span className="mt-1 block text-[10px] text-muted-foreground">
+                            {formatDateTime(msg.createdAt)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {conversation.feedback && (
+                    <div className="rounded-2xl border border-primary/30 bg-primary/5 p-3 text-sm">
+                      <p className="font-medium">بازخورد کاربر</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        {conversation.feedback.rating ? (
+                          <span>امتیاز: {conversation.feedback.rating} از ۵</span>
+                        ) : null}
+                        <span>ثبت در {formatDateTime(conversation.feedback.createdAt)}</span>
+                      </div>
+                      {conversation.feedback.comment ? (
+                        <p className="mt-2 text-sm leading-relaxed text-foreground">
+                          {conversation.feedback.comment}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };
