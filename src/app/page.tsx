@@ -1,10 +1,19 @@
 // src/app/page.tsx
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
+import { formatDistanceToNow } from "date-fns";
+import { faIR } from "date-fns/locale";
+import {
+  CommunitySpotlight,
+  type CommunitySpotlightStory,
+} from "@/components/CommunitySpotlight";
+import { getFeaturedCommunityStories } from "@/lib/community";
+import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
 
 const Index = () => {
   // Sample articles data
@@ -92,16 +101,22 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۱۲۰۰+</div>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {articleCount.toLocaleString("fa-IR")}
+              </div>
               <p className="text-journal-light">مقاله منتشر شده</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۳۵۰+</div>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {authorCount.toLocaleString("fa-IR")}
+              </div>
               <p className="text-journal-light">نویسنده فعال</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۸۵۰۰+</div>
-              <p className="text-journal-light">خواننده روزانه</p>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {dailyReadersCount.toLocaleString("fa-IR")}
+              </div>
+              <p className="text-journal-light">بازدید ۲۴ ساعت گذشته</p>
             </div>
           </div>
         </div>

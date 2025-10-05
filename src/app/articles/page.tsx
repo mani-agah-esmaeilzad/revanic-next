@@ -32,6 +32,27 @@ const estimateReadTime = (stored: number | null | undefined, plainText: string) 
   return Math.max(1, Math.round(words / 200));
 };
 
+const EXCERPT_LIMIT = 200;
+
+const extractPlainText = (html: string) =>
+  html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const buildExcerpt = (text: string, limit: number) => {
+  if (!text) return "";
+  if (text.length <= limit) return text;
+  return `${text.slice(0, limit).trimEnd()}…`;
+};
+
+const estimateReadTime = (stored: number | null | undefined, plainText: string) => {
+  if (stored && stored > 0) return stored;
+  const words = plainText.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+};
+
 const ARTICLES_PER_PAGE = 10;
 const SORT_VALUES: SortOption[] = ["newest", "popular", "discussion"];
 const LENGTH_VALUES: LengthOption[] = ["all", "short", "medium", "long"];
