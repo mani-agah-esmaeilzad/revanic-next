@@ -1,10 +1,16 @@
 // src/app/page.tsx
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
+import { formatDistanceToNow } from "date-fns";
+import { faIR } from "date-fns/locale";
+import { CommunitySpotlight } from "@/components/CommunitySpotlight";
+import { getFeaturedCommunityStories } from "@/lib/community";
+import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
 
 const Index = () => {
   // Sample articles data
@@ -92,16 +98,22 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۱۲۰۰+</div>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {articleCount.toLocaleString("fa-IR")}
+              </div>
               <p className="text-journal-light">مقاله منتشر شده</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۳۵۰+</div>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {authorCount.toLocaleString("fa-IR")}
+              </div>
               <p className="text-journal-light">نویسنده فعال</p>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-journal-green mb-2">۸۵۰۰+</div>
-              <p className="text-journal-light">خواننده روزانه</p>
+              <div className="text-3xl font-bold text-journal-green mb-2">
+                {dailyReadersCount.toLocaleString("fa-IR")}
+              </div>
+              <p className="text-journal-light">بازدید ۲۴ ساعت گذشته</p>
             </div>
           </div>
         </div>
@@ -139,6 +151,69 @@ const Index = () => {
             <Link href="/articles">
               <Button variant="outline" size="lg">
                 مشاهده همه مقالات
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Editorial Highlights */}
+      <section className="py-20 bg-journal-cream/40">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12 space-y-3">
+              <h2 className="text-3xl font-bold text-journal">برنامهٔ سردبیری پیش‌رو</h2>
+              <p className="text-journal-light max-w-3xl mx-auto">
+                نگاهی به رویدادها و پرونده‌های ویژهٔ سه ماه آینده بیندازید تا مقالهٔ خود را در زمان مناسب منتشر کنید.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {editorialHighlights.map((highlight) => (
+                <div
+                  key={highlight.title}
+                  className="rounded-2xl bg-white/80 border border-journal-cream shadow-soft p-6 space-y-3"
+                >
+                  <div className="flex items-center justify-between text-sm text-journal-light">
+                    <span>{highlight.focus}</span>
+                    <span>{highlight.date.toLocaleDateString("fa-IR", { month: "long", day: "numeric" })}</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-journal">{highlight.title}</h3>
+                  {highlight.description ? (
+                    <p className="text-sm text-journal-light leading-relaxed">{highlight.description}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-12">
+              <Link href="/editorial-guide">
+                <Button className="bg-journal-green hover:bg-journal text-white" size="lg">
+                  مشاهده راهنمای لحن و تقویم
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <CommunitySpotlight stories={communityStories} />
+
+      {/* Insights Banner */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto bg-white/80 border border-journal-cream rounded-3xl shadow-soft p-10 space-y-4 text-center">
+            <h2 className="text-3xl font-bold text-journal">گزارش رشد جامعه را دنبال کنید</h2>
+            <p className="text-journal-light text-lg">
+              آمار زندهٔ مقالات، نویسندگان و دسته‌های محبوب را در گزارش داستانی Insights بخوانید و به برنامه‌ریزی تیم خود سرعت بدهید.
+            </p>
+            <Link href="/insights">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-journal-green text-journal-green hover:bg-journal-green hover:text-white"
+              >
+                مشاهده گزارش ماهانه
               </Button>
             </Link>
           </div>
