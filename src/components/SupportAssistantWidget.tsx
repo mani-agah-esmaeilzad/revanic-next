@@ -171,7 +171,7 @@ export function SupportAssistantWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 left-4 z-40 flex flex-col items-start gap-3 sm:left-6">
+    <div className="support-widget fixed bottom-6 left-4 z-40 flex flex-col items-start gap-3 sm:left-6">
       {isOpen && (
         <div className="w-[320px] max-w-[90vw] rounded-3xl border border-border bg-background/95 shadow-xl backdrop-blur">
           <div className="flex items-start justify-between gap-4 rounded-t-3xl bg-gradient-to-l from-primary/10 to-primary/5 px-5 py-4">

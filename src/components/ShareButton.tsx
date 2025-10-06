@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Share2, Check, Copy, Twitter } from 'lucide-react';
-import { FaThreads, FaWhatsapp, FaLinkedin } from 'react-icons/fa6';
+import { FaThreads, FaWhatsapp, FaLinkedin, FaInstagram } from 'react-icons/fa6';
 import { useToast } from './ui/use-toast';
 
 interface ShareButtonProps {
@@ -17,7 +17,37 @@ export const ShareButton = ({ title, url }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  const handleInstagramShare = async () => {
+    const shareText = `${title}\n${url}`;
+    try {
+      if (navigator.share && navigator.canShare?.({ url })) {
+        await navigator.share({ title, text: title, url });
+        return;
+      }
+    } catch (error) {
+      console.warn('WEB_SHARE_FAILED', error);
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      toast({ description: 'لینک و عنوان برای اشتراک‌گذاری در اینستاگرام کپی شد.' });
+    } catch (error) {
+      console.error('INSTAGRAM_SHARE_COPY_ERROR', error);
+      toast({
+        variant: 'destructive',
+        description: 'امکان کپی خودکار وجود نداشت. لطفاً دستی کپی کنید.',
+      });
+    }
+
+    window.open('https://www.instagram.com/', '_blank', 'noopener,noreferrer');
+  };
+
   const shareOptions = [
+    {
+      name: 'Instagram',
+      icon: <FaInstagram className="h-5 w-5" />,
+      onClick: handleInstagramShare,
+    },
     {
       name: 'Twitter',
       icon: <Twitter className="h-5 w-5" />,
@@ -62,18 +92,34 @@ export const ShareButton = ({ title, url }: ShareButtonProps) => {
         <div className="space-y-4 p-2">
           <p className="font-bold text-center">اشتراک‌گذاری</p>
           <div className="grid grid-cols-2 gap-4">
-            {shareOptions.map((option) => (
-              <a
-                key={option.name}
-                href={option.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex flex-col items-center justify-center gap-2 p-3 rounded-lg hover:bg-accent transition-colors"
-              >
-                {option.icon}
-                <span className="text-xs">{option.name}</span>
-              </a>
-            ))}
+            {shareOptions.map((option) => {
+              if ('onClick' in option && option.onClick) {
+                return (
+                  <button
+                    key={option.name}
+                    type="button"
+                    onClick={option.onClick}
+                    className="flex flex-col items-center justify-center gap-2 rounded-lg p-3 transition-colors hover:bg-accent"
+                  >
+                    {option.icon}
+                    <span className="text-xs">{option.name}</span>
+                  </button>
+                );
+              }
+
+              return (
+                <a
+                  key={option.name}
+                  href={option.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-col items-center justify-center gap-2 rounded-lg p-3 transition-colors hover:bg-accent"
+                >
+                  {option.icon}
+                  <span className="text-xs">{option.name}</span>
+                </a>
+              );
+            })}
           </div>
           <div className="flex items-center space-x-2 pt-2 border-t">
             <div className="grid flex-1 gap-2">

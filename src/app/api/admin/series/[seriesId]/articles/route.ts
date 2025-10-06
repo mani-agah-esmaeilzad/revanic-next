@@ -83,11 +83,14 @@ export async function POST(req: NextRequest, { params }: { params: { seriesId: s
         articleId,
         order,
         releaseAt: releaseDate,
+        releasedAt: releaseDate && releaseDate <= new Date() ? new Date() : null,
       },
       select: {
         id: true,
         order: true,
         releaseAt: true,
+        releasedAt: true,
+        notifiedAt: true,
         article: {
           select: {
             id: true,

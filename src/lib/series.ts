@@ -27,21 +27,27 @@ export type SeriesDetail = {
   curatorName?: string | null;
   followerCount: number;
   isFollowing: boolean;
+  notifyByEmail: boolean;
   progress: number;
   completedCount: number;
+  upcomingCount: number;
   articles: Array<{
     id: number;
     title: string;
     excerpt: string;
     order: number;
     publishDate: string;
+    releaseAt?: string | null;
+    releasedAt?: string | null;
     coverImageUrl?: string | null;
     readTimeMinutes: number;
+    progress: number;
     isCompleted: boolean;
+    isReleased: boolean;
   }>;
 };
 
-type ReadingHistoryRecord = { articleId: number };
+type ReadingHistoryRecord = { articleId: number; progress: number };
 
 type SeriesRecord = {
   id: number;
@@ -57,6 +63,8 @@ type SeriesRecord = {
     id: number;
     order: number;
     releaseAt: Date | null;
+    releasedAt: Date | null;
+    notifiedAt: Date | null;
     article: {
       id: number;
       title: string;
@@ -83,6 +91,8 @@ const SERIES_SELECT = {
       id: true,
       order: true,
       releaseAt: true,
+      releasedAt: true,
+      notifiedAt: true,
       article: {
         select: {
           id: true,
@@ -132,21 +142,30 @@ export async function getPublishedSeriesList(userId?: number | null): Promise<Se
     userId && historyDelegate
       ? historyDelegate.findMany({
           where: { userId },
-          select: { articleId: true },
+          select: { articleId: true, progress: true },
         })
       : Promise.resolve<ReadingHistoryRecord[]>([]),
   ])) as [SeriesRecord[], ReadingHistoryRecord[]];
 
-  const readSet = new Set(history.map((item) => item.articleId));
+  const progressMap = new Map(history.map((item) => [item.articleId, item.progress ?? 0]));
 
   return seriesRecords.map((series) => {
     const isFollowing = userId
       ? series.followers.some((follower) => follower.userId === userId)
       : false;
-    const articleCount = series.articles.length;
-    const completedCount = series.articles.filter((entry) =>
-      readSet.has(entry.article.id)
-    ).length;
+    const now = new Date();
+    const releasedEntries = series.articles.filter((entry) => {
+      if (entry.releasedAt) return true;
+      if (!entry.releaseAt) return true;
+      return entry.releaseAt <= now;
+    });
+
+    const completedCount = releasedEntries.filter((entry) => {
+      const progress = progressMap.get(entry.article.id) ?? 0;
+      return progress >= 0.9;
+    }).length;
+
+    const articleCount = releasedEntries.length;
     const progress = articleCount === 0 ? 0 : Math.round((completedCount / articleCount) * 100);
 
     return {
@@ -192,7 +211,7 @@ export async function getSeriesDetail(
     userId && historyDelegate
       ? historyDelegate.findMany({
           where: { userId },
-          select: { articleId: true },
+          select: { articleId: true, progress: true },
         })
       : Promise.resolve<ReadingHistoryRecord[]>([]),
     userId && followDelegate
@@ -203,27 +222,44 @@ export async function getSeriesDetail(
               seriesId: series.id,
             },
           },
+          select: {
+            notifyByEmail: true,
+          },
         })
       : Promise.resolve(null),
   ])) as [ReadingHistoryRecord[], any];
 
-  const readSet = new Set(history.map((item) => item.articleId));
+  const progressMap = new Map(history.map((item) => [item.articleId, item.progress ?? 0]));
+  const now = new Date();
+
   const articles = series.articles.map((entry) => {
     const article = entry.article;
+    const isReleased = entry.releasedAt
+      ? true
+      : entry.releaseAt
+        ? entry.releaseAt <= now
+        : true;
+    const progress = progressMap.get(article.id) ?? 0;
     return {
       id: article.id,
       title: article.title,
       excerpt: buildExcerpt(article.content),
       order: entry.order,
-      publishDate: entry.releaseAt?.toISOString() ?? article.createdAt.toISOString(),
+      publishDate: entry.releasedAt?.toISOString() ?? entry.releaseAt?.toISOString() ?? article.createdAt.toISOString(),
+      releaseAt: entry.releaseAt?.toISOString() ?? null,
+      releasedAt: entry.releasedAt?.toISOString() ?? null,
       coverImageUrl: article.coverImageUrl,
       readTimeMinutes: estimateReadTimeMinutes(article.readTimeMinutes, article.content),
-      isCompleted: readSet.has(article.id),
+      progress,
+      isCompleted: progress >= 0.9,
+      isReleased,
     };
   });
 
-  const completedCount = articles.filter((item) => item.isCompleted).length;
-  const progress = articles.length === 0 ? 0 : Math.round((completedCount / articles.length) * 100);
+  const releasedArticles = articles.filter((article) => article.isReleased);
+  const completedCount = releasedArticles.filter((item) => item.isCompleted).length;
+  const progress = releasedArticles.length === 0 ? 0 : Math.round((completedCount / releasedArticles.length) * 100);
+  const upcomingCount = articles.length - releasedArticles.length;
 
   return {
     id: series.id,
@@ -236,15 +272,37 @@ export async function getSeriesDetail(
     curatorName: series.curator?.name ?? null,
     followerCount: series.followers.length,
     isFollowing: Boolean(follow),
+    notifyByEmail: Boolean(follow?.notifyByEmail),
     progress,
     completedCount,
+    upcomingCount,
     articles,
   };
 }
 
-export async function followSeries(seriesId: number, userId: number) {
+export async function followSeries(
+  seriesId: number,
+  userId: number,
+  options: { notifyByEmail?: boolean } = {}
+) {
   const delegate = (prisma as any).seriesFollow;
   if (!delegate) return;
+
+  const createData: {
+    userId: number;
+    seriesId: number;
+    notifyByEmail?: boolean;
+  } = {
+    userId,
+    seriesId,
+  };
+
+  const updateData: { notifyByEmail?: boolean } = {};
+
+  if (options.notifyByEmail !== undefined) {
+    createData.notifyByEmail = options.notifyByEmail;
+    updateData.notifyByEmail = options.notifyByEmail;
+  }
 
   await delegate.upsert({
     where: {
@@ -253,11 +311,8 @@ export async function followSeries(seriesId: number, userId: number) {
         seriesId,
       },
     },
-    create: {
-      userId,
-      seriesId,
-    },
-    update: {},
+    create: createData,
+    update: updateData,
   });
 }
 
@@ -273,9 +328,29 @@ export async function unfollowSeries(seriesId: number, userId: number) {
   });
 }
 
+export async function updateSeriesNotificationPreferences(
+  seriesId: number,
+  userId: number,
+  { notifyByEmail }: { notifyByEmail: boolean }
+) {
+  const delegate = (prisma as any).seriesFollow;
+  if (!delegate) return;
+
+  await delegate.update({
+    where: {
+      userId_seriesId: {
+        userId,
+        seriesId,
+      },
+    },
+    data: { notifyByEmail },
+  });
+}
+
 export function findNextArticle(articles: SeriesDetail["articles"], readSet: Set<number>) {
-  const unread = articles.find((item) => !readSet.has(item.id));
-  return unread ?? articles[articles.length - 1] ?? null;
+  const releasedArticles = articles.filter((item) => item.isReleased);
+  const unread = releasedArticles.find((item) => !readSet.has(item.id));
+  return unread ?? releasedArticles[releasedArticles.length - 1] ?? null;
 }
 
 export async function getFollowedSeriesList(userId: number): Promise<SeriesListItem[]> {

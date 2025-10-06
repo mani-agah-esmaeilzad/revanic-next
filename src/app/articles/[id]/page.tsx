@@ -19,6 +19,7 @@ import { CommentsSection } from "@/components/CommentsSection";
 import { ShareButton } from "@/components/ShareButton";
 import { FollowButton } from "@/components/FollowButton";
 import { Clock, Eye, MessageCircle, Sparkles } from "lucide-react";
+import { ArticleReadingControls } from "@/components/ArticleReadingControls";
 
 interface JwtPayload extends JWTPayload {
   userId: number;
@@ -82,6 +83,15 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
     notFound();
   }
 
+  let readingProgress = 0;
+  if (currentUserId) {
+    const historyRecord = await prisma.readingHistory.findUnique({
+      where: { userId_articleId: { userId: currentUserId, articleId: article.id } },
+      select: { progress: true },
+    });
+    readingProgress = historyRecord?.progress ?? 0;
+  }
+
   const plainTextContent = stripHtml(article.content);
   const estimatedReadTime =
     article.readTimeMinutes && article.readTimeMinutes > 0
@@ -101,7 +111,7 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
       prisma.readingHistory.upsert({
         where: { userId_articleId: { userId: currentUserId, articleId: article.id } },
         update: {}, // فقط `viewedAt` به خاطر @updatedAt آپدیت می‌شود
-        create: { userId: currentUserId, articleId: article.id },
+        create: { userId: currentUserId, articleId: article.id, progress: readingProgress },
       })
     );
   }
@@ -244,63 +254,72 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
                 </div>
               </header>
 
-              <div className="px-6 pb-12 sm:px-12">
-                <ArticleContent content={article.content} articleId={article.id} />
+              <div className="px-6 pb-12 sm:px-12 space-y-10">
+                <ArticleReadingControls
+                  articleId={article.id}
+                  articleTitle={article.title}
+                  contentId="article-body"
+                  initialProgress={readingProgress}
+                />
 
-                {tagNames.length > 0 && (
-                  <div className="mt-10 space-y-3">
-                    <h2 className="text-sm font-semibold text-muted-foreground">برچسب‌ها</h2>
-                    <div className="flex flex-wrap gap-2">
-                      {tagNames.map((tag) => (
-                        <Link key={tag} href={`/tags/${tag}`}>
-                          <Badge variant="secondary" className="rounded-full border border-transparent bg-journal-cream/40 px-3 py-1 text-journal">
-                            #{tag}
-                          </Badge>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div id="article-body" className="space-y-10">
+                  <ArticleContent content={article.content} articleId={article.id} />
 
-                <div className="mt-12 flex flex-col gap-6 rounded-2xl border border-border/60 bg-muted/10 p-6 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-4">
-                    <span className="text-sm font-medium text-muted-foreground">با مقاله تعامل کنید</span>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <ClapButton
-                        articleId={article.id}
-                        initialTotalClaps={totalClaps}
-                        initialUserClaps={userClap?.count || 0}
-                      />
-                      <BookmarkButton articleId={article.id} initialBookmarked={userHasBookmarked} />
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground sm:text-sm">
-                      <div className="flex items-center gap-1.5 font-medium text-foreground">
-                        <Sparkles className="h-4 w-4 text-journal-orange" />
-                        {formattedClaps} تشویق
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <MessageCircle className="h-4 w-4 text-journal-green" />
-                        {formattedComments} گفتگو
+                  {tagNames.length > 0 && (
+                    <div className="space-y-3">
+                      <h2 className="text-sm font-semibold text-muted-foreground">برچسب‌ها</h2>
+                      <div className="flex flex-wrap gap-2">
+                        {tagNames.map((tag) => (
+                          <Link key={tag} href={`/tags/${tag}`}>
+                            <Badge variant="secondary" className="rounded-full border border-transparent bg-journal-cream/40 px-3 py-1 text-journal">
+                              #{tag}
+                            </Badge>
+                          </Link>
+                        ))}
                       </div>
                     </div>
-                  </div>
-                  <div className="shrink-0">
-                    <ShareButton title={article.title} url={articleUrl} />
-                  </div>
-                </div>
+                  )}
 
-                <div className="mt-12 rounded-3xl border border-border/60 bg-background/85 p-6 shadow-inner sm:p-8">
-                  <CommentsSection
-                    articleId={article.id}
-                    initialComments={article.comments}
-                    currentUserId={currentUserId}
-                  />
+                  <div className="flex flex-col gap-6 rounded-2xl border border-border/60 bg-muted/10 p-6 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="space-y-4">
+                      <span className="text-sm font-medium text-muted-foreground">با مقاله تعامل کنید</span>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <ClapButton
+                          articleId={article.id}
+                          initialTotalClaps={totalClaps}
+                          initialUserClaps={userClap?.count || 0}
+                        />
+                        <BookmarkButton articleId={article.id} initialBookmarked={userHasBookmarked} />
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground sm:text-sm">
+                        <div className="flex items-center gap-1.5 font-medium text-foreground">
+                          <Sparkles className="h-4 w-4 text-journal-orange" />
+                          {formattedClaps} تشویق
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <MessageCircle className="h-4 w-4 text-journal-green" />
+                          {formattedComments} گفتگو
+                        </div>
+                      </div>
+                    </div>
+                    <div className="shrink-0">
+                      <ShareButton title={article.title} url={articleUrl} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-border/60 bg-background/85 p-6 shadow-inner sm:p-8">
+                    <CommentsSection
+                      articleId={article.id}
+                      initialComments={article.comments}
+                      currentUserId={currentUserId}
+                    />
+                  </div>
                 </div>
               </div>
             </article>
           </main>
 
-          <aside className="space-y-6 lg:space-y-8">
+          <aside data-reading-sidebar className="space-y-6 lg:space-y-8">
             <Card className="border-border/40 bg-background/95 shadow-lg backdrop-blur">
               <CardHeader className="pb-4">
                 <CardTitle className="text-xl">درباره نویسنده</CardTitle>

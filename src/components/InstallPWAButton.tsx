@@ -65,7 +65,7 @@ export const InstallPWAButton = () => {
     }
 
     return (
-        <div className="fixed bottom-4 right-4 left-4 z-50 animate-in slide-in-from-bottom-10 duration-500 md:left-auto">
+        <div className="install-pwa-button fixed bottom-4 right-4 left-4 z-50 animate-in slide-in-from-bottom-10 duration-500 md:left-auto">
             <div className="bg-background border shadow-lg rounded-lg p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     <Download className="h-8 w-8 text-primary" />

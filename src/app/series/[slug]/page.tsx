@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import SeriesFollowButton from "@/components/SeriesFollowButton";
+import { SeriesAlertsToggle } from "@/components/SeriesAlertsToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { getUserIdFromSessionCookie } from "@/lib/auth-session";
 import { getSeriesDetail } from "@/lib/series";
 
-import { CheckCircle2, Circle, Clock } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Rss } from "lucide-react";
 
 interface SeriesDetailPageProps {
   params: { slug: string };
@@ -32,10 +33,13 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
     notFound();
   }
 
-  const nextEpisode =
-    series.articles.find((item) => !item.isCompleted) ?? series.articles[series.articles.length - 1] ?? null;
-  const followerLabel = new Intl.NumberFormat("fa-IR").format(series.followerCount);
-  const completedLabel = `${series.completedCount} / ${series.articles.length}`;
+  const releasedArticles = series.articles.filter((item) => item.isReleased);
+  const upcomingArticles = series.articles.filter((item) => !item.isReleased);
+  const nextEpisode = releasedArticles.find((item) => !item.isCompleted) ?? releasedArticles[releasedArticles.length - 1] ?? null;
+  const numberFormatter = new Intl.NumberFormat("fa-IR");
+  const followerLabel = numberFormatter.format(series.followerCount);
+  const completedLabel = `${numberFormatter.format(series.completedCount)} / ${numberFormatter.format(releasedArticles.length)}`;
+  const rssHref = `/series/${series.slug}/feed`;
 
   return (
     <div className="pb-12">
@@ -49,6 +53,12 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
               <span>{followerLabel} دنبال‌کننده</span>
               <span className="text-journal-light/60">•</span>
               <span>{completedLabel} قسمت کامل شده</span>
+              {series.upcomingCount > 0 ? (
+                <>
+                  <span className="text-journal-light/60">•</span>
+                  <span>{series.upcomingCount} قسمت در راه است</span>
+                </>
+              ) : null}
               {series.curatorName ? (
                 <>
                   <span className="text-journal-light/60">•</span>
@@ -81,7 +91,20 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
                 </Button>
               ) : null}
               <SeriesFollowButton slug={series.slug} initialFollowing={series.isFollowing} />
+              <Button asChild variant="outline">
+                <Link href={rssHref} prefetch={false}>
+                  <Rss className="ml-2 h-4 w-4" />
+                  RSS
+                </Link>
+              </Button>
             </div>
+            {series.isFollowing ? (
+              <SeriesAlertsToggle
+                slug={series.slug}
+                isFollowing={series.isFollowing}
+                initialEmail={series.notifyByEmail}
+              />
+            ) : null}
           </div>
           <div className="relative mx-auto h-64 w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-br from-journal-green/10 to-journal-cream lg:mx-0">
             {series.coverImageUrl ? (
@@ -99,7 +122,9 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
 
       <div className="container mx-auto px-4">
         <div className="mx-auto mt-12 max-w-4xl space-y-6">
-          {series.articles.map((episode) => (
+          {series.articles.map((episode) => {
+            const percent = Math.round(episode.progress * 100);
+            return (
             <Card
               key={episode.id}
               className="border-0 bg-white shadow-sm transition hover:shadow-md"
@@ -110,7 +135,7 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
                     {episode.isCompleted ? (
                       <CheckCircle2 className="h-5 w-5 text-journal-green" />
                     ) : (
-                      <Circle className="h-5 w-5 text-journal-light" />
+                      <Circle className={`h-5 w-5 ${episode.isReleased ? 'text-journal-light' : 'text-muted-foreground/50'}`} />
                     )}
                   </div>
                   <div className="space-y-2">
@@ -118,6 +143,12 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
                       <span>قسمت {episode.order}</span>
                       <span className="text-journal-light/50">•</span>
                       <span>{formatDate(episode.publishDate)}</span>
+                      {!episode.isReleased && episode.releaseAt ? (
+                        <>
+                          <span className="text-journal-light/50">•</span>
+                          <span>انتشار: {formatDate(episode.releaseAt)}</span>
+                        </>
+                      ) : null}
                     </div>
                     <h2 className="text-lg font-semibold text-journal">{episode.title}</h2>
                     <p className="text-sm text-journal-light line-clamp-3">{episode.excerpt}</p>
@@ -125,16 +156,37 @@ const SeriesDetailPage = async ({ params }: SeriesDetailPageProps) => {
                       <Clock className="h-4 w-4" />
                       {episode.readTimeMinutes} دقیقه مطالعه
                     </div>
+                    {episode.isReleased && percent > 0 ? (
+                      <div className="space-y-1 pt-1">
+                        <Progress value={percent} className="h-1.5" />
+                        <span className="text-[11px] text-muted-foreground">{percent}% مطالعه شده</span>
+                      </div>
+                    ) : null}
+                    {!episode.isReleased ? (
+                      <Badge variant="outline" className="border-dashed text-muted-foreground">
+                        به‌زودی
+                      </Badge>
+                    ) : null}
                   </div>
                 </div>
-                <Button asChild variant="outline" className="w-full sm:w-auto">
-                  <Link href={`/articles/${episode.id}`}>
-                    {episode.isCompleted ? "مطالعه مجدد" : "مطالعه قسمت"}
-                  </Link>
+                <Button
+                  asChild={episode.isReleased}
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  disabled={!episode.isReleased}
+                >
+                  {episode.isReleased ? (
+                    <Link href={`/articles/${episode.id}`}>
+                      {episode.isCompleted ? "مطالعه مجدد" : "مطالعه قسمت"}
+                    </Link>
+                  ) : (
+                    <span>در انتظار انتشار</span>
+                  )}
                 </Button>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
       </div>
     </div>

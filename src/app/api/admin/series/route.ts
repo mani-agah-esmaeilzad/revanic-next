@@ -34,6 +34,8 @@ export async function GET() {
             id: true,
             order: true,
             releaseAt: true,
+            releasedAt: true,
+            notifiedAt: true,
             article: {
               select: {
                 id: true,

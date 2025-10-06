@@ -98,6 +98,8 @@ model SeriesArticle {
   articleId Int
   order     Int
   releaseAt DateTime?
+  releasedAt DateTime?
+  notifiedAt DateTime?
   createdAt DateTime  @default(now())
 
   @@unique([seriesId, articleId])
@@ -111,6 +113,7 @@ model SeriesFollow {
   series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   seriesId  Int
   createdAt DateTime @default(now())
+  notifyByEmail Boolean @default(false)
 
   @@unique([userId, seriesId])
 }
@@ -384,6 +387,7 @@ model ReadingHistory {
   articleId Int
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   viewedAt  DateTime @updatedAt
+  progress  Float    @default(0)
 
   @@unique([userId, articleId])
 }

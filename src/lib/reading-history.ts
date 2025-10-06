@@ -12,6 +12,7 @@ export interface ReadingHistoryFilters {
 
 export interface ReadingHistoryEntry {
   viewedAt: Date;
+  progress: number;
   article: Prisma.ArticleGetPayload<{
     include: {
       author: { select: { name: true; avatarUrl: true } };
@@ -99,6 +100,7 @@ export async function getReadingHistoryEntries(
 
   return history.map((entry) => ({
     viewedAt: entry.viewedAt,
+    progress: entry.progress,
     article: entry.article,
   }));
 }

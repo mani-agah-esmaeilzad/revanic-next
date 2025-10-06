@@ -26,6 +26,8 @@ interface AdminSeriesArticle {
   id: number;
   order: number;
   releaseAt: string | null;
+  releasedAt: string | null;
+  notifiedAt: string | null;
   article: {
     id: number;
     title: string;
@@ -300,7 +302,24 @@ const SeriesItem = ({ series }: SeriesItemProps) => {
                       {item.article.status === 'APPROVED' ? 'تایید شده' : item.article.status}
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-journal-light">
-                      {formatReleaseAt(item.releaseAt)}
+                      {item.releasedAt ? (
+                        <div className="space-y-1">
+                          <span className="text-green-600">
+                            منتشر شده {formatReleaseAt(item.releasedAt)}
+                          </span>
+                          {item.notifiedAt ? (
+                            <span className="block text-xs text-muted-foreground">
+                              اعلان ارسال شده: {formatReleaseAt(item.notifiedAt)}
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : item.releaseAt ? (
+                        <span>
+                          زمان‌بندی: {formatReleaseAt(item.releaseAt)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">آماده انتشار</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-journal-light">
                       {persianFormatter.format(item.article.readTimeMinutes ?? 0)} دقیقه
