@@ -167,6 +167,25 @@ const removeSeriesArticle = async (seriesId: number, seriesArticleId: number) =>
   return response.json();
 };
 
+const deleteSeries = async (seriesId: number) => {
+  const response = await fetch('/api/admin/series', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: seriesId }),
+  });
+
+  if (response.status === 204) {
+    return true;
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.message || 'حذف سری با خطا مواجه شد.');
+  }
+
+  return true;
+};
+
 interface SeriesItemProps {
   series: AdminSeries;
 }
@@ -219,6 +238,17 @@ const SeriesItem = ({ series }: SeriesItemProps) => {
     },
   });
 
+  const deleteSeriesMutation = useMutation({
+    mutationFn: () => deleteSeries(series.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-series'] });
+      alert('سری با موفقیت حذف شد.');
+    },
+    onError: (error: any) => {
+      alert(error?.message || 'حذف سری با مشکل مواجه شد.');
+    },
+  });
+
   const articleCount = series._count?.articles ?? series.articles.length;
   const followerCount = series._count?.followers ?? 0;
 
@@ -245,6 +275,13 @@ const SeriesItem = ({ series }: SeriesItemProps) => {
     });
   };
 
+  const handleDeleteSeries = () => {
+    if (!window.confirm(`آیا از حذف سری «${series.title}» اطمینان دارید؟`)) {
+      return;
+    }
+    deleteSeriesMutation.mutate();
+  };
+
   return (
     <Card key={series.id} className="border-journal-cream bg-white/70">
       <CardHeader className="space-y-2">
@@ -255,9 +292,20 @@ const SeriesItem = ({ series }: SeriesItemProps) => {
               اسلاگ: <code className="mx-1 rounded bg-journal-cream px-1 py-0.5 text-xs">{series.slug}</code>
             </CardDescription>
           </div>
-          <Badge variant={series.status === 'PUBLISHED' ? 'default' : series.status === 'DRAFT' ? 'secondary' : 'outline'}>
-            {SERIES_STATUS_LABELS[series.status] || series.status}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={series.status === 'PUBLISHED' ? 'default' : series.status === 'DRAFT' ? 'secondary' : 'outline'}>
+              {SERIES_STATUS_LABELS[series.status] || series.status}
+            </Badge>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteSeries}
+              disabled={deleteSeriesMutation.isPending}
+            >
+              <Trash2 className="ml-2 h-4 w-4" />
+              حذف سری
+            </Button>
+          </div>
         </div>
         <div className="flex flex-wrap gap-4 text-xs text-journal-light">
           <span>تعداد مقالات: {persianFormatter.format(articleCount)}</span>

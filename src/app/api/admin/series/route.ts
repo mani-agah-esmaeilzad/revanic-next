@@ -90,3 +90,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'خطای داخلی سرور' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { id } = await req.json();
+    if (!id) {
+      return NextResponse.json({ message: 'شناسه سری ضروری است.' }, { status: 400 });
+    }
+
+    const seriesId = Number(id);
+    if (!Number.isInteger(seriesId) || seriesId <= 0) {
+      return NextResponse.json({ message: 'شناسه سری نامعتبر است.' }, { status: 400 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.seriesArticle.deleteMany({ where: { seriesId } });
+      await tx.seriesFollow.deleteMany({ where: { seriesId } });
+      await tx.series.delete({ where: { id: seriesId } });
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error('ADMIN_DELETE_SERIES_ERROR', error);
+    return NextResponse.json({ message: 'خطای داخلی سرور' }, { status: 500 });
+  }
+}
