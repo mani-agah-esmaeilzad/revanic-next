@@ -37,7 +37,7 @@ const Index = async () => {
       author: { name: "مریم احمدی", avatar: "" },
       readTime: 12,
       publishDate: "یک هفته پیش",
-      claps: 89, // <-- تغییر از likes به claps
+      claps: 89, 
       comments: 15,
       category: "تاریخ",
       image: ""

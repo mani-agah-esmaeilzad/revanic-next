@@ -1,6 +1,4 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
-// --- تغییر اصلی: ما به طور کامل import مربوط به Viewport را حذف می‌کنیم ---
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
