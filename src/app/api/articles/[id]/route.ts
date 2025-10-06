@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { requireEditorAccess } from '@/lib/articles/permissions';
+import { ArticleTimelineEventType } from '@prisma/client';
 
 interface JwtPayload {
   userId: number;
@@ -27,6 +29,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Invalid article ID', { status: 400 });
     }
 
+    const access = await requireEditorAccess(articleId, userId);
     const article = await prisma.article.findUnique({
       where: { id: articleId },
     });
@@ -35,27 +38,61 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Article not found', { status: 404 });
     }
 
-    if (article.authorId !== userId) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-
     const body = await req.json();
-    const { title, content, published } = body;
+    const { title, content, summary } = body;
 
-    const updatedArticle = await prisma.article.update({
-      where: { id: articleId },
-      data: {
-        title,
-        content,
-        // status update logic might be needed here depending on features
-      },
+    const nextTitle = typeof title === 'string' && title.trim().length > 0 ? title.trim() : article.title;
+    const nextContent = typeof content === 'string' ? content : article.content;
+    const revisionSummary = typeof summary === 'string' && summary.trim().length > 0 ? summary.trim() : null;
+
+    const nextVersion = (await prisma.articleRevision.count({ where: { articleId } })) + 1;
+
+    const updatedArticle = await prisma.$transaction(async (tx) => {
+      await tx.articleRevision.create({
+        data: {
+          articleId,
+          authorId: userId,
+          version: nextVersion,
+          title: article.title,
+          content: article.content,
+          summary: revisionSummary,
+        },
+      });
+
+      const updated = await tx.article.update({
+        where: { id: articleId },
+        data: {
+          title: nextTitle,
+          content: nextContent,
+        },
+      });
+
+      await tx.articleTimelineEvent.create({
+        data: {
+          articleId,
+          actorId: userId,
+          type: ArticleTimelineEventType.REVISION_CREATED,
+          payload: {
+            version: nextVersion,
+            summary: revisionSummary,
+            role: access.role,
+          },
+        },
+      });
+
+      return updated;
     });
 
     return NextResponse.json(updatedArticle);
 
   } catch (error) {
     console.error('ARTICLE_UPDATE_ERROR', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
+    if (typeof error === 'object' && error !== null && 'status' in error) {
+      const status = (error as { status?: number }).status ?? 500;
+      return new NextResponse(message, { status });
+    }
+    return new NextResponse(message, { status: 500 });
   }
 }
 

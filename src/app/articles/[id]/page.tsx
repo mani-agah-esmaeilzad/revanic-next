@@ -20,6 +20,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { FollowButton } from "@/components/FollowButton";
 import { Clock, Eye, MessageCircle, Sparkles } from "lucide-react";
 import { ArticleReadingControls } from "@/components/ArticleReadingControls";
+import { SocialCampaignPanel } from "@/components/SocialCampaignPanel";
 
 interface JwtPayload extends JWTPayload {
   userId: number;
@@ -314,6 +315,12 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
                       currentUserId={currentUserId}
                     />
                   </div>
+
+                  <SocialCampaignPanel
+                    articleId={article.id}
+                    articleTitle={article.title}
+                    shareUrl={articleUrl}
+                  />
                 </div>
               </div>
             </article>

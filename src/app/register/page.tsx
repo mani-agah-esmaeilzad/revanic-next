@@ -1,6 +1,6 @@
 // src/app/register/page.tsx
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import { useEventTracker, applyJourneyHeader } from "@/hooks/useEventTracker";
+import { useExperiment } from "@/components/ExperimentProvider";
 
 const Register = () => {
   const router = useRouter();
@@ -19,6 +21,12 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const track = useEventTracker();
+  const ctaVariant = useExperiment('registration_cta');
+
+  useEffect(() => {
+    track({ name: 'page_view', payload: { page: 'register' } });
+  }, [track]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,28 +39,58 @@ const Register = () => {
       return;
     }
 
+    track({
+      name: 'registration_started',
+      payload: { method: 'email', variant: ctaVariant },
+      experimentId: 'registration_cta',
+      variant: ctaVariant,
+    });
+
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
+      const response = await fetch(
+        "/api/auth/register",
+        applyJourneyHeader({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, email, password }),
+        })
+      );
 
       if (response.ok) {
+        track({
+          name: 'registration_completed',
+          payload: { method: 'email' },
+        });
         // --- FIX: Redirect to subscription page ---
         router.push("/subscription");
       } else {
         const data = await response.text();
         setError(data || "خطایی در ثبت نام رخ داد.");
+        track({
+          name: 'registration_failed',
+          payload: { reason: data || 'unknown' },
+        });
       }
     } catch (err) {
       setError("خطای شبکه. لطفاً دوباره تلاش کنید.");
+      track({
+        name: 'registration_failed',
+        payload: { reason: 'network_error' },
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  const ctaLabel = ctaVariant === 'social_proof'
+    ? 'ثبت‌نام و پیوستن به ۳۰۰۰+ خواننده'
+    : 'ثبت‌نام و شروع رایگان';
+
+  const subtitleCopy = ctaVariant === 'social_proof'
+    ? 'به جامعه فعال نویسندگان و خوانندگان روانیک بپیوندید.'
+    : 'شروع سفر نویسندگی شما از همین‌جا است.';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-journal-cream via-background to-journal-cream/50 flex items-center justify-center p-4">
@@ -64,7 +102,7 @@ const Register = () => {
           <CardTitle className="text-2xl font-bold text-journal">
             ثبت نام در مجله روانیک
           </CardTitle>
-          <p className="text-journal-light">شروع سفر نویسندگی شما</p>
+          <p className="text-journal-light">{subtitleCopy}</p>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -177,7 +215,7 @@ const Register = () => {
               className="w-full bg-journal-green text-white hover:bg-journal-green-light"
               disabled={isLoading}
             >
-              {isLoading ? "در حال ثبت نام..." : "ثبت نام"}
+              {isLoading ? "در حال ثبت نام..." : ctaLabel}
             </Button>
           </form>
 

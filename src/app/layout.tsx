@@ -5,8 +5,10 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Toaster } from "@/components/ui/toaster";
 import QueryProvider from "@/components/QueryProvider";
+import { ExperimentProvider } from "@/components/ExperimentProvider";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { SupportAssistantWidget } from "@/components/SupportAssistantWidget";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
 
 const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 
@@ -30,12 +32,15 @@ export default function RootLayout({
     <html lang="fa" dir="rtl">
       <body className={vazirmatn.className}>
         <QueryProvider>
-          <Header />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-          <Toaster />
-          <InstallPWAButton />
-          <SupportAssistantWidget />
+          <ExperimentProvider>
+            <Header />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+            <Toaster />
+            <InstallPWAButton />
+            <SupportAssistantWidget />
+            <PushNotificationManager />
+          </ExperimentProvider>
         </QueryProvider>
       </body>
     </html>

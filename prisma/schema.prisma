@@ -42,6 +42,11 @@ model User {
   assistantChatSessions AssistantChatSession[]
   seriesFollows         SeriesFollow[]
   curatedSeries         Series[]
+  trackingEvents        TrackingEvent[]
+  articleCollaborations ArticleCollaborator[]
+  articleRevisions      ArticleRevision[]
+  articleTimelineEvents ArticleTimelineEvent[]
+  pushSubscriptions     PushSubscription[]
 }
 
 model Article {
@@ -72,6 +77,9 @@ model Article {
   // --- فیلد جدید برای تاریخچه مطالعه ---
   history       ReadingHistory[]
   seriesEntries SeriesArticle[]
+  collaborators ArticleCollaborator[]
+  revisions     ArticleRevision[]
+  timeline      ArticleTimelineEvent[]
 }
 
 model Series {
@@ -116,6 +124,61 @@ model SeriesFollow {
   notifyByEmail Boolean @default(false)
 
   @@unique([userId, seriesId])
+}
+
+enum ArticleCollaboratorRole {
+  EDITOR
+  REVIEWER
+  VIEWER
+}
+
+model ArticleCollaborator {
+  id        Int                     @id @default(autoincrement())
+  article   Article                 @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  user      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  role      ArticleCollaboratorRole @default(EDITOR)
+  createdAt DateTime                @default(now())
+
+  @@unique([articleId, userId])
+}
+
+model ArticleRevision {
+  id        Int      @id @default(autoincrement())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId  Int?
+  version   Int
+  title     String
+  content   String
+  summary   String?
+  createdAt DateTime @default(now())
+
+  @@index([articleId, version], map: "article_revision_version_idx")
+}
+
+enum ArticleTimelineEventType {
+  REVISION_CREATED
+  COLLABORATOR_ADDED
+  COLLABORATOR_REMOVED
+  COLLABORATOR_UPDATED
+  STATUS_CHANGED
+}
+
+model ArticleTimelineEvent {
+  id        Int                      @id @default(autoincrement())
+  article   Article                  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  actor     User?                    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  actorId   Int?
+  type      ArticleTimelineEventType
+  payload   Json?
+  createdAt DateTime                 @default(now())
+
+  @@index([articleId])
+  @@index([actorId])
 }
 
 model SupportTicket {
@@ -390,4 +453,35 @@ model ReadingHistory {
   progress  Float    @default(0)
 
   @@unique([userId, articleId])
+}
+
+model TrackingEvent {
+  id           Int      @id @default(autoincrement())
+  name         String
+  journeyId    String?
+  userId       Int?
+  experimentId String?
+  variant      String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([journeyId])
+  @@index([name])
+  @@index([experimentId])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?
+  journeyId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([journeyId])
 }

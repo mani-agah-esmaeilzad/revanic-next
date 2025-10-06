@@ -3,13 +3,14 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { BookOpenCheck, MoonStar, SunMedium } from 'lucide-react';
+import { BookOpenCheck, Download, MoonStar, SunMedium } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { storeOfflineArticle } from '@/lib/offline-cache';
 
 interface ArticleReadingControlsProps {
   articleId: number;
@@ -31,6 +32,7 @@ export const ArticleReadingControls = ({
   const [progress, setProgress] = useState(progressToPercent(initialProgress));
   const lastReportedRef = useRef(progressToPercent(initialProgress));
   const frameRef = useRef<number>();
+  const [isSavingOffline, setIsSavingOffline] = useState(false);
 
   const mutation = useMutation({
     mutationFn: async (payload: { progress: number; completed?: boolean }) => {
@@ -132,6 +134,29 @@ export const ArticleReadingControls = ({
     toast({ description: 'این مقاله به عنوان مطالعه‌شده ثبت شد.' });
   };
 
+  const handleSaveOffline = async () => {
+    try {
+      const container = document.getElementById(contentId);
+      if (!container) {
+        toast({ variant: 'destructive', description: 'محتوای مقاله یافت نشد.' });
+        return;
+      }
+      setIsSavingOffline(true);
+      await storeOfflineArticle({
+        id: articleId,
+        title: articleTitle,
+        content: container.innerHTML,
+        savedAt: Date.now(),
+      });
+      toast({ description: 'مقاله برای مطالعه آفلاین ذخیره شد.' });
+    } catch (error) {
+      console.error('OFFLINE_SAVE_ERROR', error);
+      toast({ variant: 'destructive', description: 'ذخیره آفلاین با خطا مواجه شد.' });
+    } finally {
+      setIsSavingOffline(false);
+    }
+  };
+
   const progressLabel = useMemo(() => `${progress}% مطالعه شده`, [progress]);
 
   return (
@@ -167,6 +192,15 @@ export const ArticleReadingControls = ({
         >
           <BookOpenCheck className="ml-2 h-4 w-4" />
           علامت به‌عنوان خوانده‌شده
+        </Button>
+        <Button
+          variant="outline"
+          className="whitespace-nowrap"
+          onClick={handleSaveOffline}
+          disabled={isSavingOffline}
+        >
+          <Download className="ml-2 h-4 w-4" />
+          {isSavingOffline ? 'در حال ذخیره...' : 'ذخیره آفلاین'}
         </Button>
       </div>
     </div>
