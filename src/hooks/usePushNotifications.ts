@@ -7,19 +7,28 @@ import { applyJourneyHeader } from '@/hooks/useEventTracker';
 
 const STORAGE_KEY = 'revanic_push_enabled';
 
+const hasNotificationSupport = () =>
+  typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined';
+
+const hasServiceWorkerSupport = () =>
+  typeof navigator !== 'undefined' && 'serviceWorker' in navigator && typeof window !== 'undefined' && 'PushManager' in window;
+
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
-  const [permission, setPermission] = useState<NotificationPermission>(
-    typeof window !== 'undefined' ? Notification.permission : 'default'
-  );
+  const [permission, setPermission] = useState<NotificationPermission>(() => {
+    if (hasNotificationSupport()) {
+      return Notification.permission;
+    }
+    return 'default';
+  });
   const [isRegistered, setIsRegistered] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     return window.localStorage.getItem(STORAGE_KEY) === '1';
   });
 
   useEffect(() => {
-    setIsSupported(typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window);
-    if (typeof window !== 'undefined') {
+    setIsSupported(hasNotificationSupport() && hasServiceWorkerSupport());
+    if (hasNotificationSupport()) {
       setPermission(Notification.permission);
     }
   }, []);
@@ -40,7 +49,7 @@ export function usePushNotifications() {
   }, []);
 
   const requestPermission = useCallback(async () => {
-    if (!isSupported) throw new Error('PUSH_NOT_SUPPORTED');
+    if (!isSupported || !hasNotificationSupport()) throw new Error('PUSH_NOT_SUPPORTED');
 
     const permissionResult = await Notification.requestPermission();
     setPermission(permissionResult);

@@ -31,14 +31,31 @@ export const SocialCampaignPanel = ({ articleId, articleTitle, shareUrl }: Socia
 
   const handleCopy = (campaign: SocialCampaign) => {
     const text = `${articleTitle ? `🔥 ${articleTitle}\n` : ''}${campaign.description}\n${campaign.hashtag}\n${baseShareUrl}`;
-    navigator.clipboard
-      .writeText(text)
-      .then(() => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(text)
+        .then(() => {
+          toast({ description: 'متن کمپین در کلیپ‌بورد شما کپی شد.' });
+        })
+        .catch(() => {
+          toast({ variant: 'destructive', description: 'کپی متن با مشکل مواجه شد.' });
+        });
+    } else {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
         toast({ description: 'متن کمپین در کلیپ‌بورد شما کپی شد.' });
-      })
-      .catch(() => {
+      } catch (error) {
+        console.error('COPY_FALLBACK_ERROR', error);
         toast({ variant: 'destructive', description: 'کپی متن با مشکل مواجه شد.' });
-      });
+      }
+    }
   };
 
   return (
