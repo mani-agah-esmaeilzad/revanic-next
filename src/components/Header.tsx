@@ -7,6 +7,7 @@ import { Search, PenTool, User, Menu } from "lucide-react";
 import Logo from "@/components/Logo";
 import Link from "next/link";
 import { Notifications } from "./Notifications";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Sheet,
   SheetContent,
@@ -66,6 +67,7 @@ const Header = () => {
               </Button>
             </Link>
 
+            <ThemeToggle />
             <Notifications />
 
             <Link href="/profile">
