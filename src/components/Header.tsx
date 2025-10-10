@@ -110,6 +110,12 @@ const Header = () => {
                     >
                       دسته‌بندی‌ها
                     </Link>
+                    <Link href="/editorial-guide" className="text-journal-light hover:text-journal transition-colors">
+                      راهنمای نویسندگان
+                    </Link>
+                    <Link href="/support" className="text-journal-light hover:text-journal transition-colors">
+                      پشتیبانی
+                    </Link>
                     <Link
                       href="/about"
                       onClick={handleLinkClick}
