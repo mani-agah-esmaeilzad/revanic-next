@@ -1,159 +1,112 @@
-"use client"; // اشتباه تایپی 'use-client' به "use client" اصلاح شد
-
-import { useState } from "react";
+// src/app/categories/page.tsx
+import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Laptop,
-  History,
-  Palette,
-  FlaskConical,
-  Globe,
-  Building,
-  DollarSign,
-  Dumbbell,
-  Heart,
-  Leaf,
-  BookOpen,
-  Music,
-} from "lucide-react";
 import Link from "next/link";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import { LucideIcon } from "lucide-react";
+import { ensureDefaultCategories, resolveCategoryDefinition } from "@/lib/categories";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { buildCanonical, getDeploymentUrl, itemListJsonLd } from "@/lib/seo";
 
-const Categories = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    null
-  );
+const canonicalCategories = buildCanonical("/categories");
 
-  const categories = [
-    {
-      id: "technology",
-      name: "فناوری",
-      icon: Laptop,
-      description: "آخرین اخبار و تحلیل‌های حوزه فناوری، هوش مصنوعی و نوآوری",
-      articleCount: 156,
-      color: "bg-blue-500",
-      featured: true,
-    },
-    {
-      id: "history",
-      name: "تاریخ",
-      icon: History,
-      description: "کاوش در تاریخ ایران و جهان، تمدن‌ها و وقایع مهم تاریخی",
-      articleCount: 89,
-      color: "bg-amber-500",
-      featured: true,
-    },
-    {
-      id: "art",
-      name: "هنر و معماری",
-      icon: Palette,
-      description: "هنر معاصر، معماری، طراحی و خلاقیت در ابعاد مختلف",
-      articleCount: 67,
-      color: "bg-purple-500",
-      featured: false,
-    },
-    {
-      id: "science",
-      name: "علم",
-      icon: FlaskConical,
-      description: "پیشرفت‌های علمی، تحقیقات جدید و کشفیات علمی",
-      articleCount: 98,
-      color: "bg-green-500",
-      featured: true,
-    },
-    {
-      id: "culture",
-      name: "فرهنگ",
-      icon: Globe,
-      description: "فرهنگ ایرانی و جهانی، آداب و رسوم، زندگی اجتماعی",
-      articleCount: 124,
-      color: "bg-rose-500",
-      featured: false,
-    },
-    {
-      id: "politics",
-      name: "سیاست",
-      icon: Building,
-      description: "تحلیل‌های سیاسی، رویدادهای داخلی و بین‌المللی",
-      articleCount: 78,
-      color: "bg-red-500",
-      featured: false,
-    },
-    {
-      id: "economy",
-      name: "اقتصاد",
-      icon: DollarSign,
-      description: "بازارهای مالی، اقتصاد ایران و جهان، استارتاپ‌ها",
-      articleCount: 92,
-      color: "bg-emerald-500",
-      featured: true,
-    },
-    {
-      id: "sports",
-      name: "ورزش",
-      icon: Dumbbell,
-      description: "اخبار ورزشی، تحلیل بازی‌ها و قهرمانان ورزشی",
-      articleCount: 45,
-      color: "bg-orange-500",
-      featured: false,
-    },
-    {
-      id: "health",
-      name: "سلامت",
-      icon: Heart,
-      description: "نکات سلامتی، پزشکی، تغذیه و سبک زندگی سالم",
-      articleCount: 73,
-      color: "bg-pink-500",
-      featured: false,
-    },
-    {
-      id: "environment",
-      name: "محیط زیست",
-      icon: Leaf,
-      description: "محیط زیست، تغییرات اقلیمی و حفاظت از طبیعت",
-      articleCount: 34,
-      color: "bg-teal-500",
-      featured: false,
-    },
-    {
-      id: "literature",
-      name: "ادبیات",
-      icon: BookOpen,
-      description: "شعر و ادب فارسی، نقد ادبی، کتاب‌خوانی",
-      articleCount: 87,
-      color: "bg-indigo-500",
-      featured: false,
-    },
-    {
-      id: "music",
-      name: "موسیقی",
-      icon: Music,
-      description: "موسیقی کلاسیک و مدرن، آموزش و تحلیل موسیقی",
-      articleCount: 29,
-      color: "bg-violet-500",
-      featured: false,
-    },
-  ];
+export const metadata: Metadata = {
+  title: "دسته‌بندی‌های مقالات روانیک",
+  description: "تمام موضوعات فعال روانیک را مرور کنید و به سرعت به مقالات مرتبط در هر زمینه دسترسی پیدا کنید.",
+  ...(canonicalCategories ? { alternates: { canonical: canonicalCategories } } : {}),
+  openGraph: {
+    title: "دسته‌بندی‌های مقالات روانیک",
+    description: "از فناوری تا فرهنگ، موضوعات متنوع روانیک را کاوش کنید.",
+    url: canonicalCategories,
+    locale: "fa_IR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "دسته‌بندی‌های روانیک",
+    description: "موضوع مورد علاقه خود را در روانیک پیدا کنید.",
+  },
+};
 
-  const featuredCategories = categories.filter((cat) => cat.featured);
-  const allCategories = categories;
+type CategoryWithStats = {
+  id: number;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  color: string;
+  articleCount: number;
+};
+
+const Categories = async () => {
+  await ensureDefaultCategories();
+
+  const categoriesFromDb = await prisma.category.findMany({
+    orderBy: { name: "asc" },
+    include: {
+      articles: {
+        where: { status: "APPROVED" },
+        select: { id: true },
+      },
+    },
+  });
+
+  const categories: CategoryWithStats[] = categoriesFromDb.map((category) => {
+    const { color, description, icon } = resolveCategoryDefinition(category.name);
+
+    return {
+      id: category.id,
+      name: category.name,
+      description,
+      icon,
+      color,
+      articleCount: category.articles.length,
+    };
+  });
+
+  const featuredCategories = [...categories]
+    .sort((a, b) => b.articleCount - a.articleCount)
+    .slice(0, 4);
+
+  const deploymentUrl = getDeploymentUrl();
+  const categoryJsonLd = deploymentUrl
+    ? itemListJsonLd({
+        url: `${deploymentUrl}/categories`,
+        items: categories.map((category) => ({
+          title: category.name,
+          url: `${deploymentUrl}/articles?categoryId=${category.id}`,
+          description: category.description,
+        })),
+      })
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
-
-
       {/* Hero Section */}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl font-bold text-journal mb-4">
-              دسته‌بندی مقالات
-            </h1>
+            {categoryJsonLd ? (
+              <Script id="categories-itemlist" type="application/ld+json">
+                {JSON.stringify(categoryJsonLd)}
+              </Script>
+            ) : null}
+            <Breadcrumb className="mb-6">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>دسته‌بندی مقالات</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+            <h1 className="text-4xl font-bold text-journal mb-4">دسته‌بندی مقالات</h1>
             <p className="text-xl text-journal-light mb-8">
-              موضوعات مختلف مجله روانیک را کاوش کنید
+              موضوعات مختلف مجله روانیک را با داده‌های زنده جست‌وجو کنید
             </p>
           </div>
         </div>
@@ -164,21 +117,19 @@ const Categories = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-journal mb-8 text-center">
-              دسته‌بندی‌های محبوب
+              پربازدیدترین موضوعات این هفته
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {featuredCategories.map((category) => (
                 <Link
-                  href={`/articles?category=${category.id}`}
+                  href={`/articles?categoryId=${category.id}`}
                   key={category.id}
                 >
                   <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
                     <CardContent className="p-6 text-center">
                       <div className="flex justify-center mb-4">
-                        <div
-                          className={`p-4 ${category.color} text-white rounded-xl`}
-                        >
+                        <div className={`p-4 ${category.color} text-white rounded-xl`}>
                           <category.icon className="h-8 w-8" />
                         </div>
                       </div>
@@ -192,7 +143,7 @@ const Categories = () => {
                         variant="secondary"
                         className="bg-journal-cream text-journal-green"
                       >
-                        {category.articleCount} مقاله
+                        {category.articleCount.toLocaleString("fa-IR")} مقاله
                       </Badge>
                     </CardContent>
                   </Card>
@@ -208,21 +159,19 @@ const Categories = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-2xl font-bold text-journal mb-8 text-center">
-              همه دسته‌بندی‌ها
+              همه موضوعات موجود
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allCategories.map((category) => (
+              {categories.map((category) => (
                 <Link
-                  href={`/articles?category=${category.id}`} // <-- 'to' به 'href' تغییر کرد
+                  href={`/articles?categoryId=${category.id}`}
                   key={category.id}
                 >
                   <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
-                        <div
-                          className={`p-3 ${category.color} text-white rounded-lg flex-shrink-0`}
-                        >
+                        <div className={`p-3 ${category.color} text-white rounded-lg flex-shrink-0`}>
                           <category.icon className="h-6 w-6" />
                         </div>
                         <div className="flex-1">
@@ -237,16 +186,8 @@ const Categories = () => {
                               variant="secondary"
                               className="bg-journal-cream text-journal-green text-xs"
                             >
-                              {category.articleCount} مقاله
+                              {category.articleCount.toLocaleString("fa-IR")} مقاله
                             </Badge>
-                            {category.featured && (
-                              <Badge
-                                variant="outline"
-                                className="border-journal-orange text-journal-orange text-xs"
-                              >
-                                محبوب
-                              </Badge>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -264,13 +205,13 @@ const Categories = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold text-journal mb-6">
-              موضوع مورد علاقه خود را پیدا نکردید؟
+              موضوع تازه‌ای مدنظر دارید؟
             </h2>
             <p className="text-xl text-journal-light mb-8">
-              پیشنهاد موضوع جدید دهید یا خودتان در آن حوزه مقاله بنویسید
+              به جمع نویسندگان بپیوندید یا پیشنهاد خود را برای ایجاد دسته‌بندی جدید ثبت کنید.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/write"> {/* <-- 'to' به 'href' تغییر کرد */}
+              <Link href="/write">
                 <Button
                   size="lg"
                   className="bg-journal-green text-white hover:bg-journal-green-light"
@@ -278,7 +219,7 @@ const Categories = () => {
                   نوشتن مقاله
                 </Button>
               </Link>
-              <Link href="/contact"> {/* <-- 'to' به 'href' تغییر کرد */}
+              <Link href="/contact">
                 <Button
                   variant="outline"
                   size="lg"
@@ -291,7 +232,6 @@ const Categories = () => {
           </div>
         </div>
       </section>
-
     </div>
   );
 };

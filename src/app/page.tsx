@@ -3,13 +3,42 @@ import { Button } from "@/components/ui/button";
 import { PenTool, BookOpen, Users } from "lucide-react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
+import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { buildCanonical, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
+
+const canonicalHome = buildCanonical("/");
+
+export const metadata: Metadata = {
+  title: "مجله روانیک | جایی برای اشتراک دانش و تجربه",
+  description:
+    "روانیک بستری فارسی برای مطالعه و انتشار مقالات باکیفیت در حوزه‌های فناوری، فرهنگ، تاریخ و سبک زندگی است.",
+  ...(canonicalHome ? { alternates: { canonical: canonicalHome } } : {}),
+  openGraph: {
+    title: "مجله روانیک | جایی برای اشتراک دانش و تجربه",
+    description:
+      "روانیک جامعه‌ای برای نویسندگان و خوانندگان فارسی‌زبان است تا تجربه‌ها و دانش خود را در قالب مقاله به اشتراک بگذارند.",
+    url: canonicalHome,
+    siteName: "روانیک",
+    locale: "fa_IR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "مجله روانیک",
+    description:
+      "بهترین مقالات فارسی در حوزه‌های مختلف را در روانیک بخوانید و تجربه خود را منتشر کنید.",
+  },
+};
 
 const Index = () => {
   // Sample articles data
-  const featuredArticles = [
+  const featuredArticles: ArticleCardProps[] = [
     {
       id: "1",
+      slug: "ai-future-outlook",
       title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
       excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
       author: { name: "علی رضایی", avatar: "" },
@@ -22,6 +51,7 @@ const Index = () => {
     },
     {
       id: "2",
+      slug: "ancient-iran-journey",
       title: "سفری به دل تاریخ ایران باستان",
       excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
       author: { name: "مریم احمدی", avatar: "" },
@@ -34,6 +64,7 @@ const Index = () => {
     },
     {
       id: "3",
+      slug: "psychology-of-color-in-modern-architecture",
       title: "روان‌شناسی رنگ‌ها در معماری مدرن",
       excerpt: "تأثیر رنگ‌ها بر روحیه انسان و چگونگی استفاده از این دانش در طراحی فضاهای زندگی و کار.",
       author: { name: "محمد حسینی", avatar: "" },
@@ -50,24 +81,30 @@ const Index = () => {
     <>
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-bl from-journal-cream via-background to-journal-cream/50">
-        <div className="container mx-auto px-4 py-20">
-          <div className="max-w-4xl mx-auto text-center">
+        <Script id="organization-jsonld" type="application/ld+json">
+          {JSON.stringify(organizationJsonLd())}
+        </Script>
+        <Script id="website-jsonld" type="application/ld+json">
+          {JSON.stringify(webSiteJsonLd())}
+        </Script>
+        <div className="container mx-auto px-4 py-16 sm:py-20">
+          <div className="mx-auto max-w-4xl text-center">
             <div className="mb-8">
               <Logo size="xl" className="justify-center mb-6" />
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold text-journal mb-6 leading-tight">
+            <h1 className="mb-6 text-3xl font-bold leading-tight text-journal sm:text-5xl md:text-6xl">
               جایی برای اشتراک
               <br />
               <span className="text-journal-orange">دانش و تجربه</span>
             </h1>
 
-            <p className="text-xl text-journal-light mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-journal-light sm:text-xl">
               در مجله روانیک، نویسندگان و خوانندگان فارسی‌زبان دور هم جمع می‌شوند تا
               بهترین مقالات را بخوانند، بنویسند و به اشتراک بگذارند.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col justify-center gap-3 sm:flex-row">
               <Link href="/articles">
                 <Button size="lg" className="w-full sm:w-auto gradient-hero text-white hover:shadow-medium transition-all">
                   <BookOpen className="ml-2 h-5 w-5" />
@@ -87,9 +124,9 @@ const Index = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-journal-cream/30">
+      <section className="bg-journal-cream/30 py-12 sm:py-16">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
             <div className="text-center">
               <div className="text-3xl font-bold text-journal-green mb-2">۱۲۰۰+</div>
               <p className="text-journal-light">مقاله منتشر شده</p>
@@ -107,22 +144,35 @@ const Index = () => {
       </section>
 
       {/* Featured Articles */}
-      <section className="py-20">
+      <section className="py-16 sm:py-20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-journal mb-4">مقالات برگزیده</h2>
-            <p className="text-journal-light max-w-2xl mx-auto">
+          <div className="mb-10 text-center sm:mb-12">
+            <h2 className="mb-4 text-2xl font-bold text-journal sm:text-3xl">مقالات برگزیده</h2>
+            <p className="mx-auto max-w-2xl text-sm text-journal-light sm:text-base">
               بهترین مقالات هفته که توسط جامعه خوانندگان ما انتخاب شده‌اند
             </p>
           </div>
 
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="mx-auto max-w-4xl space-y-6">
             {featuredArticles.map((article) => (
-              <ArticleCard key={article.id} {...article} />
+              <ArticleCard
+                key={article.id}
+                id={article.id}
+                slug={article.slug}
+                title={article.title}
+                excerpt={article.excerpt}
+                author={article.author}
+                readTime={article.readTime}
+                publishDate={article.publishDate}
+                claps={article.claps}
+                comments={article.comments}
+                category={article.category}
+                image={article.image}
+              />
             ))}
           </div>
 
-          <div className="text-center mt-12">
+          <div className="mt-10 text-center sm:mt-12">
             <Link href="/articles">
               <Button variant="outline" size="lg">
                 مشاهده همه مقالات
@@ -132,14 +182,39 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Series Preview */}
+      <section className="bg-journal-cream/40 py-14">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center sm:flex-row sm:gap-10 sm:text-right">
+            <div className="flex-1 space-y-3">
+              <h2 className="text-2xl font-bold text-journal sm:text-3xl">سری‌های داستانی روانیک</h2>
+              <p className="text-sm text-journal-light sm:text-base">
+                مجموعه‌ای از مقالات دنباله‌دار که موضوعات مهم را مرحله‌به‌مرحله روایت می‌کند. با دنبال‌کردن هر سری
+                می‌توانید پیشرفت خود را ثبت کنید و قسمت بعدی را از دست ندهید.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:w-auto">
+              <Link href="/series">
+                <Button size="lg" className="w-full sm:w-auto">
+                  مشاهده سری‌ها
+                </Button>
+              </Link>
+              <Link href="/articles" className="text-sm text-journal-green underline-offset-4 hover:underline">
+                جدیدترین قسمت‌ها را در فهرست مقالات ببینید
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-hero">
+      <section className="bg-gradient-hero py-16 sm:py-20">
         <div className="container mx-auto px-4 text-center">
-          <div className="max-w-3xl mx-auto text-white">
-            <h2 className="text-3xl font-bold mb-6 text-journal">
+          <div className="mx-auto max-w-3xl text-white">
+            <h2 className="mb-4 text-2xl font-bold text-journal sm:mb-6 sm:text-3xl">
               آماده‌اید داستان خود را بگویید؟
             </h2>
-            <p className="text-xl mb-8 opacity-90 text-journal">
+            <p className="mb-8 text-base opacity-90 text-journal sm:text-xl">
               به جامعه نویسندگان و خوانندگان فارسی‌زبان بپیوندید و صدای خود را به گوش جهان برسانید
             </p>
             <Link href="/register">

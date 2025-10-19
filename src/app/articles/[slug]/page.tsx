@@ -1,10 +1,12 @@
-// src/app/articles/[id]/page.tsx
+// src/app/articles/[slug]/page.tsx
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { jwtVerify, JWTPayload } from "jose";
+import type { Metadata } from "next";
+import Script from "next/script";
 
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,14 +20,61 @@ import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentsSection } from "@/components/CommentsSection";
 import { ShareButton } from "@/components/ShareButton";
 import { FollowButton } from "@/components/FollowButton";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { articleJsonLd, breadcrumbJsonLd, buildCanonical, getDeploymentUrl } from "@/lib/seo";
 
 interface JwtPayload extends JWTPayload {
   userId: number;
 }
 
-const ArticlePage = async ({ params }: { params: { id: string } }) => {
-  const articleId = parseInt(params.id, 10);
-  if (isNaN(articleId)) {
+const toPlainText = (html: string) =>
+  html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const article = await prisma.article.findFirst({
+    where: { slug: params.slug, status: "APPROVED" },
+    select: {
+      title: true,
+      content: true,
+      coverImageUrl: true,
+      createdAt: true,
+      updatedAt: true,
+      author: { select: { name: true } },
+    },
+  });
+
+  if (!article) {
+    return {
+      title: "مقاله یافت نشد | روانیک",
+      description: "مقاله مورد نظر شما در روانیک پیدا نشد.",
+    };
+  }
+
+  const description = toPlainText(article.content).slice(0, 160) || article.title;
+  const canonical = buildCanonical(`/articles/${params.slug}`);
+
+  return {
+    title: `${article.title} | روانیک`,
+    description,
+    ...(canonical ? { alternates: { canonical } } : {}),
+    openGraph: {
+      title: `${article.title} | روانیک`,
+      description,
+      type: "article",
+      url: canonical,
+      images: article.coverImageUrl ? [{ url: article.coverImageUrl }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description,
+    },
+  };
+}
+
+const ArticlePage = async ({ params }: { params: { slug: string } }) => {
+  const { slug } = params;
+  if (!slug) {
     notFound();
   }
 
@@ -42,8 +91,8 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
     }
   }
 
-  const article = await prisma.article.findUnique({
-    where: { id: articleId, status: "APPROVED" },
+  const article = await prisma.article.findFirst({
+    where: { slug, status: "APPROVED" },
     include: {
       author: true,
       categories: true,
@@ -111,7 +160,23 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
   );
 
   const totalClaps = article.claps.reduce((sum, clap) => sum + clap.count, 0);
-  const articleUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/articles/${article.id}`;
+  const siteUrl = getDeploymentUrl();
+  const canonical = buildCanonical(`/articles/${article.slug}`);
+  const articleUrl = siteUrl ? `${siteUrl.replace(/\/$/, "")}/articles/${article.slug}` : `/articles/${article.slug}`;
+  const articleStructuredData = articleJsonLd({
+    title: article.title,
+    description: toPlainText(article.content).slice(0, 180) || article.title,
+    url: canonical || articleUrl,
+    image: article.coverImageUrl,
+    publishDate: new Date(article.createdAt).toISOString(),
+    modifiedDate: new Date(article.updatedAt).toISOString(),
+    authorName: article.author.name,
+  });
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "خانه", url: siteUrl ? `${siteUrl}/` : "/" },
+    { name: "مقالات", url: siteUrl ? `${siteUrl}/articles` : "/articles" },
+    { name: article.title, url: canonical || articleUrl },
+  ]);
 
   return (
     <div className="bg-background">
@@ -119,7 +184,28 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
         <div className="grid grid-cols-12 gap-8">
           <main className="col-span-12 lg:col-span-8">
             <article>
+              <Script id="article-jsonld" type="application/ld+json">
+                {JSON.stringify(articleStructuredData)}
+              </Script>
+              <Script id="article-breadcrumb-jsonld" type="application/ld+json">
+                {JSON.stringify(breadcrumbData)}
+              </Script>
               <header className="mb-8">
+                <Breadcrumb className="mb-4 text-sm text-muted-foreground">
+                  <BreadcrumbList>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbLink href="/articles">مقالات</BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>{article.title}</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
                 <div className="flex items-center gap-4 mb-4">
                   <Link href={`/authors/${article.author.id}`}>
                     <Avatar className="h-12 w-12 border">
@@ -231,6 +317,7 @@ const ArticlePage = async ({ params }: { params: { id: string } }) => {
                        <ArticleCard
                          key={related.id}
                          id={related.id.toString()}
+                         slug={related.slug}
                          title={related.title}
                          excerpt={related.content.substring(0, 100).replace(/<[^>]*>?/gm, '') + "..."}
                          author={{ name: related.author.name || '', avatar: related.author.avatarUrl }}

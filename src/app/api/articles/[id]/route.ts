@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+import { generateArticleSlug } from '@/lib/article-slug';
 
 interface JwtPayload {
   userId: number;
@@ -42,13 +44,29 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     const { title, content, published } = body;
 
+    const data: Prisma.ArticleUpdateInput = {};
+    if (typeof title === 'string' && title.trim()) {
+      data.title = title;
+      if (title !== article.title) {
+        data.slug = await generateArticleSlug(title, article.id);
+      }
+    }
+
+    if (typeof content === 'string') {
+      data.content = content;
+    }
+
+    if (typeof published === 'boolean') {
+      data.status = published ? 'APPROVED' : article.status;
+    }
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(article);
+    }
+
     const updatedArticle = await prisma.article.update({
       where: { id: articleId },
-      data: {
-        title,
-        content,
-        // status update logic might be needed here depending on features
-      },
+      data,
     });
 
     return NextResponse.json(updatedArticle);

@@ -17,7 +17,7 @@ interface Notification {
     type: string;
     message: string;
     isRead: boolean;
-    articleId: number | null;
+    article?: { id: number; slug: string } | null;
     actor: {
         id: number;
         name: string | null;
@@ -46,10 +46,46 @@ export const Notifications = () => {
     };
 
     useEffect(() => {
+        let source: EventSource | null = null;
+        let reconnectTimer: NodeJS.Timeout | null = null;
+
+        const startStream = () => {
+            source = new EventSource('/api/notifications/stream');
+
+            source.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    setNotifications(data.notifications);
+                    setUnreadCount(data.unreadCount);
+                } catch (error) {
+                    console.error('Failed to parse notification stream payload', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            source.onerror = () => {
+                console.warn('Notification stream disconnected, retrying...');
+                source?.close();
+                if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(() => {
+                        reconnectTimer = null;
+                        startStream();
+                    }, 5000);
+                }
+                fetchNotifications();
+            };
+        };
+
         fetchNotifications();
-        // Optional: Poll for new notifications every minute
-        const interval = setInterval(fetchNotifications, 60000);
-        return () => clearInterval(interval);
+        startStream();
+
+        return () => {
+            source?.close();
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+            }
+        };
     }, []);
 
     const handleMarkAsRead = async () => {
@@ -93,7 +129,7 @@ export const Notifications = () => {
                             notifications.map(notif => (
                                 <Link
                                     key={notif.id}
-                                    href={notif.articleId ? `/articles/${notif.articleId}` : (notif.actor ? `/authors/${notif.actor.id}` : '#')}
+                                    href={notif.article ? `/articles/${notif.article.slug}` : (notif.actor ? `/authors/${notif.actor.id}` : '#')}
                                     className={`flex items-start gap-3 rounded-lg p-2 transition-all hover:bg-accent ${!notif.isRead ? 'bg-accent/50' : ''}`}
                                 >
                                     <div className="flex-1 space-y-1">

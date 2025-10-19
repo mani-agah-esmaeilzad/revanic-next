@@ -6,14 +6,14 @@ interface ArticleStatusEmailProps {
   authorName: string;
   articleTitle: string;
   status: 'APPROVED' | 'REJECTED';
-  articleId: number;
+  articleSlug: string;
 }
 
 export const ArticleStatusEmail: React.FC<Readonly<ArticleStatusEmailProps>> = ({
   authorName,
   articleTitle,
   status,
-  articleId,
+  articleSlug,
 }) => {
   const isApproved = status === 'APPROVED';
 
@@ -45,7 +45,7 @@ export const ArticleStatusEmail: React.FC<Readonly<ArticleStatusEmailProps>> = (
         </Text>
       )}
       <Button
-        href={`${process.env.NEXT_PUBLIC_BASE_URL}/articles/${articleId}`}
+        href={`${process.env.NEXT_PUBLIC_BASE_URL}/articles/${articleSlug}`}
         style={{
           backgroundColor: '#2196F3',
           color: 'white',
