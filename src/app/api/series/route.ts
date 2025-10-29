@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { getUserIdFromSessionCookie } from "@/lib/auth-session";
 import { getPublishedSeriesList } from "@/lib/series";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const userId = await getUserIdFromSessionCookie();

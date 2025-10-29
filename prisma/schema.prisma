@@ -36,17 +36,22 @@ model User {
   highlights             Highlight[]
 
   // --- فیلد جدید برای تاریخچه مطالعه ---
-  readingHistory         ReadingHistory[]
-  supportTickets         SupportTicket[]
-  supportMessages        SupportMessage[] @relation("SupportMessageAuthor")
-  assistantChatSessions  AssistantChatSession[]
-  seriesFollows          SeriesFollow[]
-  curatedSeries          Series[]
+  readingHistory        ReadingHistory[]
+  supportTickets        SupportTicket[]
+  supportMessages       SupportMessage[]       @relation("SupportMessageAuthor")
+  assistantChatSessions AssistantChatSession[]
+  articleCollaborations ArticleCollaborator[]
+  articleRevisions      ArticleRevision[]
+  articleTimelineEvents ArticleTimelineEvent[] @relation("ArticleTimelineActor")
+  trackingEvents        TrackingEvent[]
+  pushSubscriptions     PushSubscription[]
+  seriesFollows         SeriesFollow[]
+  curatedSeries         Series[]
 }
 
 model Article {
-  id              Int      @id @default(autoincrement())
-  slug            String   @unique
+  id              Int     @id @default(autoincrement())
+  slug            String  @unique
   title           String
   content         String
   readTimeMinutes Int?
@@ -59,16 +64,19 @@ model Article {
   publication   Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
   publicationId Int?
 
-  categories    Category[]       @relation("ArticleToCategory")
-  tags          TagsOnArticles[]
-  claps         Clap[]
-  comments      Comment[]
-  bookmarks     Bookmark[]
-  notifications Notification[]
-  views         ArticleView[]
-  highlights    Highlight[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  categories     Category[]             @relation("ArticleToCategory")
+  tags           TagsOnArticles[]
+  claps          Clap[]
+  comments       Comment[]
+  bookmarks      Bookmark[]
+  notifications  Notification[]
+  views          ArticleView[]
+  highlights     Highlight[]
+  collaborators  ArticleCollaborator[]
+  revisions      ArticleRevision[]
+  timelineEvents ArticleTimelineEvent[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 
   // --- فیلد جدید برای تاریخچه مطالعه ---
   history       ReadingHistory[]
@@ -76,42 +84,45 @@ model Article {
 }
 
 model Series {
-  id             Int            @id @default(autoincrement())
-  slug           String         @unique
-  title          String
-  subtitle       String?
-  description    String?
-  coverImageUrl  String?
-  status         SeriesStatus   @default(DRAFT)
-  curator        User?          @relation(fields: [curatorId], references: [id], onDelete: SetNull)
-  curatorId      Int?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  articles       SeriesArticle[]
-  followers      SeriesFollow[]
+  id            Int             @id @default(autoincrement())
+  slug          String          @unique
+  title         String
+  subtitle      String?
+  description   String?
+  coverImageUrl String?
+  status        SeriesStatus    @default(DRAFT)
+  curator       User?           @relation(fields: [curatorId], references: [id], onDelete: SetNull)
+  curatorId     Int?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  articles      SeriesArticle[]
+  followers     SeriesFollow[]
 }
 
 model SeriesArticle {
-  id         Int      @id @default(autoincrement())
-  series     Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  id         Int       @id @default(autoincrement())
+  series     Series    @relation(fields: [seriesId], references: [id], onDelete: Cascade)
   seriesId   Int
-  article    Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  article    Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
   articleId  Int
   order      Int
   releaseAt  DateTime?
-  createdAt  DateTime @default(now())
+  releasedAt DateTime?
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@unique([seriesId, articleId])
   @@unique([seriesId, order])
 }
 
 model SeriesFollow {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
-  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  seriesId  Int
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        Int
+  series        Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  seriesId      Int
+  notifyByEmail Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   @@unique([userId, seriesId])
 }
@@ -163,26 +174,26 @@ model AssistantChatSession {
 }
 
 model AssistantChatMessage {
-  id        Int                     @id @default(autoincrement())
-  session   AssistantChatSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id        Int                      @id @default(autoincrement())
+  session   AssistantChatSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   sessionId Int
   role      AssistantChatMessageRole
   content   String
-  createdAt DateTime                @default(now())
+  createdAt DateTime                 @default(now())
 }
 
 model AssistantChatFeedback {
-  id        Int                   @id @default(autoincrement())
-  session   AssistantChatSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  sessionId Int                   @unique
+  id        Int                  @id @default(autoincrement())
+  session   AssistantChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId Int                  @unique
   rating    Int?
   comment   String?
-  createdAt DateTime              @default(now())
+  createdAt DateTime             @default(now())
 }
 
 model CommunityStory {
-  id               Int           @id @default(autoincrement())
-  slug             String        @unique
+  id               Int          @id @default(autoincrement())
+  slug             String       @unique
   title            String
   excerpt          String
   achievement      String?
@@ -192,8 +203,8 @@ model CommunityStory {
   featuredImageUrl String?
   publicationId    Int?
   publication      Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 }
 
 model EditorialCalendarEntry {
@@ -242,16 +253,27 @@ enum SeriesStatus {
   ARCHIVED
 }
 
+enum ArticleCollaboratorRole {
+  EDITOR
+}
+
+enum ArticleTimelineEventType {
+  COLLABORATOR_ADDED
+  COLLABORATOR_UPDATED
+  COLLABORATOR_REMOVED
+  REVISION_CREATED
+}
+
 model Publication {
-  id          Int                   @id @default(autoincrement())
-  name        String                @unique
-  slug        String                @unique
-  description String?
-  avatarUrl   String?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  articles    Article[]
-  members     UsersOnPublications[]
+  id               Int                   @id @default(autoincrement())
+  name             String                @unique
+  slug             String                @unique
+  description      String?
+  avatarUrl        String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  articles         Article[]
+  members          UsersOnPublications[]
   communityStories CommunityStory[]
 }
 
@@ -271,6 +293,51 @@ model ArticleView {
   articleId Int
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   viewedAt  DateTime @default(now())
+}
+
+model ArticleRevision {
+  id        Int      @id @default(autoincrement())
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  authorId  Int?
+  version   Int
+  title     String
+  content   String
+  summary   String?
+  createdAt DateTime @default(now())
+
+  @@unique([articleId, version])
+  @@index([articleId])
+  @@index([authorId])
+}
+
+model ArticleCollaborator {
+  id        Int                     @id @default(autoincrement())
+  article   Article                 @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  user      User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  role      ArticleCollaboratorRole @default(EDITOR)
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+
+  @@unique([articleId, userId])
+  @@index([userId])
+}
+
+model ArticleTimelineEvent {
+  id        Int                      @id @default(autoincrement())
+  article   Article                  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  articleId Int
+  actor     User?                    @relation("ArticleTimelineActor", fields: [actorId], references: [id], onDelete: SetNull)
+  actorId   Int?
+  type      ArticleTimelineEventType
+  payload   Json?
+  createdAt DateTime                 @default(now())
+
+  @@index([articleId])
+  @@index([actorId])
 }
 
 model Notification {

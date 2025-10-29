@@ -34,7 +34,19 @@ export const metadata: Metadata = {
   },
 };
 
-const Index = () => {
+const Index = async () => {
+  const twentyFourHoursAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
+  const [articleCount, authorRecords, dailyReadersCount] = await Promise.all([
+    prisma.article.count({ where: { status: "APPROVED" } }),
+    prisma.article.findMany({
+      where: { status: "APPROVED" },
+      select: { authorId: true },
+      distinct: ["authorId"],
+    }),
+    prisma.articleView.count({ where: { viewedAt: { gte: twentyFourHoursAgo } } }),
+  ]);
+  const authorCount = authorRecords.length;
+
   // Sample articles data
   const featuredArticles: ArticleCardProps[] = [
     {

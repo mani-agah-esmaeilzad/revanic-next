@@ -8,6 +8,8 @@ interface RouteContext {
   params: { slug: string };
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: Request, context: RouteContext) {
   try {
     const userId = await getUserIdFromSessionCookie();

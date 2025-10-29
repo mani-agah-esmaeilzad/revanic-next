@@ -8,6 +8,7 @@ import QueryProvider from "@/components/QueryProvider";
 import { ExperimentProvider } from "@/components/ExperimentProvider";
 import { InstallPWAButton } from "@/components/InstallPWAButton";
 import { SupportAssistantWidget } from "@/components/SupportAssistantWidget";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 
@@ -22,6 +23,8 @@ export const viewport = {
   themeColor: "#FFFFFF",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,12 +34,14 @@ export default function RootLayout({
     <html lang="fa" dir="rtl">
       <body className={vazirmatn.className}>
         <QueryProvider>
-          <Header />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-          <Toaster />
-          <InstallPWAButton />
-          <SupportAssistantWidget />
+          <ThemeProvider>
+            <Header />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+            <Toaster />
+            <InstallPWAButton />
+            <SupportAssistantWidget />
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

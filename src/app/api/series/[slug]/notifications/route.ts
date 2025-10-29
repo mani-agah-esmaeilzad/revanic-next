@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma';
 import { getUserIdFromSessionCookie } from '@/lib/auth-session';
 import { followSeries, updateSeriesNotificationPreferences } from '@/lib/series';
 
+export const dynamic = 'force-dynamic';
+
 const preferencesSchema = z.object({
   notifyByEmail: z.boolean(),
 });

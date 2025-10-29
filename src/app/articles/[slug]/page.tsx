@@ -20,7 +20,14 @@ import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentsSection } from "@/components/CommentsSection";
 import { ShareButton } from "@/components/ShareButton";
 import { FollowButton } from "@/components/FollowButton";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { articleJsonLd, breadcrumbJsonLd, buildCanonical, getDeploymentUrl } from "@/lib/seo";
 
 interface JwtPayload extends JWTPayload {
@@ -29,6 +36,18 @@ interface JwtPayload extends JWTPayload {
 
 const toPlainText = (html: string) =>
   html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+const stripHtml = (html: string) =>
+  html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+const buildExcerpt = (content: string, limit = 180) => {
+  const text = stripHtml(content);
+  if (!text) return "";
+  return text.length > limit ? `${text.slice(0, limit).trimEnd()}...` : text;
+};
+
+const formatCount = (value: number) =>
+  new Intl.NumberFormat("fa-IR").format(value < 0 ? 0 : value);
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const article = await prisma.article.findFirst({
@@ -100,16 +119,16 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
       claps: true,
       bookmarks: true,
       comments: {
-        orderBy: { createdAt: 'desc' },
-        include: { user: { select: { id: true, name: true, avatarUrl: true } } }
+        orderBy: { createdAt: "desc" },
+        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
       },
       _count: {
         select: {
           claps: true,
           comments: true,
-          views: true
-        }
-      }
+          views: true,
+        },
+      },
     },
   });
 
@@ -131,56 +150,59 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
     article.readTimeMinutes && article.readTimeMinutes > 0
       ? article.readTimeMinutes
       : Math.max(1, Math.round(plainTextContent.split(/\s+/).filter(Boolean).length / 200));
-  const primaryCategory = article.categories[0]?.name;
-  const secondaryCategories = article.categories.slice(1).map((category) => category.name);
-  const tagNames = article.tags.map(({ tag }) => tag.name);
 
-  // --- دو عملیات همزمان: افزایش بازدید کلی و ثبت تاریخچه مطالعه ---
-  const updatePromises = [
-    prisma.articleView.create({ data: { articleId: article.id } })
-  ];
+  const updatePromises = [prisma.articleView.create({ data: { articleId: article.id } })];
 
   if (currentUserId) {
     updatePromises.push(
       prisma.readingHistory.upsert({
         where: { userId_articleId: { userId: currentUserId, articleId: article.id } },
-        update: {}, // فقط `viewedAt` به خاطر @updatedAt آپدیت می‌شود
+        update: {},
         create: { userId: currentUserId, articleId: article.id, progress: readingProgress },
-      })
+      }),
     );
   }
-  
-  // اجرای همزمان هر دو درخواست دیتابیس
+
   await Promise.all(updatePromises);
 
-  const userClap = currentUserId ? article.claps.find(c => c.userId === currentUserId) : null;
-  const userHasBookmarked = currentUserId ? article.bookmarks.some(b => b.userId === currentUserId) : false;
-  const userIsFollowingAuthor = currentUserId ? !!(await prisma.follow.findUnique({
-    where: { followerId_followingId: { followerId: currentUserId, followingId: article.authorId } },
-  })) : false;
+  const userClap = currentUserId ? article.claps.find((c) => c.userId === currentUserId) : null;
+  const userHasBookmarked = currentUserId
+    ? article.bookmarks.some((b) => b.userId === currentUserId)
+    : false;
+  const userIsFollowingAuthor = currentUserId
+    ? !!(await prisma.follow.findUnique({
+        where: { followerId_followingId: { followerId: currentUserId, followingId: article.authorId } },
+      }))
+    : false;
 
   const relatedArticles = await prisma.article.findMany({
     where: {
-      status: 'APPROVED',
+      status: "APPROVED",
       id: { not: article.id },
-      categories: { some: { id: { in: article.categories.map(c => c.id) } } },
+      categories: { some: { id: { in: article.categories.map((c) => c.id) } } },
     },
     take: 3,
     include: {
       author: { select: { name: true, avatarUrl: true } },
       categories: { select: { name: true } },
-      _count: { select: { claps: true, comments: true } }
-    }
+      _count: { select: { claps: true, comments: true } },
+    },
   });
 
   const publishDate = new Intl.DateTimeFormat("fa-IR", { dateStyle: "long" }).format(
-    new Date(article.createdAt)
+    new Date(article.createdAt),
   );
 
   const totalClaps = article.claps.reduce((sum, clap) => sum + clap.count, 0);
+  const formattedViews = formatCount(article._count.views ?? 0);
+  const formattedComments = formatCount(article._count.comments ?? 0);
+  const formattedClaps = formatCount(totalClaps);
+
   const siteUrl = getDeploymentUrl();
   const canonical = buildCanonical(`/articles/${article.slug}`);
-  const articleUrl = siteUrl ? `${siteUrl.replace(/\/$/, "")}/articles/${article.slug}` : `/articles/${article.slug}`;
+  const articleUrl = siteUrl
+    ? `${siteUrl.replace(/\/$/, "")}/articles/${article.slug}`
+    : `/articles/${article.slug}`;
   const articleStructuredData = articleJsonLd({
     title: article.title,
     description: toPlainText(article.content).slice(0, 180) || article.title,
@@ -196,6 +218,9 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
     { name: article.title, url: canonical || articleUrl },
   ]);
 
+  const readingProgressLabel =
+    readingProgress > 0 ? `${Math.min(100, Math.round(readingProgress))}%` : "شروع نشده";
+
   return (
     <div className="bg-background">
       <div className="container mx-auto px-4 py-8">
@@ -208,8 +233,8 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
               <Script id="article-breadcrumb-jsonld" type="application/ld+json">
                 {JSON.stringify(breadcrumbData)}
               </Script>
-              <header className="mb-8">
-                <Breadcrumb className="mb-4 text-sm text-muted-foreground">
+              <header className="mb-10 space-y-6">
+                <Breadcrumb className="text-sm text-muted-foreground">
                   <BreadcrumbList>
                     <BreadcrumbItem>
                       <BreadcrumbLink href="/">خانه</BreadcrumbLink>
@@ -224,29 +249,62 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
-                <div className="flex items-center gap-4 mb-4">
-                  <Link href={`/authors/${article.author.id}`}>
-                    <Avatar className="h-20 w-20 border-2 border-journal-green/40 shadow-md">
-                      <AvatarImage src={article.author.avatarUrl || ""} />
-                      <AvatarFallback className="bg-muted text-muted-foreground font-bold text-2xl">
-                        {article.author.name?.charAt(0) || "A"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  <Link
-                    href={`/authors/${article.author.id}`}
-                    className="mt-3 text-lg font-semibold text-foreground transition hover:text-primary"
-                  >
-                    {article.author.name}
-                  </Link>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {article.author.bio || "این نویسنده هنوز توضیحی درباره خود ننوشته است."}
-                  </p>
+
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-4">
+                    <Link href={`/authors/${article.author.id}`}>
+                      <Avatar className="h-16 w-16 border-2 border-journal-green/40 shadow-md">
+                        <AvatarImage src={article.author.avatarUrl || ""} />
+                        <AvatarFallback className="bg-muted text-muted-foreground font-bold text-xl">
+                          {article.author.name?.charAt(0) || "A"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div className="space-y-1">
+                      <Link
+                        href={`/authors/${article.author.id}`}
+                        className="text-lg font-semibold text-foreground transition hover:text-primary"
+                      >
+                        {article.author.name}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">{publishDate}</p>
+                    </div>
+                  </div>
+                  {currentUserId && currentUserId !== article.authorId ? (
+                    <FollowButton
+                      targetUserId={article.author.id}
+                      initialFollowing={userIsFollowingAuthor}
+                    />
+                  ) : null}
                 </div>
 
-                <Separator />
+                <h1 className="text-3xl font-extrabold leading-tight text-foreground md:text-4xl">
+                  {article.title}
+                </h1>
 
-                <div className="grid grid-cols-3 gap-4 text-center text-xs text-muted-foreground sm:text-sm">
+                {article.categories.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {article.categories.map((category) => (
+                      <Badge key={category.id} variant="outline" className="text-sm">
+                        {category.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
+
+                {article.coverImageUrl ? (
+                  <div className="relative h-64 w-full overflow-hidden rounded-xl md:h-96">
+                    <Image
+                      src={article.coverImageUrl}
+                      alt={article.title}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                ) : null}
+
+                <div className="grid gap-4 rounded-lg border border-border/50 bg-card/60 p-4 text-center text-xs text-muted-foreground sm:grid-cols-3 sm:text-sm">
                   <div>
                     <p className="text-lg font-bold text-foreground">{formattedViews}</p>
                     <p>بازدید</p>
@@ -260,71 +318,145 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
                     <p>تشویق</p>
                   </div>
                 </div>
+              </header>
 
-                {currentUserId && currentUserId !== article.authorId ? (
-                  <FollowButton targetUserId={article.author.id} initialFollowing={userIsFollowingAuthor} />
-                ) : null}
-              </CardContent>
-            </Card>
+              <ArticleContent content={article.content} articleId={article.id} />
 
-            {relatedArticles.length > 0 && (
-              <Card className="border-border/40 bg-background/95 shadow-lg backdrop-blur">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl">مقالات مشابه</CardTitle>
+              <div className="mt-8 flex flex-wrap gap-2">
+                {article.tags.map(({ tag }) => (
+                  <Link href={`/tags/${tag.name}`} key={tag.id}>
+                    <Badge variant="secondary"># {tag.name}</Badge>
+                  </Link>
+                ))}
+              </div>
+
+              <Separator className="my-8" />
+
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <ClapButton
+                    articleId={article.id}
+                    initialTotalClaps={totalClaps}
+                    initialUserClaps={userClap?.count || 0}
+                  />
+                  <BookmarkButton articleId={article.id} initialBookmarked={userHasBookmarked} />
+                </div>
+                <ShareButton title={article.title} url={articleUrl} />
+              </div>
+
+              <Separator className="my-8" />
+
+              <CommentsSection
+                articleId={article.id}
+                initialComments={article.comments}
+                currentUserId={currentUserId}
+              />
+            </article>
+          </main>
+
+          <aside className="col-span-12 lg:col-span-4">
+            <div className="sticky top-24 space-y-8">
+              <Card className="border-border/50 bg-card/80 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-lg">درباره نویسنده</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-5">
-                  {relatedArticles.map((related) => {
-                    const relatedReadTime =
-                      related.readTimeMinutes && related.readTimeMinutes > 0
-                        ? related.readTimeMinutes
-                        : Math.max(
-                            1,
-                            Math.round(stripHtml(related.content).split(/\s+/).filter(Boolean).length / 200),
-                          );
-                    return (
-                      <ArticleCard
-                        key={related.id}
-                        id={related.id.toString()}
-                        title={related.title}
-                        excerpt={buildExcerpt(related.content, 130)}
-                        author={{ name: related.author.name || "", avatar: related.author.avatarUrl || undefined }}
-                        readTime={relatedReadTime}
-                        publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(related.createdAt))}
-                        claps={related._count.claps}
-                        comments={related._count.comments}
-                        category={related.categories[0]?.name || ""}
-                        image={related.coverImageUrl}
-                        className="border border-border/40 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                <CardContent>
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <Link href={`/authors/${article.author.id}`}>
+                      <Avatar className="h-24 w-24 border-2 border-journal-green/40 shadow-md">
+                        <AvatarImage src={article.author.avatarUrl || ""} />
+                        <AvatarFallback className="bg-muted text-muted-foreground text-2xl font-bold">
+                          {article.author.name?.charAt(0) || "A"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Link>
+                    <div className="space-y-2">
+                      <Link
+                        href={`/authors/${article.author.id}`}
+                        className="text-lg font-semibold text-foreground transition hover:text-primary"
+                      >
+                        {article.author.name}
+                      </Link>
+                      <p className="text-sm text-muted-foreground">
+                        {article.author.bio || "این نویسنده هنوز توضیحی درباره خود ننوشته است."}
+                      </p>
+                    </div>
+                    {currentUserId && currentUserId !== article.authorId ? (
+                      <FollowButton
+                        targetUserId={article.author.id}
+                        initialFollowing={userIsFollowingAuthor}
                       />
-                    );
-                  })}
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
 
-              {relatedArticles.length > 0 && (
-                <Card>
+              <Card className="border-border/50 bg-card/80 backdrop-blur">
+                <CardHeader>
+                  <CardTitle className="text-lg">جزئیات مطالعه</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">زمان مطالعه</span>
+                    <span>{new Intl.NumberFormat("fa-IR").format(estimatedReadTime)} دقیقه</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">پیشرفت شما</span>
+                    <span>{readingProgressLabel}</span>
+                  </div>
+                  {article.categories.length > 0 ? (
+                    <div>
+                      <span className="font-medium text-foreground">دسته‌بندی‌ها</span>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {article.categories.map((category) => (
+                          <Badge key={category.id} variant="secondary">
+                            {category.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              {relatedArticles.length > 0 ? (
+                <Card className="border-border/50 bg-card/80 backdrop-blur">
                   <CardHeader>
                     <CardTitle className="text-lg">مقالات مشابه</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {relatedArticles.map(related => (
-                       <ArticleCard
-                         key={related.id}
-                         id={related.id.toString()}
-                         slug={related.slug}
-                         title={related.title}
-                         excerpt={related.content.substring(0, 100).replace(/<[^>]*>?/gm, '') + "..."}
-                         author={{ name: related.author.name || '', avatar: related.author.avatarUrl }}
-                         readTime={related.readTimeMinutes || 1}
-                         publishDate={new Intl.DateTimeFormat('fa-IR').format(new Date(related.createdAt))}
-                         claps={related._count.claps}
-                         comments={related._count.comments}
-                         category={related.categories[0]?.name || ''}
-                       />
-                    ))}
+                    {relatedArticles.map((related) => {
+                      const relatedPlainText = stripHtml(related.content ?? "");
+                      const relatedReadTime =
+                        related.readTimeMinutes && related.readTimeMinutes > 0
+                          ? related.readTimeMinutes
+                          : Math.max(
+                              1,
+                              Math.round(relatedPlainText.split(/\s+/).filter(Boolean).length / 200),
+                            );
+                      return (
+                        <ArticleCard
+                          key={related.id}
+                          id={related.id.toString()}
+                          slug={related.slug}
+                          title={related.title}
+                          excerpt={buildExcerpt(related.content, 130)}
+                          author={{ name: related.author.name || "", avatar: related.author.avatarUrl || undefined }}
+                          readTime={relatedReadTime}
+                          publishDate={new Intl.DateTimeFormat("fa-IR").format(
+                            new Date(related.createdAt),
+                          )}
+                          claps={related._count.claps}
+                          comments={related._count.comments}
+                          category={related.categories[0]?.name || ""}
+                          image={related.coverImageUrl}
+                          className="border border-border/40 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                        />
+                      );
+                    })}
                   </CardContent>
                 </Card>
-              )}
+              ) : null}
             </div>
           </aside>
         </div>

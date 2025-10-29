@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getAdminDashboardStats } from "@/lib/admin/statsService";
 import { requireAdminSession } from "@/lib/admin-auth";
 
+export const dynamic = "force-dynamic";
+
 const encoder = new TextEncoder();
 
 const sendEvent = (controller: ReadableStreamDefaultController, data: unknown) => {

@@ -37,9 +37,13 @@ export type SeriesDetail = {
     excerpt: string;
     order: number;
     publishDate: string;
+    releaseAt: string | null;
+    releasedAt: string | null;
+    notifiedAt: string | null;
     coverImageUrl?: string | null;
     readTimeMinutes: number;
     isCompleted: boolean;
+    isReleased: boolean;
   }>;
 };
 
@@ -52,12 +56,14 @@ const SERIES_SELECT = {
   coverImageUrl: true,
   status: true,
   curator: { select: { name: true } },
-  followers: { select: { userId: true } },
+  followers: { select: { userId: true, notifyByEmail: true } },
   articles: {
     select: {
       id: true,
       order: true,
       releaseAt: true,
+      releasedAt: true,
+      notifiedAt: true,
       article: {
         select: {
           id: true,
@@ -167,8 +173,17 @@ export async function getSeriesDetail(
   ]);
 
   const readSet = new Set(history.map((item) => item.articleId));
+  const now = Date.now();
   const articles = series.articles.map((entry) => {
     const article = entry.article;
+    const releaseAt = entry.releaseAt?.toISOString() ?? null;
+    const releasedAt = entry.releasedAt?.toISOString() ?? null;
+    const notifiedAt = entry.notifiedAt?.toISOString() ?? null;
+    const isReleased = entry.releasedAt
+      ? entry.releasedAt.getTime() <= now
+      : entry.releaseAt
+      ? entry.releaseAt.getTime() <= now
+      : true;
     return {
       id: article.id,
       slug: article.slug,
@@ -176,9 +191,13 @@ export async function getSeriesDetail(
       excerpt: buildExcerpt(article.content),
       order: entry.order,
       publishDate: entry.releaseAt?.toISOString() ?? article.createdAt.toISOString(),
+      releaseAt,
+      releasedAt,
+      notifiedAt,
       coverImageUrl: article.coverImageUrl,
       readTimeMinutes: estimateReadTimeMinutes(article.readTimeMinutes, article.content),
       isCompleted: readSet.has(article.id),
+      isReleased,
     };
   });
 
@@ -202,7 +221,17 @@ export async function getSeriesDetail(
   };
 }
 
-export async function followSeries(seriesId: number, userId: number) {
+export async function followSeries(
+  seriesId: number,
+  userId: number,
+  options?: { notifyByEmail?: boolean },
+) {
+  const notifyByEmail = options?.notifyByEmail ?? false;
+  const updateData =
+    options && typeof options.notifyByEmail === "boolean"
+      ? { notifyByEmail }
+      : undefined;
+
   await prisma.seriesFollow.upsert({
     where: {
       userId_seriesId: {
@@ -213,8 +242,9 @@ export async function followSeries(seriesId: number, userId: number) {
     create: {
       userId,
       seriesId,
+      notifyByEmail,
     },
-    update: {},
+    update: updateData ?? {},
   });
 }
 
@@ -235,4 +265,22 @@ export function findNextArticle(articles: SeriesDetail["articles"], readSet: Set
 export async function getFollowedSeriesList(userId: number): Promise<SeriesListItem[]> {
   const list = await getPublishedSeriesList(userId);
   return list.filter((item) => item.isFollowing);
+}
+
+export async function updateSeriesNotificationPreferences(
+  seriesId: number,
+  userId: number,
+  preferences: { notifyByEmail: boolean },
+) {
+  return prisma.seriesFollow.update({
+    where: {
+      userId_seriesId: {
+        userId,
+        seriesId,
+      },
+    },
+    data: {
+      notifyByEmail: preferences.notifyByEmail,
+    },
+  });
 }

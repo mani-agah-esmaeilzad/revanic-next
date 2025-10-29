@@ -8,6 +8,8 @@ interface RouteContext {
   params: { slug: string };
 }
 
+export const dynamic = "force-dynamic";
+
 async function resolveSeriesId(slug: string) {
   const detail = await getSeriesDetail(slug);
   return detail?.id ?? null;

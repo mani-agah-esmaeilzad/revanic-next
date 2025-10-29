@@ -5,6 +5,7 @@ import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { generateArticleSlug } from '@/lib/article-slug';
+import { requireEditorAccess } from '@/lib/articles/permissions';
 
 interface JwtPayload {
   userId: number;
@@ -38,8 +39,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return new NextResponse('Article not found', { status: 404 });
     }
 
-    const body = await req.json();
-    const { title, content, summary } = body;
+    const body = (await req.json()) as {
+      title?: unknown;
+      content?: unknown;
+      published?: unknown;
+    };
+
+    const { title, content, published } = body;
 
     const data: Prisma.ArticleUpdateInput = {};
     if (typeof title === 'string' && title.trim()) {

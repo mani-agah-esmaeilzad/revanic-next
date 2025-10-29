@@ -7,18 +7,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getDeploymentUrl();
   const origin = baseUrl ? baseUrl.replace(/\/$/, "") : "https://revanic.example";
 
-  const [articles, series] = await Promise.all([
-    prisma.article.findMany({
-      where: { status: "APPROVED" },
-      select: { slug: true, updatedAt: true },
-      orderBy: { updatedAt: "desc" },
-      take: 500,
-    }),
-    prisma.series.findMany({
-      where: { status: "PUBLISHED" },
-      select: { slug: true, updatedAt: true },
-    }),
-  ]);
+  let articles: Array<{ slug: string; updatedAt: Date }> = [];
+  let series: Array<{ slug: string; updatedAt: Date }> = [];
+
+  try {
+    [articles, series] = await Promise.all([
+      prisma.article.findMany({
+        where: { status: "APPROVED" },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+        take: 500,
+      }),
+      prisma.series.findMany({
+        where: { status: "PUBLISHED" },
+        select: { slug: true, updatedAt: true },
+      }),
+    ]);
+  } catch (error) {
+    console.error("SITEMAP_GENERATION_ERROR", error);
+  }
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {
