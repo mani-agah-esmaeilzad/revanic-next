@@ -255,6 +255,8 @@ enum SeriesStatus {
 
 enum ArticleCollaboratorRole {
   EDITOR
+  REVIEWER
+  VIEWER
 }
 
 enum ArticleTimelineEventType {
@@ -262,6 +264,7 @@ enum ArticleTimelineEventType {
   COLLABORATOR_UPDATED
   COLLABORATOR_REMOVED
   REVISION_CREATED
+  STATUS_CHANGED
 }
 
 model Publication {
@@ -307,7 +310,6 @@ model ArticleRevision {
   summary   String?
   createdAt DateTime @default(now())
 
-  @@unique([articleId, version])
   @@index([articleId])
   @@index([authorId])
 }
