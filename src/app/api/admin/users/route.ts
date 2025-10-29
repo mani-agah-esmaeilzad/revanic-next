@@ -52,7 +52,7 @@ export async function DELETE(req: Request) {
         }
         const userId = Number(id);
         await prisma.$transaction(async (tx:any) => {
-            await tx.like.deleteMany({ where: { userId } });
+            await tx.clap.deleteMany({ where: { userId } });
             await tx.bookmark.deleteMany({ where: { userId } });
             await tx.comment.deleteMany({ where: { userId } });
             await tx.follow.deleteMany({ where: { OR: [{ followerId: userId }, { followingId: userId }] } });

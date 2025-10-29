@@ -117,6 +117,24 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
     notFound();
   }
 
+  let readingProgress = 0;
+  if (currentUserId) {
+    const historyRecord = await prisma.readingHistory.findUnique({
+      where: { userId_articleId: { userId: currentUserId, articleId: article.id } },
+      select: { progress: true },
+    });
+    readingProgress = historyRecord?.progress ?? 0;
+  }
+
+  const plainTextContent = stripHtml(article.content);
+  const estimatedReadTime =
+    article.readTimeMinutes && article.readTimeMinutes > 0
+      ? article.readTimeMinutes
+      : Math.max(1, Math.round(plainTextContent.split(/\s+/).filter(Boolean).length / 200));
+  const primaryCategory = article.categories[0]?.name;
+  const secondaryCategories = article.categories.slice(1).map((category) => category.name);
+  const tagNames = article.tags.map(({ tag }) => tag.name);
+
   // --- دو عملیات همزمان: افزایش بازدید کلی و ثبت تاریخچه مطالعه ---
   const updatePromises = [
     prisma.articleView.create({ data: { articleId: article.id } })
@@ -127,7 +145,7 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
       prisma.readingHistory.upsert({
         where: { userId_articleId: { userId: currentUserId, articleId: article.id } },
         update: {}, // فقط `viewedAt` به خاطر @updatedAt آپدیت می‌شود
-        create: { userId: currentUserId, articleId: article.id },
+        create: { userId: currentUserId, articleId: article.id, progress: readingProgress },
       })
     );
   }
@@ -208,102 +226,78 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
                 </Breadcrumb>
                 <div className="flex items-center gap-4 mb-4">
                   <Link href={`/authors/${article.author.id}`}>
-                    <Avatar className="h-12 w-12 border">
-                      <AvatarImage src={article.author.avatarUrl || ''} />
-                      <AvatarFallback className="bg-muted text-muted-foreground font-bold text-lg">
+                    <Avatar className="h-20 w-20 border-2 border-journal-green/40 shadow-md">
+                      <AvatarImage src={article.author.avatarUrl || ""} />
+                      <AvatarFallback className="bg-muted text-muted-foreground font-bold text-2xl">
                         {article.author.name?.charAt(0) || "A"}
                       </AvatarFallback>
                     </Avatar>
                   </Link>
-                  <div>
-                    <Link href={`/authors/${article.author.id}`} className="font-bold text-foreground hover:text-primary">
-                      {article.author.name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground">{publishDate}</p>
-                  </div>
-                </div>
-                <h1 className="text-4xl font-extrabold text-foreground leading-tight mb-4">
-                  {article.title}
-                </h1>
-                {article.coverImageUrl && (
-                  <div className="relative w-full h-96 rounded-lg overflow-hidden my-6">
-                    <Image
-                      src={article.coverImageUrl}
-                      alt={article.title}
-                      fill
-                      className="object-cover"
-                      priority
-                    />
-                  </div>
-                )}
-              </header>
-
-              <ArticleContent content={article.content} articleId={article.id} />
-
-              <div className="mt-8 flex flex-wrap gap-2">
-                {article.tags.map(({ tag }) => (
-                  <Link href={`/tags/${tag.name}`} key={tag.id}>
-                    <Badge variant="secondary"># {tag.name}</Badge>
+                  <Link
+                    href={`/authors/${article.author.id}`}
+                    className="mt-3 text-lg font-semibold text-foreground transition hover:text-primary"
+                  >
+                    {article.author.name}
                   </Link>
-                ))}
-              </div>
-
-              <Separator className="my-8" />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <ClapButton
-                    articleId={article.id}
-                    initialTotalClaps={totalClaps}
-                    initialUserClaps={userClap?.count || 0}
-                  />
-                  <BookmarkButton
-                    articleId={article.id}
-                    initialBookmarked={userHasBookmarked}
-                  />
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {article.author.bio || "این نویسنده هنوز توضیحی درباره خود ننوشته است."}
+                  </p>
                 </div>
-                <ShareButton title={article.title} url={articleUrl} />
-              </div>
 
-              <Separator className="my-8" />
+                <Separator />
 
-              <CommentsSection 
-                articleId={article.id} 
-                initialComments={article.comments} 
-                currentUserId={currentUserId}
-              />
-            </article>
-          </main>
-
-          <aside className="col-span-12 lg:col-span-4">
-            <div className="sticky top-24 space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">درباره نویسنده</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center text-center">
-                    <Link href={`/authors/${article.author.id}`}>
-                      <Avatar className="h-20 w-20 mb-4 border-2">
-                         <AvatarImage src={article.author.avatarUrl || ''} />
-                         <AvatarFallback className="bg-muted text-muted-foreground font-bold text-2xl">
-                           {article.author.name?.charAt(0) || "A"}
-                         </AvatarFallback>
-                      </Avatar>
-                    </Link>
-                    <Link href={`/authors/${article.author.id}`} className="font-bold text-lg text-foreground hover:text-primary">
-                      {article.author.name}
-                    </Link>
-                    <p className="text-sm text-muted-foreground mt-2 mb-4">
-                      {article.author.bio || "بیوگرافی نویسنده"}
-                    </p>
-                    {currentUserId && currentUserId !== article.authorId && (
-                       <FollowButton 
-                         targetUserId={article.author.id} 
-                         initialFollowing={userIsFollowingAuthor} 
-                       />
-                    )}
+                <div className="grid grid-cols-3 gap-4 text-center text-xs text-muted-foreground sm:text-sm">
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{formattedViews}</p>
+                    <p>بازدید</p>
                   </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{formattedComments}</p>
+                    <p>گفتگو</p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{formattedClaps}</p>
+                    <p>تشویق</p>
+                  </div>
+                </div>
+
+                {currentUserId && currentUserId !== article.authorId ? (
+                  <FollowButton targetUserId={article.author.id} initialFollowing={userIsFollowingAuthor} />
+                ) : null}
+              </CardContent>
+            </Card>
+
+            {relatedArticles.length > 0 && (
+              <Card className="border-border/40 bg-background/95 shadow-lg backdrop-blur">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-xl">مقالات مشابه</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  {relatedArticles.map((related) => {
+                    const relatedReadTime =
+                      related.readTimeMinutes && related.readTimeMinutes > 0
+                        ? related.readTimeMinutes
+                        : Math.max(
+                            1,
+                            Math.round(stripHtml(related.content).split(/\s+/).filter(Boolean).length / 200),
+                          );
+                    return (
+                      <ArticleCard
+                        key={related.id}
+                        id={related.id.toString()}
+                        title={related.title}
+                        excerpt={buildExcerpt(related.content, 130)}
+                        author={{ name: related.author.name || "", avatar: related.author.avatarUrl || undefined }}
+                        readTime={relatedReadTime}
+                        publishDate={new Intl.DateTimeFormat("fa-IR").format(new Date(related.createdAt))}
+                        claps={related._count.claps}
+                        comments={related._count.comments}
+                        category={related.categories[0]?.name || ""}
+                        image={related.coverImageUrl}
+                        className="border border-border/40 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      />
+                    );
+                  })}
                 </CardContent>
               </Card>
 

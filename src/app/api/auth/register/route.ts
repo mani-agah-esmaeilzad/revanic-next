@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { WelcomeEmail } from '@/emails/WelcomeEmail';
 import { SignJWT } from 'jose'; // <-- ایمپورت جدید
 import { cookies } from 'next/headers'; // <-- ایمپورت جدید
+import { logServerEvent, getJourneyIdFromRequest } from '@/lib/analytics';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -33,6 +34,12 @@ export async function POST(req: Request) {
     });
 
     if (existingUser) {
+      await logServerEvent({
+        name: 'registration_failed',
+        journeyId: getJourneyIdFromRequest(req),
+        userId: existingUser.id,
+        payload: { reason: 'email_exists' },
+      });
       return new NextResponse('User with this email already exists', { status: 409 });
     }
 
@@ -44,6 +51,13 @@ export async function POST(req: Request) {
         password: hashedPassword,
         name,
       },
+    });
+
+    await logServerEvent({
+      name: 'registration_completed',
+      userId: user.id,
+      journeyId: getJourneyIdFromRequest(req),
+      payload: { method: 'email' },
     });
 
     // --- ارسال ایمیل خوش‌آمدگویی ---
@@ -78,6 +92,11 @@ export async function POST(req: Request) {
     return NextResponse.json(userWithoutPassword, { status: 201 });
   } catch (error) {
     console.error('REGISTRATION_ERROR', error);
+    await logServerEvent({
+      name: 'registration_failed',
+      journeyId: getJourneyIdFromRequest(req),
+      payload: { reason: 'server_error' },
+    });
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

@@ -7,6 +7,7 @@ import { Search, PenTool, User, Menu } from "lucide-react";
 import Logo from "@/components/Logo";
 import Link from "next/link";
 import { Notifications } from "./Notifications";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Sheet,
   SheetContent,
@@ -41,6 +42,12 @@ const Header = () => {
             <Link href="/categories" className="text-journal-light hover:text-journal transition-colors">
               دسته‌بندی‌ها
             </Link>
+            <Link href="/editorial-guide" className="text-journal-light hover:text-journal transition-colors">
+              راهنمای نویسندگان
+            </Link>
+            <Link href="/support" className="text-journal-light hover:text-journal transition-colors">
+              پشتیبانی
+            </Link>
             <Link href="/about" className="text-journal-light hover:text-journal transition-colors">
               درباره ما
             </Link>
@@ -60,6 +67,7 @@ const Header = () => {
               </Button>
             </Link>
 
+            <ThemeToggle />
             <Notifications />
 
             <Link href="/profile">

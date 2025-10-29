@@ -10,28 +10,28 @@ datasource db {
 }
 
 model User {
-  id                     Int            @id @default(autoincrement())
-  email                  String         @unique
-  name                   String?
-  avatarUrl              String?
-  password               String
-  bio                    String?
-  role                   String         @default("USER")
+  id        Int     @id @default(autoincrement())
+  email     String  @unique
+  name      String?
+  avatarUrl String?
+  password  String
+  bio       String?
+  role      String  @default("USER")
 
-  pinnedArticleId        Int?           @unique
-  pinnedArticle          Article?       @relation("PinnedArticle", fields: [pinnedArticleId], references: [id], onDelete: SetNull)
+  pinnedArticleId Int?     @unique
+  pinnedArticle   Article? @relation("PinnedArticle", fields: [pinnedArticleId], references: [id], onDelete: SetNull)
 
-  articles               Article[]      @relation("AuthoredArticles")
+  articles               Article[]             @relation("AuthoredArticles")
   claps                  Clap[]
   comments               Comment[]
   bookmarks              Bookmark[]
-  following              Follow[]       @relation("UserFollows")
-  followers              Follow[]       @relation("UserFollowedBy")
-  notifications          Notification[] @relation("UserNotifications")
-  triggeredNotifications Notification[] @relation("ActorNotifications")
+  following              Follow[]              @relation("UserFollows")
+  followers              Follow[]              @relation("UserFollowedBy")
+  notifications          Notification[]        @relation("UserNotifications")
+  triggeredNotifications Notification[]        @relation("ActorNotifications")
   subscription           Subscription?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
   publications           UsersOnPublications[]
   highlights             Highlight[]
 
@@ -51,15 +51,15 @@ model Article {
   content         String
   readTimeMinutes Int?
   coverImageUrl   String?
-  status          String   @default("PENDING")
-  author          User     @relation("AuthoredArticles", fields: [authorId], references: [id], onDelete: Cascade)
+  status          String  @default("PENDING")
+  author          User    @relation("AuthoredArticles", fields: [authorId], references: [id], onDelete: Cascade)
   authorId        Int
-  pinnedByUsers   User[]   @relation("PinnedArticle")
+  pinnedByUsers   User[]  @relation("PinnedArticle")
 
-  publication   Publication?   @relation(fields: [publicationId], references: [id], onDelete: SetNull)
+  publication   Publication? @relation(fields: [publicationId], references: [id], onDelete: SetNull)
   publicationId Int?
 
-  categories    Category[]     @relation("ArticleToCategory")
+  categories    Category[]       @relation("ArticleToCategory")
   tags          TagsOnArticles[]
   claps         Clap[]
   comments      Comment[]
@@ -67,8 +67,8 @@ model Article {
   notifications Notification[]
   views         ArticleView[]
   highlights    Highlight[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   // --- فیلد جدید برای تاریخچه مطالعه ---
   history       ReadingHistory[]
@@ -333,8 +333,8 @@ model Clap {
 model Bookmark {
   userId    Int
   articleId Int
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@id([userId, articleId])
@@ -354,14 +354,14 @@ model Comment {
 }
 
 model Subscription {
-  id               Int      @id @default(autoincrement())
-  userId           Int      @unique
+  id               Int       @id @default(autoincrement())
+  userId           Int       @unique
   tier             String
   status           String
   studentIdCardUrl String?
   endDate          DateTime?
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime  @default(now())
 }
 
 model Highlight {
@@ -385,6 +385,38 @@ model ReadingHistory {
   articleId Int
   article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
   viewedAt  DateTime @updatedAt
+  progress  Float    @default(0)
 
   @@unique([userId, articleId])
+}
+
+model TrackingEvent {
+  id           Int      @id @default(autoincrement())
+  name         String
+  journeyId    String?
+  userId       Int?
+  experimentId String?
+  variant      String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([journeyId])
+  @@index([name])
+  @@index([experimentId])
+}
+
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    Int?
+  journeyId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([journeyId])
 }

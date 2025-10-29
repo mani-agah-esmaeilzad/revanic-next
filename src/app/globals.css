@@ -164,3 +164,26 @@ All colors MUST be HSL.
     box-shadow: var(--shadow-medium);
   }
 }
+
+body.reading-mode {
+  background-color: hsl(var(--journal-cream));
+}
+
+body.reading-mode header,
+body.reading-mode footer,
+body.reading-mode [data-reading-sidebar],
+body.reading-mode .support-widget,
+body.reading-mode .install-pwa-button {
+  display: none !important;
+}
+
+body.reading-mode main {
+  background-color: transparent;
+}
+
+body.reading-mode #article-body {
+  background-color: hsl(var(--background));
+  box-shadow: 0 20px 60px -30px hsl(var(--journal-green) / 0.2);
+  border-radius: 24px;
+  padding: 2rem;
+}
