@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
-import { requireEditorAccess } from '@/lib/articles/permissions';
-import { ArticleTimelineEventType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { generateArticleSlug } from '@/lib/article-slug';
 
 interface JwtPayload {
   userId: number;
@@ -41,46 +41,29 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     const { title, content, summary } = body;
 
-    const nextTitle = typeof title === 'string' && title.trim().length > 0 ? title.trim() : article.title;
-    const nextContent = typeof content === 'string' ? content : article.content;
-    const revisionSummary = typeof summary === 'string' && summary.trim().length > 0 ? summary.trim() : null;
+    const data: Prisma.ArticleUpdateInput = {};
+    if (typeof title === 'string' && title.trim()) {
+      data.title = title;
+      if (title !== article.title) {
+        data.slug = await generateArticleSlug(title, article.id);
+      }
+    }
 
-    const nextVersion = (await prisma.articleRevision.count({ where: { articleId } })) + 1;
+    if (typeof content === 'string') {
+      data.content = content;
+    }
 
-    const updatedArticle = await prisma.$transaction(async (tx) => {
-      await tx.articleRevision.create({
-        data: {
-          articleId,
-          authorId: userId,
-          version: nextVersion,
-          title: article.title,
-          content: article.content,
-          summary: revisionSummary,
-        },
-      });
+    if (typeof published === 'boolean') {
+      data.status = published ? 'APPROVED' : article.status;
+    }
 
-      const updated = await tx.article.update({
-        where: { id: articleId },
-        data: {
-          title: nextTitle,
-          content: nextContent,
-        },
-      });
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json(article);
+    }
 
-      await tx.articleTimelineEvent.create({
-        data: {
-          articleId,
-          actorId: userId,
-          type: ArticleTimelineEventType.REVISION_CREATED,
-          payload: {
-            version: nextVersion,
-            summary: revisionSummary,
-            role: access.role,
-          },
-        },
-      });
-
-      return updated;
+    const updatedArticle = await prisma.article.update({
+      where: { id: articleId },
+      data,
     });
 
     return NextResponse.json(updatedArticle);

@@ -69,6 +69,7 @@ export async function GET(req: Request) {
       .slice(0, 5)
       .map(article => ({
           id: article.id,
+          slug: article.slug,
           title: article.title,
           views: article._count.views
       }));

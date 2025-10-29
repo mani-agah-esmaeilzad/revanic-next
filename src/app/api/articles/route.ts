@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { calculateReadTime } from "@/lib/utils";
+import { generateArticleSlug } from "@/lib/article-slug";
 
 export async function POST(req: Request) {
   const token = cookies().get("token")?.value;
@@ -38,8 +39,11 @@ export async function POST(req: Request) {
 
     const readTime = calculateReadTime(content);
 
+    const slug = await generateArticleSlug(title);
+
     const newArticle = await prisma.article.create({
       data: {
+        slug,
         title,
         content,
         coverImageUrl,

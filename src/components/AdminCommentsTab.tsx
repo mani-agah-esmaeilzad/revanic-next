@@ -32,6 +32,7 @@ interface Comment {
     };
     article: {
         id: number;
+        slug: string;
         title: string;
     };
 }
@@ -119,7 +120,7 @@ export const AdminCommentsTab = () => {
                                 <TableCell className="max-w-xs truncate">{comment.text}</TableCell>
                                 <TableCell>{comment.user.name} ({comment.user.email})</TableCell>
                                 <TableCell>
-                                    <Link href={`/articles/${comment.article.id}`} className="hover:underline" target="_blank">
+                                    <Link href={`/articles/${comment.article.slug}`} className="hover:underline" target="_blank">
                                         {comment.article.title}
                                     </Link>
                                 </TableCell>

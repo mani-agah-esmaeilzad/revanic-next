@@ -12,7 +12,7 @@ import { AdminSupportTab } from './AdminSupportTab';
 export const AdminDashboard = () => {
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="grid w-full grid-cols-6">
+      <TabsList className="grid w-full grid-cols-5">
         <TabsTrigger value="users">کاربران</TabsTrigger>
         <TabsTrigger value="articles">مقالات</TabsTrigger>
         <TabsTrigger value="series">سری‌ها</TabsTrigger>

@@ -41,7 +41,6 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { SeriesListItem } from "@/lib/series";
-import { Progress } from "@/components/ui/progress";
 
 // =======================================================================
 //  1. تعریف تایپ‌ها (Types)
@@ -58,7 +57,6 @@ type FetchedArticle = Prisma.ArticleGetPayload<{
 
 type ReadingHistoryItem = {
   viewedAt: string;
-  progress: number;
   article: FetchedArticle;
 };
 
@@ -542,6 +540,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                                   isPinned && "border-journal-green/60 ring-1 ring-journal-green/30"
                                 )}
                                 id={article.id.toString()}
+                                slug={article.slug}
                                 title={article.title}
                                 excerpt={buildExcerpt(article.content)}
                                 image={article.coverImageUrl}
@@ -644,14 +643,14 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                       <p className="text-red-500 text-center">خطا در دریافت تاریخچه مطالعه.</p>
                     ) : historyArticles && historyArticles.length > 0 ? (
                       <div className="space-y-6">
-                        {historyArticles.map(({ article, viewedAt, progress }) => {
+                        {historyArticles.map(({ article, viewedAt }) => {
                           const excerpt = buildExcerpt(article.content);
-                          const progressPercent = Math.round((progress ?? 0) * 100);
 
                           return (
                             <div key={`${article.id}-${viewedAt}`} className="space-y-2">
                               <ArticleCard
                                 id={article.id.toString()}
+                                slug={article.slug}
                                 title={article.title}
                                 excerpt={excerpt}
                                 image={article.coverImageUrl}
@@ -667,14 +666,6 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                                 comments={article._count.comments}
                                 category={article.categories[0]?.name || "عمومی"}
                               />
-                              {progressPercent > 0 ? (
-                                <div className="px-2">
-                                  <Progress value={progressPercent} className="h-1.5" />
-                                  <span className="mt-1 inline-block text-[11px] text-muted-foreground">
-                                    پیشرفت مطالعه: {progressPercent}%
-                                  </span>
-                                </div>
-                              ) : null}
                               <div className="flex flex-col gap-2 px-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                                 <span>
                                   آخرین مطالعه: {new Intl.DateTimeFormat("fa-IR", {
@@ -711,6 +702,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                           <ArticleCard
                             key={article.id}
                             id={article.id.toString()}
+                            slug={article.slug}
                             title={article.title}
                             excerpt={buildExcerpt(article.content)}
                             image={article.coverImageUrl}
@@ -744,6 +736,7 @@ export const ProfileClient = ({ user }: ProfileClientProps) => {
                           <ArticleCard
                             key={article.id}
                             id={article.id.toString()}
+                            slug={article.slug}
                             title={article.title}
                             excerpt={buildExcerpt(article.content)}
                             image={article.coverImageUrl}

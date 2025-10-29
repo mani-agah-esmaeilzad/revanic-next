@@ -31,6 +31,7 @@ type ArticleStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 interface Article {
     id: number;
+    slug: string;
     title: string;
     status: ArticleStatus;
     createdAt: string;
@@ -179,7 +180,7 @@ export const AdminArticlesTab = () => {
                         {data?.articles.map((article) => (
                             <TableRow key={article.id}>
                                 <TableCell className="font-medium">
-                                    <Link href={`/articles/${article.id}`} className="hover:underline" target="_blank">
+                                    <Link href={`/articles/${article.slug}`} className="hover:underline" target="_blank">
                                         {article.title}
                                     </Link>
                                 </TableCell>

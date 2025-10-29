@@ -74,6 +74,7 @@ const TagPage = async ({ params, searchParams }: TagPageProps) => {
                             <ArticleCard
                                 key={article.id}
                                 id={article.id.toString()}
+                                slug={article.slug}
                                 title={article.title}
                                 excerpt={
                                     article.content.substring(0, 200).replace(/<[^>]*>?/gm, "") +

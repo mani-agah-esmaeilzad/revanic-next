@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 
 export interface ArticleCardProps {
   id: string | number;
+  slug: string;
   title: string;
   excerpt?: string | null;
   author: {
@@ -26,6 +27,7 @@ export interface ArticleCardProps {
 
 const ArticleCard = ({
   id,
+  slug,
   title,
   excerpt,
   author,
@@ -37,7 +39,7 @@ const ArticleCard = ({
   image,
   className,
 }: ArticleCardProps) => {
-  const articleId = typeof id === "number" ? id.toString() : id;
+  const articleSlug = slug || (typeof id === "number" ? id.toString() : `${id}`);
   const authorName = author.name?.trim() || "ناشناس";
   const avatarSource = author.avatar ?? author.avatarUrl ?? "";
   const excerptText = excerpt?.trim() || "";
@@ -57,7 +59,7 @@ const ArticleCard = ({
     >
       <CardContent className="p-0">
         <Link
-          href={`/articles/${articleId}`}
+          href={`/articles/${articleSlug}`}
           className="flex flex-col gap-4 p-6 md:flex-row md:items-stretch"
         >
           <div className="flex-1 space-y-3">

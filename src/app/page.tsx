@@ -6,87 +6,88 @@ import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
 import type { ArticleCardProps } from "@/components/ArticleCard";
 import Logo from "@/components/Logo";
-import { subDays, formatDistanceToNow } from "date-fns";
-import { faIR } from "date-fns/locale";
-import {
-  CommunitySpotlight,
-  type CommunitySpotlightStory,
-} from "@/components/CommunitySpotlight";
-import { getFeaturedCommunityStories } from "@/lib/community";
-import { getUpcomingEditorialEntries } from "@/lib/editorial-guide";
-import { calculateReadTime } from "@/lib/utils";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { buildCanonical, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 
-const PERSIAN_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"] as const;
+const canonicalHome = buildCanonical("/");
 
-function toPersianDigits(value: string) {
-  return value.replace(/[0-9]/g, (digit) => PERSIAN_DIGITS[Number(digit)]);
-}
+export const metadata: Metadata = {
+  title: "مجله روانیک | جایی برای اشتراک دانش و تجربه",
+  description:
+    "روانیک بستری فارسی برای مطالعه و انتشار مقالات باکیفیت در حوزه‌های فناوری، فرهنگ، تاریخ و سبک زندگی است.",
+  ...(canonicalHome ? { alternates: { canonical: canonicalHome } } : {}),
+  openGraph: {
+    title: "مجله روانیک | جایی برای اشتراک دانش و تجربه",
+    description:
+      "روانیک جامعه‌ای برای نویسندگان و خوانندگان فارسی‌زبان است تا تجربه‌ها و دانش خود را در قالب مقاله به اشتراک بگذارند.",
+    url: canonicalHome,
+    siteName: "روانیک",
+    locale: "fa_IR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "مجله روانیک",
+    description:
+      "بهترین مقالات فارسی در حوزه‌های مختلف را در روانیک بخوانید و تجربه خود را منتشر کنید.",
+  },
+};
 
-function stripHtml(content: string) {
-  return content.replace(/<[^>]*>?/gm, " ").replace(/\s+/g, " ").trim();
-}
-
-function buildExcerpt(content: string, limit = 180) {
-  const text = stripHtml(content);
-  if (!text) return "";
-  return text.length > limit ? `${text.slice(0, limit).trimEnd()}…` : text;
-}
-
-function formatPublishDate(date: Date) {
-  const relative = formatDistanceToNow(date, { addSuffix: true, locale: faIR });
-  return toPersianDigits(relative);
-}
-
-const Index = async () => {
-  const [featuredArticlesRaw, articleCount, authorCount, dailyReadersCount] = await Promise.all([
-    prisma.article.findMany({
-      where: { status: "APPROVED" },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        readTimeMinutes: true,
-        createdAt: true,
-        coverImageUrl: true,
-        author: { select: { name: true, avatarUrl: true } },
-        categories: { select: { name: true } },
-        _count: { select: { claps: true, comments: true } },
-      },
-    }),
-    prisma.article.count({ where: { status: "APPROVED" } }),
-    prisma.user.count({ where: { articles: { some: { status: "APPROVED" } } } }),
-    prisma.articleView.count({ where: { viewedAt: { gte: subDays(new Date(), 1) } } }),
-  ]);
-
-  const featuredArticles: ArticleCardProps[] = featuredArticlesRaw.map((article) => {
-    const categoryName = article.categories[0]?.name ?? "عمومی";
-    const publishDate = formatPublishDate(new Date(article.createdAt));
-    const readTime = article.readTimeMinutes ?? calculateReadTime(article.content);
-
-    return {
-      id: article.id,
-      title: article.title,
-      excerpt: buildExcerpt(article.content),
-      author: {
-        name: article.author?.name ?? "ناشناس",
-        avatar: article.author?.avatarUrl ?? "",
-        avatarUrl: article.author?.avatarUrl ?? "",
-      },
-      readTime,
-      publishDate,
-      claps: article._count?.claps ?? 0,
-      comments: article._count?.comments ?? 0,
-      category: categoryName,
-      image: article.coverImageUrl ?? null,
-    };
-  });
+const Index = () => {
+  // Sample articles data
+  const featuredArticles: ArticleCardProps[] = [
+    {
+      id: "1",
+      slug: "ai-future-outlook",
+      title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
+      excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
+      author: { name: "علی رضایی", avatar: "" },
+      readTime: 8,
+      publishDate: "۳ روز پیش",
+      claps: 124, // <-- تغییر از likes به claps
+      comments: 23,
+      category: "فناوری",
+      image: ""
+    },
+    {
+      id: "2",
+      slug: "ancient-iran-journey",
+      title: "سفری به دل تاریخ ایران باستان",
+      excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
+      author: { name: "مریم احمدی", avatar: "" },
+      readTime: 12,
+      publishDate: "یک هفته پیش",
+      claps: 89, // <-- تغییر از likes به claps
+      comments: 15,
+      category: "تاریخ",
+      image: ""
+    },
+    {
+      id: "3",
+      slug: "psychology-of-color-in-modern-architecture",
+      title: "روان‌شناسی رنگ‌ها در معماری مدرن",
+      excerpt: "تأثیر رنگ‌ها بر روحیه انسان و چگونگی استفاده از این دانش در طراحی فضاهای زندگی و کار.",
+      author: { name: "محمد حسینی", avatar: "" },
+      readTime: 6,
+      publishDate: "۲ هفته پیش",
+      claps: 67, // <-- تغییر از likes به claps
+      comments: 8,
+      category: "هنر و معماری",
+      image: ""
+    }
+  ];
 
   return (
     <>
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-bl from-journal-cream via-background to-journal-cream/50">
+        <Script id="organization-jsonld" type="application/ld+json">
+          {JSON.stringify(organizationJsonLd())}
+        </Script>
+        <Script id="website-jsonld" type="application/ld+json">
+          {JSON.stringify(webSiteJsonLd())}
+        </Script>
         <div className="container mx-auto px-4 py-16 sm:py-20">
           <div className="mx-auto max-w-4xl text-center">
             <div className="mb-8">
@@ -160,27 +161,22 @@ const Index = async () => {
           </div>
 
           <div className="mx-auto max-w-4xl space-y-6">
-            {featuredArticles.length > 0 ? (
-              featuredArticles.map((article) => (
-                <ArticleCard
-                  key={article.id}
-                  id={article.id}
-                  title={article.title}
-                  excerpt={article.excerpt}
-                  author={article.author}
-                  readTime={article.readTime}
-                  publishDate={article.publishDate}
-                  claps={article.claps}
-                  comments={article.comments}
-                  category={article.category}
-                  image={article.image}
-                />
-              ))
-            ) : (
-              <div className="rounded-md border border-dashed border-journal-cream bg-white/60 p-6 text-center text-sm text-journal-light">
-                هنوز مقاله تایید شده‌ای برای نمایش وجود ندارد.
-              </div>
-            )}
+            {featuredArticles.map((article) => (
+              <ArticleCard
+                key={article.id}
+                id={article.id}
+                slug={article.slug}
+                title={article.title}
+                excerpt={article.excerpt}
+                author={article.author}
+                readTime={article.readTime}
+                publishDate={article.publishDate}
+                claps={article.claps}
+                comments={article.comments}
+                category={article.category}
+                image={article.image}
+              />
+            ))}
           </div>
 
           <div className="mt-10 text-center sm:mt-12">

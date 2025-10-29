@@ -6,6 +6,30 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { LucideIcon } from "lucide-react";
 import { ensureDefaultCategories, resolveCategoryDefinition } from "@/lib/categories";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { buildCanonical, getDeploymentUrl, itemListJsonLd } from "@/lib/seo";
+
+const canonicalCategories = buildCanonical("/categories");
+
+export const metadata: Metadata = {
+  title: "دسته‌بندی‌های مقالات روانیک",
+  description: "تمام موضوعات فعال روانیک را مرور کنید و به سرعت به مقالات مرتبط در هر زمینه دسترسی پیدا کنید.",
+  ...(canonicalCategories ? { alternates: { canonical: canonicalCategories } } : {}),
+  openGraph: {
+    title: "دسته‌بندی‌های مقالات روانیک",
+    description: "از فناوری تا فرهنگ، موضوعات متنوع روانیک را کاوش کنید.",
+    url: canonicalCategories,
+    locale: "fa_IR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "دسته‌بندی‌های روانیک",
+    description: "موضوع مورد علاقه خود را در روانیک پیدا کنید.",
+  },
+};
 
 type CategoryWithStats = {
   id: number;
@@ -46,12 +70,40 @@ const Categories = async () => {
     .sort((a, b) => b.articleCount - a.articleCount)
     .slice(0, 4);
 
+  const deploymentUrl = getDeploymentUrl();
+  const categoryJsonLd = deploymentUrl
+    ? itemListJsonLd({
+        url: `${deploymentUrl}/categories`,
+        items: categories.map((category) => ({
+          title: category.name,
+          url: `${deploymentUrl}/articles?categoryId=${category.id}`,
+          description: category.description,
+        })),
+      })
+    : null;
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
+            {categoryJsonLd ? (
+              <Script id="categories-itemlist" type="application/ld+json">
+                {JSON.stringify(categoryJsonLd)}
+              </Script>
+            ) : null}
+            <Breadcrumb className="mb-6">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>دسته‌بندی مقالات</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
             <h1 className="text-4xl font-bold text-journal mb-4">دسته‌بندی مقالات</h1>
             <p className="text-xl text-journal-light mb-8">
               موضوعات مختلف مجله روانیک را با داده‌های زنده جست‌وجو کنید

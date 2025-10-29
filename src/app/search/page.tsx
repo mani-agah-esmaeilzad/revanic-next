@@ -76,6 +76,7 @@ export default function SearchPage() {
   // This is a placeholder for a stricter Article type you might want to define
   type ArticleType = {
     id: number;
+    slug: string;
     title: string;
     content: string;
     author: { name: string; avatarUrl?: string };
@@ -120,9 +121,10 @@ export default function SearchPage() {
                 {data?.articles && data.articles.length > 0 ? (
                   <div className="space-y-4">
                     {data.articles.map((article: ArticleType) => (
-                       <ArticleCard
+                      <ArticleCard
                         key={article.id}
                         id={article.id.toString()}
+                        slug={article.slug}
                         title={article.title}
                         excerpt={article.content.substring(0, 150) + "..."}
                         author={{ name: article.author.name || "ناشناس", avatar: article.author.avatarUrl }}

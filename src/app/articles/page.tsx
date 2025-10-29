@@ -10,6 +10,30 @@ import ArticlesFilterBar, {
 import { Pagination } from "@/components/Pagination";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { buildCanonical, getDeploymentUrl, itemListJsonLd } from "@/lib/seo";
+
+const canonicalArticles = buildCanonical("/articles");
+
+export const metadata: Metadata = {
+  title: "آخرین مقالات روانیک",
+  description: "فهرست به‌روز مقالات تأییدشده روانیک را براساس موضوع، زمان مطالعه و محبوبیت مرور کنید.",
+  ...(canonicalArticles ? { alternates: { canonical: canonicalArticles } } : {}),
+  openGraph: {
+    title: "آخرین مقالات روانیک",
+    description: "مقالات منتخب و تازه‌منتشرشده را در روانیک دنبال کنید.",
+    url: canonicalArticles,
+    type: "website",
+    locale: "fa_IR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "آخرین مقالات روانیک",
+    description: "مقالات فارسی باکیفیت را براساس دسته‌بندی و زمان مطالعه بیابید.",
+  },
+};
 
 const EXCERPT_LIMIT = 200;
 
@@ -177,10 +201,38 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
     ? `نتایج جست‌وجو برای «${searchTerm}»`
     : "آخرین مقالات";
 
+  const deploymentUrl = getDeploymentUrl();
+  const listJsonLdPayload = deploymentUrl && articleRecords.length > 0
+    ? itemListJsonLd({
+        url: `${deploymentUrl}/articles`,
+        items: articleRecords.slice(0, 10).map((article) => ({
+          title: article.title,
+          url: `${deploymentUrl}/articles/${article.slug}`,
+          description: extractPlainText(article.content).slice(0, 160),
+        })),
+      })
+    : null;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-8">
+        {listJsonLdPayload ? (
+          <Script id="articles-itemlist" type="application/ld+json">
+            {JSON.stringify(listJsonLdPayload)}
+          </Script>
+        ) : null}
         <div className="text-center">
+          <Breadcrumb className="mb-4 text-sm text-muted-foreground">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{pageTitle}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
           <h1 className="text-4xl font-bold text-journal sm:text-5xl">{pageTitle}</h1>
           {lengthParam !== "all" ? (
             <p className="mt-2 text-sm text-journal-light">
@@ -214,6 +266,7 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
                   <ArticleCard
                     key={`trending-${article.id}`}
                     id={article.id.toString()}
+                    slug={article.slug}
                     title={article.title}
                     excerpt={excerpt}
                     author={{
@@ -246,6 +299,7 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
                   <ArticleCard
                     key={article.id}
                     id={article.id.toString()}
+                    slug={article.slug}
                     title={article.title}
                     excerpt={excerpt}
                     author={{
@@ -274,6 +328,7 @@ const ArticlesPage = async ({ searchParams }: ArticlesPageProps) => {
                   <ArticleCard
                     key={article.id}
                     id={article.id.toString()}
+                    slug={article.slug}
                     title={article.title}
                     excerpt={excerpt}
                     author={{

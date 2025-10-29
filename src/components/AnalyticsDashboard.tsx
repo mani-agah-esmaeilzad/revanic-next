@@ -32,6 +32,7 @@ interface AnalyticsData {
   }[];
   topArticles: {
     id: number;
+    slug: string;
     title: string;
     views: number;
   }[];
@@ -160,7 +161,7 @@ export function AnalyticsDashboard() {
                       <div key={article.id} className="flex items-center justify-between">
                           <div className="flex items-center gap-4">
                             <span className="text-lg font-bold text-muted-foreground">{index + 1}</span>
-                            <Link href={`/articles/${article.id}`} className="font-medium hover:underline">
+                            <Link href={`/articles/${article.slug}`} className="font-medium hover:underline">
                                 {article.title}
                             </Link>
                           </div>

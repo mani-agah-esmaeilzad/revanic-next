@@ -17,7 +17,7 @@ interface Notification {
     type: string;
     message: string;
     isRead: boolean;
-    articleId: number | null;
+    article?: { id: number; slug: string } | null;
     actor: {
         id: number;
         name: string | null;
@@ -129,7 +129,7 @@ export const Notifications = () => {
                             notifications.map(notif => (
                                 <Link
                                     key={notif.id}
-                                    href={notif.articleId ? `/articles/${notif.articleId}` : (notif.actor ? `/authors/${notif.actor.id}` : '#')}
+                                    href={notif.article ? `/articles/${notif.article.slug}` : (notif.actor ? `/authors/${notif.actor.id}` : '#')}
                                     className={`flex items-start gap-3 rounded-lg p-2 transition-all hover:bg-accent ${!notif.isRead ? 'bg-accent/50' : ''}`}
                                 >
                                     <div className="flex-1 space-y-1">

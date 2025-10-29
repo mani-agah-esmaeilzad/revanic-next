@@ -9,9 +9,62 @@ import ArticleCard from "@/components/ArticleCard";
 import { FollowButton } from "@/components/FollowButton";
 import Link from "next/link";
 import { Pin } from "lucide-react";
+import type { Metadata } from "next";
+import Script from "next/script";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { buildCanonical, getDeploymentUrl, personJsonLd, breadcrumbJsonLd } from "@/lib/seo";
 
 interface JwtPayload extends JWTPayload {
   userId: number;
+}
+
+const toPlainText = (html: string) => html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const authorId = Number(params.id);
+  if (Number.isNaN(authorId)) {
+    return {
+      title: "پروفایل نویسنده | روانیک",
+      description: "پروفایل نویسنده در روانیک.",
+    };
+  }
+
+  const author = await prisma.user.findUnique({
+    where: { id: authorId },
+    select: {
+      name: true,
+      bio: true,
+      avatarUrl: true,
+    },
+  });
+
+  if (!author) {
+    return {
+      title: "نویسنده یافت نشد | روانیک",
+      description: "پروفایل نویسنده مورد نظر در روانیک موجود نیست.",
+    };
+  }
+
+  const canonical = buildCanonical(`/authors/${authorId}`);
+  const description = author.bio?.slice(0, 160) || `${author.name ?? "نویسنده"} در روانیک فعال است.`;
+
+  return {
+    title: `${author.name ?? "نویسنده"} | روانیک`,
+    description,
+    ...(canonical ? { alternates: { canonical } } : {}),
+    openGraph: {
+      title: `${author.name ?? "نویسنده"} | روانیک`,
+      description,
+      url: canonical,
+      type: "profile",
+      images: author.avatarUrl ? [{ url: author.avatarUrl }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: author.name ?? "نویسنده روانیک",
+      description,
+    },
+  };
 }
 
 const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
@@ -74,11 +127,47 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
 
   const isOwnProfile = currentUserId === author.id;
 
+  const siteUrl = getDeploymentUrl();
+  const canonical = buildCanonical(`/authors/${author.id}`);
+  const profileUrl = canonical || (siteUrl ? `${siteUrl}/authors/${author.id}` : `/authors/${author.id}`);
+  const personSchema = personJsonLd({
+    name: author.name ?? "نویسنده روانیک",
+    url: profileUrl,
+    image: author.avatarUrl,
+    description: author.bio ? toPlainText(author.bio) : undefined,
+  });
+  const breadcrumbData = breadcrumbJsonLd([
+    { name: "خانه", url: siteUrl ? `${siteUrl}/` : "/" },
+    { name: "نویسندگان", url: siteUrl ? `${siteUrl}/authors` : "/authors" },
+    { name: author.name ?? "نویسنده", url: profileUrl },
+  ]);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="py-8">
         <div className="container mx-auto px-4">
+          <Script id="author-person-jsonld" type="application/ld+json">
+            {JSON.stringify(personSchema)}
+          </Script>
+          <Script id="author-breadcrumb-jsonld" type="application/ld+json">
+            {JSON.stringify(breadcrumbData)}
+          </Script>
           <div className="max-w-4xl mx-auto">
+            <Breadcrumb className="mb-6 text-sm text-muted-foreground">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/">خانه</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink href="/authors">نویسندگان</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{author.name ?? "نویسنده"}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
             <Card className="mb-8 shadow-sm border">
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row items-center gap-6">
@@ -122,6 +211,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                 <ArticleCard
                   key={author.pinnedArticle.id}
                   id={author.pinnedArticle.id.toString()}
+                  slug={author.pinnedArticle.slug}
                   title={author.pinnedArticle.title}
                   excerpt={author.pinnedArticle.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
                   author={{ name: author.pinnedArticle.author.name || 'ناشناس', avatar: author.pinnedArticle.author.avatarUrl || undefined }}
@@ -144,6 +234,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
                   <ArticleCard
                     key={article.id}
                     id={article.id.toString()}
+                    slug={article.slug}
                     title={article.title}
                     excerpt={article.content.substring(0, 200).replace(/<[^>]*>?/gm, '') + '...'}
                     author={{ name: article.author.name || 'ناشناس', avatar: article.author.avatarUrl || undefined }}

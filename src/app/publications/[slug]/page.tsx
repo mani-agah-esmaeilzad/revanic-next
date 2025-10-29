@@ -142,6 +142,7 @@ const PublicationPage = async ({ params, searchParams }: PublicationPageProps) =
                                     <ArticleCard
                                         key={article.id}
                                         id={article.id.toString()}
+                                        slug={article.slug}
                                         title={article.title}
                                         excerpt={
                                             article.content
