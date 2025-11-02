@@ -36,7 +36,7 @@ export const notifyArticleSubmission = async (payload: ArticleNotificationPayloa
 
   try {
     const text = await buildMessage(payload);
-    await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -45,6 +45,16 @@ export const notifyArticleSubmission = async (payload: ArticleNotificationPayloa
         parse_mode: "MarkdownV2",
       }),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Telegram API responded with ${response.status}: ${errorText}`);
+    }
+
+    const payloadResult = await response.json();
+    if (!payloadResult.ok) {
+      throw new Error(`Telegram API error: ${JSON.stringify(payloadResult)}`);
+    }
   } catch (error) {
     console.error("TELEGRAM_NOTIFICATION_ERROR", error);
   }
