@@ -49,9 +49,21 @@ const buildExcerpt = (content: string, limit = 180) => {
 const formatCount = (value: number) =>
   new Intl.NumberFormat("fa-IR").format(value < 0 ? 0 : value);
 
+const normalizeSlug = (value: string) => {
+  if (!value) {
+    return value;
+  }
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const slug = normalizeSlug(params.slug);
   const article = await prisma.article.findFirst({
-    where: { slug: params.slug, status: "APPROVED" },
+    where: { slug, status: "APPROVED" },
     select: {
       title: true,
       content: true,
@@ -70,7 +82,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 
   const description = toPlainText(article.content).slice(0, 160) || article.title;
-  const canonical = buildCanonical(`/articles/${params.slug}`);
+  const canonical = buildCanonical(`/articles/${article.slug}`);
 
   return {
     title: `${article.title} | روانیک`,
@@ -92,7 +104,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 const ArticlePage = async ({ params }: { params: { slug: string } }) => {
-  const { slug } = params;
+  const slug = normalizeSlug(params.slug);
   if (!slug) {
     notFound();
   }
