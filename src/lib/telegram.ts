@@ -17,17 +17,20 @@ const buildMessage = async ({ articleId, title, authorId }: ArticleNotificationP
 
   const authorName = author?.name || "کاربر ناشناس";
   return [
-    "🔔 *درخواست بررسی مقاله جدید*",
+    `<b>🔔 درخواست بررسی مقاله جدید</b>`,
     "",
-    `عنوان: *${escapeMarkdown(title)}*`,
-    `نویسنده: ${escapeMarkdown(authorName)} (ID: ${authorId})`,
+    `عنوان: <b>${escapeHtml(title)}</b>`,
+    `نویسنده: ${escapeHtml(authorName)} – شناسه: <code>${authorId}</code>`,
     "",
     "برای تأیید یا رد مقاله به پنل مدیریت مراجعه کنید.",
   ].join("\n");
 };
 
-const escapeMarkdown = (value: string) =>
-  value.replace(/([_*[\]()~`>#+-=|{}.!\\])/g, "\\$1");
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 
 export const notifyArticleSubmission = async (payload: ArticleNotificationPayload) => {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_ADMIN_CHAT_ID) {
@@ -42,7 +45,7 @@ export const notifyArticleSubmission = async (payload: ArticleNotificationPayloa
       body: JSON.stringify({
         chat_id: TELEGRAM_ADMIN_CHAT_ID,
         text,
-        parse_mode: "MarkdownV2",
+        parse_mode: "HTML",
       }),
     });
 
