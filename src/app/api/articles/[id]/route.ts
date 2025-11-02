@@ -131,9 +131,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
           status: 403,
         });
       }
-      data.publicationId = publicationId;
+      data.publication = { connect: { id: publicationId } };
     } else if (publicationId === null) {
-      data.publicationId = null;
+      data.publication = { disconnect: true };
     }
 
     let nextStatus: "PENDING" | "DRAFT" | undefined;
