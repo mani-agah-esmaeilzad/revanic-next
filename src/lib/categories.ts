@@ -35,6 +35,7 @@ export function resolveCategoryDefinition(name: string): CategoryDefinition {
     description: `جدیدترین مقالات مرتبط با ${normalizedName}`,
     color: FALLBACK_COLOR,
     icon: BookOpen,
+    aliases: [],
     keys: buildFallbackKeys(normalizedName, normalizedSlug, normalizedCompact, normalizedSlugCompact),
   };
 }
