@@ -21,6 +21,15 @@ export type CategoryDefinition = {
   description: string;
   color: string;
   icon: LucideIcon;
+  keys: string[];
+};
+
+const buildCategoryKeys = (name: string) => {
+  const trimmed = name.trim();
+  const slug = slugify(trimmed);
+  const slugNoHyphen = slug.replace(/-/g, "");
+  const compact = trimmed.replace(/\s+/g, "");
+  return Array.from(new Set([trimmed, slug, slugNoHyphen, compact]));
 };
 
 const defineCategory = (
@@ -34,6 +43,7 @@ const defineCategory = (
   description,
   color,
   icon,
+  keys: buildCategoryKeys(name),
 });
 
 export const CATEGORY_LIBRARY: CategoryDefinition[] = [
