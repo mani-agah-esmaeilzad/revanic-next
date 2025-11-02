@@ -65,6 +65,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const article = await prisma.article.findFirst({
     where: { slug, status: "APPROVED" },
     select: {
+      slug: true,
       title: true,
       content: true,
       coverImageUrl: true,
