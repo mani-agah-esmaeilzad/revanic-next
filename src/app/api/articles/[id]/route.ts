@@ -1,11 +1,13 @@
 // src/app/api/articles/[id]/route.ts
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
-import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
-import { generateArticleSlug } from '@/lib/article-slug';
-import { requireEditorAccess } from '@/lib/articles/permissions';
+import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
+import { generateArticleSlug } from "@/lib/article-slug";
+import { requireEditorAccess } from "@/lib/articles/permissions";
+import { calculateReadTime } from "@/lib/utils";
+import { notifyArticleSubmission } from "@/lib/telegram";
 
 interface JwtPayload {
   userId: number;
@@ -14,10 +16,10 @@ interface JwtPayload {
 // UPDATE an article (This function remains unchanged)
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const cookieStore = cookies();
-  const token = cookieStore.get('token')?.value;
+  const token = cookieStore.get("token")?.value;
 
   if (!token) {
-    return new NextResponse('Authentication token not found', { status: 401 });
+    return new NextResponse("Authentication token not found", { status: 401 });
   }
 
   try {
@@ -27,44 +29,121 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const articleId = parseInt(params.id, 10);
 
     if (isNaN(articleId)) {
-      return new NextResponse('Invalid article ID', { status: 400 });
+      return new NextResponse("Invalid article ID", { status: 400 });
     }
 
     const access = await requireEditorAccess(articleId, userId);
-    const article = await prisma.article.findUnique({
+    const existingArticle = await prisma.article.findUnique({
       where: { id: articleId },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        status: true,
+        authorId: true,
+        publicationId: true,
+      },
     });
 
-    if (!article) {
-      return new NextResponse('Article not found', { status: 404 });
+    if (!existingArticle) {
+      return new NextResponse("Article not found", { status: 404 });
     }
 
     const body = (await req.json()) as {
       title?: unknown;
       content?: unknown;
       published?: unknown;
+      tags?: unknown;
+      categoryIds?: unknown;
+      coverImageUrl?: unknown;
+      publicationId?: unknown;
     };
 
-    const { title, content, published } = body;
+    const {
+      title,
+      content,
+      published,
+      tags,
+      categoryIds,
+      coverImageUrl,
+      publicationId,
+    } = body;
 
     const data: Prisma.ArticleUpdateInput = {};
-    if (typeof title === 'string' && title.trim()) {
+    if (typeof title === "string" && title.trim()) {
       data.title = title;
-      if (title !== article.title) {
-        data.slug = await generateArticleSlug(title, article.id);
+      if (title !== existingArticle.title) {
+        data.slug = await generateArticleSlug(title, existingArticle.id);
       }
     }
 
-    if (typeof content === 'string') {
+    if (typeof content === "string") {
       data.content = content;
+      data.readTimeMinutes = calculateReadTime(content);
     }
 
-    if (typeof published === 'boolean') {
-      data.status = published ? 'APPROVED' : article.status;
+    if (typeof coverImageUrl === "string" || coverImageUrl === null) {
+      data.coverImageUrl = coverImageUrl ?? null;
+    }
+
+    if (Array.isArray(categoryIds)) {
+      const normalizedCategoryIds = categoryIds
+        .map((value) => Number(value))
+        .filter((value) => Number.isInteger(value) && value > 0);
+      data.categories = {
+        set: normalizedCategoryIds.map((id) => ({ id })),
+      };
+    }
+
+    if (Array.isArray(tags)) {
+      const normalizedTags = Array.from(
+        new Set(
+          tags
+            .filter((tag): tag is string => typeof tag === "string")
+            .map((tag) => tag.trim())
+            .filter(Boolean),
+        ),
+      );
+      data.tags = {
+        deleteMany: {},
+        create: normalizedTags.map((tagName) => ({
+          tag: {
+            connectOrCreate: {
+              where: { name: tagName },
+              create: { name: tagName },
+            },
+          },
+        })),
+      };
+    }
+
+    if (typeof publicationId === "number") {
+      const membership = await prisma.usersOnPublications.findUnique({
+        where: {
+          userId_publicationId: {
+            userId,
+            publicationId,
+          },
+        },
+      });
+      if (!membership) {
+        return new NextResponse("You are not a member of this publication.", {
+          status: 403,
+        });
+      }
+      data.publicationId = publicationId;
+    } else if (publicationId === null) {
+      data.publicationId = null;
+    }
+
+    let nextStatus: "PENDING" | "DRAFT" | undefined;
+    if (typeof published === "boolean") {
+      nextStatus = published ? "PENDING" : "DRAFT";
+      data.status = nextStatus;
     }
 
     if (Object.keys(data).length === 0) {
-      return NextResponse.json(article);
+      return NextResponse.json(existingArticle);
     }
 
     const updatedArticle = await prisma.article.update({
@@ -72,12 +151,22 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       data,
     });
 
+    if (nextStatus === "PENDING" && existingArticle.status !== "PENDING") {
+      notifyArticleSubmission({
+        articleId: updatedArticle.id,
+        title: updatedArticle.title,
+        authorId: access.article.authorId,
+      }).catch((error) => {
+        console.error("ARTICLE_RESUBMISSION_NOTIFY_ERROR", error);
+      });
+    }
+
     return NextResponse.json(updatedArticle);
 
   } catch (error) {
-    console.error('ARTICLE_UPDATE_ERROR', error);
-    const message = error instanceof Error ? error.message : 'Internal Server Error';
-    if (typeof error === 'object' && error !== null && 'status' in error) {
+    console.error("ARTICLE_UPDATE_ERROR", error);
+    const message = error instanceof Error ? error.message : "Internal Server Error";
+    if (typeof error === "object" && error !== null && "status" in error) {
       const status = (error as { status?: number }).status ?? 500;
       return new NextResponse(message, { status });
     }

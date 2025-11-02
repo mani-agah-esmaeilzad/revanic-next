@@ -26,7 +26,11 @@ const getPreferredTheme = (): Theme => {
 };
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>(() => getPreferredTheme());
+  const [theme, setThemeState] = useState<Theme>("light");
+
+  useEffect(() => {
+    setThemeState(getPreferredTheme());
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;

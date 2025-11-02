@@ -5,6 +5,7 @@ import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { calculateReadTime } from "@/lib/utils";
 import { generateArticleSlug } from "@/lib/article-slug";
+import { notifyArticleSubmission } from "@/lib/telegram";
 
 export async function POST(req: Request) {
   const token = cookies().get("token")?.value;
@@ -17,13 +18,21 @@ export async function POST(req: Request) {
     const { payload } = await jwtVerify(token, secret);
     const userId = payload.userId as number;
 
-    const { title, content, tags, categoryIds, coverImageUrl, publicationId, published } = await req.json();
+    const {
+      title,
+      content,
+      tags,
+      categoryIds,
+      coverImageUrl,
+      publicationId,
+      published,
+    } = await req.json();
 
     if (!title || !content) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
 
-    if (publicationId) {
+    if (typeof publicationId === "number") {
       const membership = await prisma.usersOnPublications.findUnique({
         where: {
           userId_publicationId: {
@@ -41,6 +50,8 @@ export async function POST(req: Request) {
 
     const slug = await generateArticleSlug(title);
 
+    const status = published ? "PENDING" : "DRAFT";
+
     const newArticle = await prisma.article.create({
       data: {
         slug,
@@ -50,7 +61,7 @@ export async function POST(req: Request) {
         readTimeMinutes: readTime,
         authorId: userId,
         publicationId: publicationId,
-        status: published ? (publicationId ? "PENDING" : "APPROVED") : "DRAFT",
+        status,
         tags: {
           create: tags?.map((tagName: string) => ({
             tag: {
@@ -66,6 +77,16 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    if (status === "PENDING") {
+      notifyArticleSubmission({
+        articleId: newArticle.id,
+        title: newArticle.title,
+        authorId: userId,
+      }).catch((error) => {
+        console.error("ARTICLE_SUBMISSION_NOTIFY_ERROR", error);
+      });
+    }
 
     return NextResponse.json(newArticle, { status: 201 });
 
