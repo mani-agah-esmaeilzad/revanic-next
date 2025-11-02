@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { CATEGORY_LIBRARY, CategoryDefinition } from "./category-library";
 import { BookOpen } from "lucide-react";
+import { CATEGORY_LIBRARY, CategoryDefinition } from "./category-library";
+import { slugify } from "./slug";
 
 const FALLBACK_COLOR = "bg-slate-500";
 
@@ -11,16 +12,19 @@ export async function ensureDefaultCategories() {
   });
 }
 
-export function resolveCategoryDefinition(name: string): CategoryDefinition & { description: string } {
-  const match = CATEGORY_LIBRARY.find((category) => category.name === name);
+export function resolveCategoryDefinition(name: string): CategoryDefinition {
+  const normalizedName = name.trim();
+  const normalizedSlug = slugify(normalizedName);
+  const match = CATEGORY_LIBRARY.find((category) => category.slug === normalizedSlug);
 
   if (match) {
     return match;
   }
 
   return {
-    name,
-    description: `جدیدترین مقالات مرتبط با ${name}`,
+    slug: normalizedSlug,
+    name: normalizedName,
+    description: `جدیدترین مقالات مرتبط با ${normalizedName}`,
     color: FALLBACK_COLOR,
     icon: BookOpen,
   };
