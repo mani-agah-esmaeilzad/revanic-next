@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,11 +11,33 @@ import Logo from "@/components/Logo";
 
 const Login = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const queryError = searchParams.get("error");
+    if (!queryError) {
+      return;
+    }
+
+    const messages: Record<string, string> = {
+      google_oauth_not_configured: "ورود با گوگل در حال حاضر فعال نیست.",
+      google_oauth_state_mismatch: "درخواست ورود با گوگل معتبر نبود. لطفاً دوباره تلاش کنید.",
+      google_oauth_missing_code: "گوگل کدی برای تأیید ورود ارسال نکرد. لطفاً دوباره تلاش کنید.",
+      google_oauth_token_exchange_failed: "در فرآیند تأیید گوگل مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
+      google_oauth_userinfo_failed: "اطلاعات پروفایل گوگل در دسترس نبود. لطفاً دوباره تلاش کنید.",
+      google_oauth_missing_email: "گوگل ایمیلی برای حساب شما ارائه نکرد. نمی‌توانیم ورود را ادامه دهیم.",
+      google_oauth_unexpected_error: "خطای غیرمنتظره‌ای هنگام ورود با گوگل رخ داد.",
+      google_oauth_denied: "فرآیند ورود با گوگل لغو شد.",
+      server_error: "در سرور مشکلی پیش آمده است. لطفاً بعداً دوباره تلاش کنید.",
+    };
+
+    setError(messages[queryError] ?? "ورود با گوگل با مشکل مواجه شد. لطفاً دوباره تلاش کنید.");
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +66,11 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  const handleGoogleLogin = useCallback(() => {
+    setIsLoading(true);
+    window.location.href = "/api/auth/google";
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-journal-cream via-background to-journal-cream/50 flex items-center justify-center p-4">
@@ -134,6 +161,9 @@ const Login = () => {
             <Button
               variant="outline"
               className="w-full border-journal-green/20"
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={isLoading}
             >
               <svg className="ml-2 h-4 w-4" viewBox="0 0 24 24">
                 <path
