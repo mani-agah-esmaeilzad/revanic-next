@@ -216,6 +216,9 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
   const articleUrl = siteUrl
     ? `${siteUrl.replace(/\/$/, "")}/articles/${article.slug}`
     : `/articles/${article.slug}`;
+  const authorProfileUrl = siteUrl
+    ? `${siteUrl.replace(/\/$/, "")}/authors/${article.authorId}`
+    : undefined;
   const articleStructuredData = articleJsonLd({
     title: article.title,
     description: toPlainText(article.content).slice(0, 180) || article.title,
@@ -224,6 +227,7 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
     publishDate: new Date(article.createdAt).toISOString(),
     modifiedDate: new Date(article.updatedAt).toISOString(),
     authorName: article.author.name,
+    authorUrl: authorProfileUrl,
   });
   const breadcrumbData = breadcrumbJsonLd([
     { name: "خانه", url: siteUrl ? `${siteUrl}/` : "/" },

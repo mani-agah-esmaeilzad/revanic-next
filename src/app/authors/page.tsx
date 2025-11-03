@@ -1,14 +1,14 @@
 // src/app/authors/page.tsx
-"use client";
-import { useState, useEffect, useCallback } from "react";
-import { Button } from "@/components/ui/button";
+import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
+import { jwtVerify, JWTPayload } from "jose";
+import Link from "next/link";
+import { Search } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search } from "lucide-react";
-import Link from "next/link";
 import { FollowButton } from "@/components/FollowButton";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Pagination,
   PaginationContent,
@@ -18,91 +18,150 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
+const AUTHORS_PER_PAGE = 9;
 
-interface Author {
-  id: number;
-  name: string | null;
-  _count: {
-    followers: number;
-    articles: number;
+interface JwtPayload extends JWTPayload {
+  userId: number;
+}
+
+type AuthorsPageProps = {
+  searchParams?: {
+    search?: string | string[];
+    page?: string | string[];
   };
-}
+};
 
-interface PaginationInfo {
-  page: number;
-  totalPages: number;
-}
+const buildPageHref = (page: number, searchQuery: string) => {
+  const params = new URLSearchParams();
+  if (searchQuery) {
+    params.set("search", searchQuery);
+  }
+  if (page > 1) {
+    params.set("page", page.toString());
+  }
+  const query = params.toString();
+  return query ? `/authors?${query}` : "/authors";
+};
 
-const AuthorsPage = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [authors, setAuthors] = useState<Author[]>([]);
-  const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
-  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+const formatNumber = (value: number) => new Intl.NumberFormat("fa-IR").format(value < 0 ? 0 : value);
 
-  const fetchData = useCallback(async (page = 1) => {
-    setIsLoading(true);
-    try {
-      // Fetch users and following status in parallel
-      const usersPromise = fetch(`/api/users?search=${searchQuery}&page=${page}`);
-      const followingPromise = fetch("/api/me/following");
+export const dynamic = "force-dynamic";
 
-      const [usersResponse, followingResponse] = await Promise.all([
-        usersPromise,
-        followingPromise,
-      ]);
+const AuthorsPage = async ({ searchParams }: AuthorsPageProps) => {
+  const rawSearch = searchParams?.search;
+  const rawPage = searchParams?.page;
 
-      if (usersResponse.ok) {
-        const usersData = await usersResponse.json();
-        setAuthors(usersData.users);
-        setPagination(usersData.pagination);
+  const searchQuery =
+    typeof rawSearch === "string"
+      ? rawSearch.trim()
+      : Array.isArray(rawSearch) && rawSearch.length > 0
+        ? rawSearch[0].trim()
+        : "";
+
+  const initialPage =
+    typeof rawPage === "string"
+      ? parseInt(rawPage, 10)
+      : Array.isArray(rawPage) && rawPage.length > 0
+        ? parseInt(rawPage[0], 10)
+        : 1;
+
+  const page = Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1;
+
+  const where = searchQuery
+    ? {
+        name: {
+          contains: searchQuery,
+          mode: "insensitive" as const,
+        },
       }
+    : {};
 
-      if (followingResponse.ok) {
-        const followingData = await followingResponse.json();
-        setFollowingIds(new Set(followingData.following));
+  const totalAuthors = await prisma.user.count({ where });
+  const totalPages = Math.max(Math.ceil(totalAuthors / AUTHORS_PER_PAGE), 1);
+  const currentPage = Math.min(page, totalPages);
+  const skip = (currentPage - 1) * AUTHORS_PER_PAGE;
+
+  const authorRecords = await prisma.user.findMany({
+    where,
+    skip,
+    take: AUTHORS_PER_PAGE,
+    orderBy: {
+      followers: {
+        _count: "desc",
+      },
+    },
+    include: {
+      articles: {
+        where: { status: "APPROVED" },
+        select: { id: true },
+      },
+      _count: {
+        select: {
+          followers: true,
+        },
+      },
+    },
+  });
+
+  const authors = authorRecords.map((author) => {
+    const displayName = (author.name ?? "").trim() || "نویسنده ناشناس";
+    return {
+      id: author.id,
+      name: displayName,
+      initials: displayName.charAt(0),
+      articleCount: author.articles.length,
+      followerCount: author._count.followers,
+    };
+  });
+
+  const token = cookies().get("token")?.value;
+  let followingIds = new Set<number>();
+
+  if (token && authors.length > 0) {
+    try {
+      const secretKey = process.env.JWT_SECRET;
+      if (!secretKey) {
+        throw new Error("JWT_SECRET is not configured");
+      }
+      const secret = new TextEncoder().encode(secretKey);
+      const { payload } = await jwtVerify(token, secret);
+      const currentUserId = (payload as JwtPayload).userId;
+
+      if (currentUserId) {
+        const followRecords = await prisma.follow.findMany({
+          where: {
+            followerId: currentUserId,
+            followingId: { in: authors.map((author) => author.id) },
+          },
+          select: { followingId: true },
+        });
+        followingIds = new Set(followRecords.map((record) => record.followingId));
       }
     } catch (error) {
-      console.error("Failed to fetch data:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("AUTHORS_FOLLOW_LOOKUP_FAILED", error);
     }
-  }, [searchQuery]);
+  }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchData(1); // Reset to page 1 on new search
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [fetchData]);
-
-  const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= (pagination?.totalPages || 1)) {
-      fetchData(newPage);
-    }
-  };
+  const hasResults = authors.length > 0;
+  const pageLinks = Array.from({ length: totalPages }, (_, index) => index + 1);
 
   return (
     <div className="min-h-screen bg-background">
       <section className="py-16 bg-journal-cream/30">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl font-bold text-journal mb-4">
-              نویسندگان مجله روانک
-            </h1>
-            <p className="text-xl text-journal-light mb-8">
-              آشنایی با نویسندگان و متخصصان حوزه‌های مختلف
-            </p>
-            <div className="relative max-w-lg mx-auto">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-journal-light h-4 w-4" />
+            <h1 className="text-4xl font-bold text-journal mb-4">نویسندگان مجله روانک</h1>
+            <p className="text-xl text-journal-light mb-8">آشنایی با نویسندگان و متخصصان حوزه‌های مختلف</p>
+            <form className="relative max-w-lg mx-auto" action="/authors" method="get">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-journal-light" />
               <Input
+                name="search"
                 placeholder="جستجوی نویسندگان..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                defaultValue={searchQuery}
                 className="pr-10 h-12 border-journal-green/20"
+                aria-label="جستجوی نویسنده"
               />
-            </div>
+            </form>
           </div>
         </div>
       </section>
@@ -110,76 +169,67 @@ const AuthorsPage = () => {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            {isLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-64 w-full" />
-                ))}
-              </div>
-            ) : authors.length > 0 ? (
+            {hasResults ? (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {authors.map((author) => (
-                    <Card
-                      key={author.id}
-                      className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft"
-                    >
+                    <Card key={author.id} className="group border-0 shadow-soft transition-all duration-300 hover:shadow-medium">
                       <CardContent className="p-6">
                         <div className="text-center">
-                          <Avatar className="h-20 w-20 mx-auto mb-4">
-                            <AvatarFallback className="text-xl bg-journal-green text-white">
-                              {author.name?.charAt(0) || "؟"}
+                          <Avatar className="mx-auto mb-4 h-20 w-20">
+                            <AvatarFallback className="bg-journal-green text-xl text-white">
+                              {author.initials}
                             </AvatarFallback>
                           </Avatar>
                           <Link href={`/authors/${author.id}`}>
-                            <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2">
+                            <h3 className="mb-2 font-bold text-lg text-journal transition-colors group-hover:text-journal-green">
                               {author.name}
                             </h3>
                           </Link>
-                          <div className="flex justify-around text-sm text-journal-light my-4">
+                          <div className="my-4 flex justify-around text-sm text-journal-light">
                             <div className="text-center">
-                              <div className="font-semibold text-journal">
-                                {author._count.followers}
-                              </div>
+                              <div className="font-semibold text-journal">{formatNumber(author.followerCount)}</div>
                               <div>دنبال‌کننده</div>
                             </div>
                             <div className="text-center">
-                              <div className="font-semibold text-journal">
-                                {author._count.articles}
-                              </div>
+                              <div className="font-semibold text-journal">{formatNumber(author.articleCount)}</div>
                               <div>مقاله</div>
                             </div>
                           </div>
-                          <FollowButton
-                            targetUserId={author.id}
-                            initialFollowing={followingIds.has(author.id)}
-                          />
+                          <FollowButton targetUserId={author.id} initialFollowing={followingIds.has(author.id)} />
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
 
-                {/* Pagination Component */}
-                {pagination && pagination.totalPages > 1 && (
+                {totalPages > 1 && (
                   <div className="mt-12">
                     <Pagination>
                       <PaginationContent>
                         <PaginationItem>
-                          <PaginationPrevious onClick={() => handlePageChange(pagination.page - 1)} />
+                          <PaginationPrevious
+                            href={buildPageHref(Math.max(currentPage - 1, 1), searchQuery)}
+                            className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                            aria-disabled={currentPage === 1}
+                          />
                         </PaginationItem>
-                        {[...Array(pagination.totalPages)].map((_, i) => (
-                          <PaginationItem key={i}>
+                        {pageLinks.map((pageNumber) => (
+                          <PaginationItem key={pageNumber}>
                             <PaginationLink
-                              isActive={pagination.page === i + 1}
-                              onClick={() => handlePageChange(i + 1)}
+                              href={buildPageHref(pageNumber, searchQuery)}
+                              isActive={pageNumber === currentPage}
                             >
-                              {i + 1}
+                              {pageNumber}
                             </PaginationLink>
                           </PaginationItem>
                         ))}
                         <PaginationItem>
-                          <PaginationNext onClick={() => handlePageChange(pagination.page + 1)} />
+                          <PaginationNext
+                            href={buildPageHref(Math.min(currentPage + 1, totalPages), searchQuery)}
+                            className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                            aria-disabled={currentPage === totalPages}
+                          />
                         </PaginationItem>
                       </PaginationContent>
                     </Pagination>
@@ -187,10 +237,8 @@ const AuthorsPage = () => {
                 )}
               </>
             ) : (
-              <div className="text-center py-12">
-                <p className="text-journal-light text-lg">
-                  هیچ نویسنده‌ای یافت نشد.
-                </p>
+              <div className="py-12 text-center">
+                <p className="text-lg text-journal-light">هیچ نویسنده‌ای یافت نشد.</p>
               </div>
             )}
           </div>

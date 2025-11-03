@@ -63,8 +63,9 @@ export function articleJsonLd(params: {
   publishDate: string;
   modifiedDate: string;
   authorName?: string | null;
+  authorUrl?: string | null;
 }) {
-  const { title, description, url, image, publishDate, modifiedDate, authorName } = params;
+  const { title, description, url, image, publishDate, modifiedDate, authorName, authorUrl } = params;
   return {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -74,12 +75,6 @@ export function articleJsonLd(params: {
     image: image ? [image] : undefined,
     datePublished: publishDate,
     dateModified: modifiedDate,
-    author: authorName
-      ? {
-          "@type": "Person",
-          name: authorName,
-        }
-      : undefined,
     publisher: {
       "@type": "Organization",
       name: "روانک",
@@ -88,6 +83,13 @@ export function articleJsonLd(params: {
         url: `${getDeploymentUrl() || url}/icons/icon-512x512.png`,
       },
     },
+    author: authorName
+      ? {
+          "@type": "Person",
+          name: authorName,
+          ...(authorUrl ? { url: authorUrl } : {}),
+        }
+      : undefined,
   };
 }
 
