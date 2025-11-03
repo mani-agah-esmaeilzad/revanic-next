@@ -13,24 +13,24 @@ import { buildCanonical, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 const canonicalHome = buildCanonical("/");
 
 export const metadata: Metadata = {
-  title: "مجله روانیک | جایی برای اشتراک دانش و تجربه",
+  title: "مجله روانک | جایی برای اشتراک دانش و تجربه",
   description:
-    "روانیک بستری فارسی برای مطالعه و انتشار مقالات باکیفیت در حوزه‌های فناوری، فرهنگ، تاریخ و سبک زندگی است.",
+    "روانک بستری فارسی برای مطالعه و انتشار مقالات باکیفیت در حوزه‌های فناوری، فرهنگ، تاریخ و سبک زندگی است.",
   ...(canonicalHome ? { alternates: { canonical: canonicalHome } } : {}),
   openGraph: {
-    title: "مجله روانیک | جایی برای اشتراک دانش و تجربه",
+    title: "مجله روانک | جایی برای اشتراک دانش و تجربه",
     description:
-      "روانیک جامعه‌ای برای نویسندگان و خوانندگان فارسی‌زبان است تا تجربه‌ها و دانش خود را در قالب مقاله به اشتراک بگذارند.",
+      "روانک جامعه‌ای برای نویسندگان و خوانندگان فارسی‌زبان است تا تجربه‌ها و دانش خود را در قالب مقاله به اشتراک بگذارند.",
     url: canonicalHome,
-    siteName: "روانیک",
+    siteName: "روانک",
     locale: "fa_IR",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "مجله روانیک",
+    title: "مجله روانک",
     description:
-      "بهترین مقالات فارسی در حوزه‌های مختلف را در روانیک بخوانید و تجربه خود را منتشر کنید.",
+      "بهترین مقالات فارسی در حوزه‌های مختلف را در روانک بخوانید و تجربه خود را منتشر کنید.",
   },
 };
 
@@ -113,7 +113,7 @@ const Index = async () => {
             </h1>
 
             <p className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-journal-light sm:text-xl">
-              در مجله روانیک، نویسندگان و خوانندگان فارسی‌زبان دور هم جمع می‌شوند تا
+              در مجله روانک، نویسندگان و خوانندگان فارسی‌زبان دور هم جمع می‌شوند تا
               بهترین مقالات را بخوانند، بنویسند و به اشتراک بگذارند.
             </p>
 
@@ -206,7 +206,7 @@ const Index = async () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 text-center sm:flex-row sm:gap-10 sm:text-right">
             <div className="flex-1 space-y-3">
-              <h2 className="text-2xl font-bold text-journal sm:text-3xl">سری‌های داستانی روانیک</h2>
+              <h2 className="text-2xl font-bold text-journal sm:text-3xl">سری‌های داستانی روانک</h2>
               <p className="text-sm text-journal-light sm:text-base">
                 مجموعه‌ای از مقالات دنباله‌دار که موضوعات مهم را مرحله‌به‌مرحله روایت می‌کند. با دنبال‌کردن هر سری
                 می‌توانید پیشرفت خود را ثبت کنید و قسمت بعدی را از دست ندهید.

@@ -14,20 +14,20 @@ import { buildCanonical, getDeploymentUrl, itemListJsonLd } from "@/lib/seo";
 const canonicalCategories = buildCanonical("/categories");
 
 export const metadata: Metadata = {
-  title: "دسته‌بندی‌های مقالات روانیک",
-  description: "تمام موضوعات فعال روانیک را مرور کنید و به سرعت به مقالات مرتبط در هر زمینه دسترسی پیدا کنید.",
+  title: "دسته‌بندی‌های مقالات روانک",
+  description: "تمام موضوعات فعال روانک را مرور کنید و به سرعت به مقالات مرتبط در هر زمینه دسترسی پیدا کنید.",
   ...(canonicalCategories ? { alternates: { canonical: canonicalCategories } } : {}),
   openGraph: {
-    title: "دسته‌بندی‌های مقالات روانیک",
-    description: "از فناوری تا فرهنگ، موضوعات متنوع روانیک را کاوش کنید.",
+    title: "دسته‌بندی‌های مقالات روانک",
+    description: "از فناوری تا فرهنگ، موضوعات متنوع روانک را کاوش کنید.",
     url: canonicalCategories,
     locale: "fa_IR",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "دسته‌بندی‌های روانیک",
-    description: "موضوع مورد علاقه خود را در روانیک پیدا کنید.",
+    title: "دسته‌بندی‌های روانک",
+    description: "موضوع مورد علاقه خود را در روانک پیدا کنید.",
   },
 };
 
@@ -106,7 +106,7 @@ const Categories = async () => {
             </Breadcrumb>
             <h1 className="text-4xl font-bold text-journal mb-4">دسته‌بندی مقالات</h1>
             <p className="text-xl text-journal-light mb-8">
-              موضوعات مختلف مجله روانیک را با داده‌های زنده جست‌وجو کنید
+              موضوعات مختلف مجله روانک را با داده‌های زنده جست‌وجو کنید
             </p>
           </div>
         </div>

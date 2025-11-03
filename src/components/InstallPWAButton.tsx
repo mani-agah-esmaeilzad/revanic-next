@@ -70,7 +70,7 @@ export const InstallPWAButton = () => {
                 <div className="flex items-center gap-3">
                     <Download className="h-8 w-8 text-primary" />
                     <div>
-                        <p className="font-bold">نصب اپلیکیشن Revanic</p>
+                        <p className="font-bold">نصب اپلیکیشن Revanac</p>
                         <p className="text-sm text-muted-foreground">
                             تجربه سریع‌تر و بهتر با افزودن به صفحه اصلی.
                         </p>

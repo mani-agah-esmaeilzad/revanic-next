@@ -89,7 +89,7 @@ const Register = () => {
     : 'ثبت‌نام و شروع رایگان';
 
   const subtitleCopy = ctaVariant === 'social_proof'
-    ? 'به جامعه فعال نویسندگان و خوانندگان روانیک بپیوندید.'
+    ? 'به جامعه فعال نویسندگان و خوانندگان روانک بپیوندید.'
     : 'شروع سفر نویسندگی شما از همین‌جا است.';
 
   return (
@@ -100,7 +100,7 @@ const Register = () => {
             <Logo size="lg" />
           </div>
           <CardTitle className="text-2xl font-bold text-journal">
-            ثبت نام در مجله روانیک
+            ثبت نام در مجله روانک
           </CardTitle>
           <p className="text-journal-light">{subtitleCopy}</p>
         </CardHeader>

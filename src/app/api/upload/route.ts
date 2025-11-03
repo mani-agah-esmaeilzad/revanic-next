@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           // می‌توانید پوشه‌ای در Cloudinary برای آپلودها تعیین کنید
-          folder: 'revanic_uploads', 
+          folder: 'revanac_uploads', 
         },
         (error, result) => {
           if (error) {

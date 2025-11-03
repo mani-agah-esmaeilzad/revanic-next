@@ -14,7 +14,7 @@ interface ExperimentContextValue {
 
 const ExperimentContext = createContext<ExperimentContextValue>({ assignments: {} });
 
-const STORAGE_PREFIX = 'revanic_experiment:';
+const STORAGE_PREFIX = 'revanac_experiment:';
 
 function buildSeed(source: string) {
   let hash = 0;

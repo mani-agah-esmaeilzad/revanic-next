@@ -18,19 +18,19 @@ import { buildCanonical, getDeploymentUrl, itemListJsonLd } from "@/lib/seo";
 const canonicalArticles = buildCanonical("/articles");
 
 export const metadata: Metadata = {
-  title: "آخرین مقالات روانیک",
-  description: "فهرست به‌روز مقالات تأییدشده روانیک را براساس موضوع، زمان مطالعه و محبوبیت مرور کنید.",
+  title: "آخرین مقالات روانک",
+  description: "فهرست به‌روز مقالات تأییدشده روانک را براساس موضوع، زمان مطالعه و محبوبیت مرور کنید.",
   ...(canonicalArticles ? { alternates: { canonical: canonicalArticles } } : {}),
   openGraph: {
-    title: "آخرین مقالات روانیک",
-    description: "مقالات منتخب و تازه‌منتشرشده را در روانیک دنبال کنید.",
+    title: "آخرین مقالات روانک",
+    description: "مقالات منتخب و تازه‌منتشرشده را در روانک دنبال کنید.",
     url: canonicalArticles,
     type: "website",
     locale: "fa_IR",
   },
   twitter: {
     card: "summary_large_image",
-    title: "آخرین مقالات روانیک",
+    title: "آخرین مقالات روانک",
     description: "مقالات فارسی باکیفیت را براساس دسته‌بندی و زمان مطالعه بیابید.",
   },
 };

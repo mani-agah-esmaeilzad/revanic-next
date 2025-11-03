@@ -15,7 +15,7 @@ const About = () => {
         {
             icon: Users,
             title: "جامعه‌محوری",
-            description: "مجله روانیک متعلق به جامعه نویسندگان و خوانندگان فارسی‌زبان است. ما صدای همه را می‌شنویم."
+            description: "مجله روانک متعلق به جامعه نویسندگان و خوانندگان فارسی‌زبان است. ما صدای همه را می‌شنویم."
         },
         {
             icon: Target,
@@ -54,11 +54,11 @@ const About = () => {
                         </div>
 
                         <h1 className="text-4xl md:text-5xl font-bold text-journal mb-6 leading-tight">
-                            داستان مجله روانیک
+                            داستان مجله روانک
                         </h1>
 
                         <p className="text-xl text-journal-light max-w-3xl mx-auto leading-relaxed">
-                            مجله روانیک با هدف ایجاد فضایی برای اشتراک دانش و تجربیات نویسندگان فارسی‌زبان
+                            مجله روانک با هدف ایجاد فضایی برای اشتراک دانش و تجربیات نویسندگان فارسی‌زبان
                             در سال ۱۴۰۴ تأسیس شد. ما معتقدیم که هر فردی داستانی برای گفتن دارد.
                         </p>
                     </div>
@@ -117,7 +117,7 @@ const About = () => {
                         <div className="text-center mb-12">
                             <h2 className="text-3xl font-bold text-journal mb-4">ارزش‌های ما</h2>
                             <p className="text-journal-light max-w-2xl mx-auto">
-                                اصول و باورهایی که راه ما را در مجله روانیک تعیین می‌کنند
+                                اصول و باورهایی که راه ما را در مجله روانک تعیین می‌کنند
                             </p>
                         </div>
 
@@ -149,7 +149,7 @@ const About = () => {
                         <div className="text-center mb-12">
                             <h2 className="text-3xl font-bold text-journal mb-4">تیم ما</h2>
                             <p className="text-journal-light max-w-2xl mx-auto">
-                                افرادی که با تلاش و عشق، مجله روانیک را می‌سازند
+                                افرادی که با تلاش و عشق، مجله روانک را می‌سازند
                             </p>
                         </div>
 
@@ -177,7 +177,7 @@ const About = () => {
             <section className="py-16 bg-gradient-hero">
                 <div className="container mx-auto px-4">
                     <div className="max-w-4xl mx-auto text-center text-white">
-                        <h2 className="text-3xl font-bold mb-12">مجله روانیک در اعداد</h2>
+                        <h2 className="text-3xl font-bold mb-12">مجله روانک در اعداد</h2>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                             <div>
                                 <div className="text-4xl font-bold mb-2">۱۲۰۰+</div>
@@ -208,7 +208,7 @@ const About = () => {
                             با ما همراه شوید
                         </h2>
                         <p className="text-xl text-journal-light mb-8">
-                            بخشی از داستان مجله روانیک شوید و صدای خود را به گوش جهان برسانید
+                            بخشی از داستان مجله روانک شوید و صدای خود را به گوش جهان برسانید
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link href={`/register/`}>

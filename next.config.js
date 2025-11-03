@@ -4,7 +4,7 @@ const runtimeCaching = [
         urlPattern: /^https?:\/\/res\.cloudinary\.com\/.*$/,
         handler: "CacheFirst",
         options: {
-            cacheName: "revanic-images",
+            cacheName: "revanac-images",
             expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
             cacheableResponse: { statuses: [0, 200] },
         },
@@ -13,7 +13,7 @@ const runtimeCaching = [
         urlPattern: /^https?:\/\/fonts\.gstatic\.com\/.*$/,
         handler: "CacheFirst",
         options: {
-            cacheName: "revanic-fonts",
+            cacheName: "revanac-fonts",
             expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
         },
     },
@@ -21,7 +21,7 @@ const runtimeCaching = [
         urlPattern: ({ request }) => request.destination === "document" || request.destination === "script",
         handler: "NetworkFirst",
         options: {
-            cacheName: "revanic-pages",
+            cacheName: "revanac-pages",
             networkTimeoutSeconds: 10,
             expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
         },

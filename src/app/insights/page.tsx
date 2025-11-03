@@ -105,7 +105,7 @@ const InsightsPage = async () => {
               گزارش رشد جامعه
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-journal leading-tight">
-              تصویر ماهانه فعالیت نویسندگان و خوانندگان روانیک
+              تصویر ماهانه فعالیت نویسندگان و خوانندگان روانک
             </h1>
             <p className="text-lg text-journal-light leading-relaxed">
               این گزارش خلاصه‌ای از مشارکت نویسندگان، روند انتشار مقالات و رفتار مطالعه کاربران در سی روز گذشته است.

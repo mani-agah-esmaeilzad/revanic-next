@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { SupportCenter } from "@/components/SupportCenter";
 
 export const metadata: Metadata = {
-  title: "پشتیبانی روانیک",
-  description: "ارسال و پیگیری تیکت‌های پشتیبانی در مجله روانیک",
+  title: "پشتیبانی روانک",
+  description: "ارسال و پیگیری تیکت‌های پشتیبانی در مجله روانک",
 };
 
 export default function SupportPage() {

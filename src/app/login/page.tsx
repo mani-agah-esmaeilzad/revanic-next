@@ -55,7 +55,7 @@ const Login = () => {
           <CardTitle className="text-2xl font-bold text-journal">
             ورود به حساب کاربری
           </CardTitle>
-          <p className="text-journal-light">به مجله روانیک خوش آمدید</p>
+          <p className="text-journal-light">به مجله روانک خوش آمدید</p>
         </CardHeader>
 
         <CardContent className="space-y-4">

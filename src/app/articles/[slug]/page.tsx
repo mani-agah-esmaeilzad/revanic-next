@@ -77,8 +77,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   if (!article) {
     return {
-      title: "مقاله یافت نشد | روانیک",
-      description: "مقاله مورد نظر شما در روانیک پیدا نشد.",
+      title: "مقاله یافت نشد | روانک",
+      description: "مقاله مورد نظر شما در روانک پیدا نشد.",
     };
   }
 
@@ -86,11 +86,11 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const canonical = buildCanonical(`/articles/${article.slug}`);
 
   return {
-    title: `${article.title} | روانیک`,
+    title: `${article.title} | روانک`,
     description,
     ...(canonical ? { alternates: { canonical } } : {}),
     openGraph: {
-      title: `${article.title} | روانیک`,
+      title: `${article.title} | روانک`,
       description,
       type: "article",
       url: canonical,

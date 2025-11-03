@@ -38,9 +38,9 @@ const PublicationsPage = async () => {
       <section className="py-16 bg-muted/20">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto text-center space-y-6">
-            <h1 className="text-4xl font-bold text-foreground">انتشارات روانیک</h1>
+            <h1 className="text-4xl font-bold text-foreground">انتشارات روانک</h1>
             <p className="text-lg text-muted-foreground">
-              از نشریات تخصصی و جمعی روانیک بازدید کنید و با نویسندگان حرفه‌ای همکاری داشته باشید.
+              از نشریات تخصصی و جمعی روانک بازدید کنید و با نویسندگان حرفه‌ای همکاری داشته باشید.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card className="border-0 shadow-soft">
@@ -126,7 +126,7 @@ const PublicationsPage = async () => {
             <div className="text-center space-y-3">
               <h2 className="text-2xl font-bold text-foreground">داستان‌های موفقیت انتشارات</h2>
               <p className="text-muted-foreground">
-                روایت‌هایی از همکاری تیمی در نشریات مختلف روانیک که می‌تواند الهام‌بخش برنامهٔ بعدی شما باشد.
+                روایت‌هایی از همکاری تیمی در نشریات مختلف روانک که می‌تواند الهام‌بخش برنامهٔ بعدی شما باشد.
               </p>
             </div>
 

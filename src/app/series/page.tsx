@@ -23,7 +23,7 @@ const SeriesPage = async () => {
         <div className="mx-auto mt-16 max-w-lg rounded-3xl bg-journal-cream/40 p-10 text-center">
           <p className="text-lg font-semibold text-journal">هنوز سری‌ای منتشر نشده است.</p>
           <p className="mt-2 text-sm text-journal-light">
-            اگر دوست دارید موضوعی را به‌صورت سلسله‌وار پوشش دهید، اولین سری روانیک را شما بسازید.
+            اگر دوست دارید موضوعی را به‌صورت سلسله‌وار پوشش دهید، اولین سری روانک را شما بسازید.
           </p>
           <Button asChild className="mt-6">
             <Link href="/write">شروع نوشتن یک سری جدید</Link>

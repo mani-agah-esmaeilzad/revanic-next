@@ -19,7 +19,7 @@ const Logo = ({ size = "md", className }: LogoProps) => {
     <div className={cn("flex items-center gap-2", className)}>
       <img
         src="/lovable-uploads/a967c9ca-f718-42ce-a45b-07ccc9d9f0c5.png"
-        alt="مجله روانیک"
+        alt="مجله روانک"
         className={cn("object-contain", sizeClasses[size])}
       />
     </div>

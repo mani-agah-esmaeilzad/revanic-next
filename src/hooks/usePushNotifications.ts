@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { applyJourneyHeader } from '@/hooks/useEventTracker';
 
-const STORAGE_KEY = 'revanic_push_enabled';
+const STORAGE_KEY = 'revanac_push_enabled';
 
 const hasNotificationSupport = () =>
   typeof window !== 'undefined' && 'Notification' in window && typeof Notification !== 'undefined';

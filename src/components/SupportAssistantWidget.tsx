@@ -176,7 +176,7 @@ export function SupportAssistantWidget() {
         <div className="w-[320px] max-w-[90vw] rounded-3xl border border-border bg-background/95 shadow-xl backdrop-blur">
           <div className="flex items-start justify-between gap-4 rounded-t-3xl bg-gradient-to-l from-primary/10 to-primary/5 px-5 py-4">
             <div>
-              <p className="text-sm font-semibold text-foreground">دستیار روانیک</p>
+              <p className="text-sm font-semibold text-foreground">دستیار روانک</p>
               <p className="text-xs text-muted-foreground">گفت‌وگوی فوری دربارهٔ سایت</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>

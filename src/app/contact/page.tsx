@@ -35,7 +35,7 @@ const Contact = () => {
     {
       icon: Mail,
       title: "ایمیل",
-      content: "info@revanic.ir",
+      content: "info@revanac.ir",
       description: "برای سوالات عمومی"
     },
     {
@@ -48,7 +48,7 @@ const Contact = () => {
       icon: MapPin,
       title: "آدرس",
       content: "تهران، خیابان ولیعصر",
-      description: "دفتر مرکزی مجله روانیک"
+      description: "دفتر مرکزی مجله روانک"
     },
     {
       icon: Clock,
@@ -81,7 +81,7 @@ const Contact = () => {
               تماس با ما
             </h1>
             <p className="text-xl text-journal-light mb-8">
-              سوالات، پیشنهادات و نظرات خود را با تیم مجله روانیک در میان بگذارید
+              سوالات، پیشنهادات و نظرات خود را با تیم مجله روانک در میان بگذارید
             </p>
           </div>
         </div>
@@ -260,7 +260,7 @@ const Contact = () => {
               <div className="w-full h-64 bg-journal-green/20 rounded-lg flex items-center justify-center">
                 <div className="text-center">
                   <MapPin className="h-12 w-12 text-journal-green mx-auto mb-4" />
-                  <p className="text-journal font-medium">نقشه دفتر مجله روانیک</p>
+                  <p className="text-journal font-medium">نقشه دفتر مجله روانک</p>
                   <p className="text-journal-light text-sm mt-2">تهران، خیابان ولیعصر</p>
                 </div>
               </div>

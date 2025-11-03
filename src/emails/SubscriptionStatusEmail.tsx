@@ -16,7 +16,7 @@ export const SubscriptionStatusEmail: React.FC<Readonly<SubscriptionStatusEmailP
     return (
         <Html lang="fa" dir="rtl">
             <Heading as="h1">
-                وضعیت اشتراک دانشجویی شما در روانیک
+                وضعیت اشتراک دانشجویی شما در روانک
             </Heading>
             <Text>سلام {userName || 'کاربر عزیز'}،</Text>
             <Text>
@@ -54,7 +54,7 @@ export const SubscriptionStatusEmail: React.FC<Readonly<SubscriptionStatusEmailP
             </Button>
             <Hr />
             <Text>با احترام،</Text>
-            <Text>تیم روانیک</Text>
+            <Text>تیم روانک</Text>
         </Html>
     );
 };

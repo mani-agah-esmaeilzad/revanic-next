@@ -14,7 +14,7 @@ interface EmailResult {
 }
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'no-reply@revanic.local';
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'no-reply@revanac.local';
 
 export async function sendSeriesReleaseEmail(payload: SeriesReleaseEmailPayload): Promise<EmailResult> {
   if (!RESEND_API_KEY) {

@@ -268,7 +268,7 @@ export const SupportCenter = () => {
   return (
     <div className="space-y-8">
       <div className="space-y-3 text-center">
-        <h1 className="text-3xl font-bold text-journal">پشتیبانی روانیک</h1>
+        <h1 className="text-3xl font-bold text-journal">پشتیبانی روانک</h1>
         <p className="text-muted-foreground">
           اگر سوال، مشکل یا پیشنهادی دارید، از این بخش برای ارتباط مستقیم با تیم پشتیبانی استفاده کنید.
         </p>

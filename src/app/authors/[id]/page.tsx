@@ -24,8 +24,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const authorId = Number(params.id);
   if (Number.isNaN(authorId)) {
     return {
-      title: "پروفایل نویسنده | روانیک",
-      description: "پروفایل نویسنده در روانیک.",
+      title: "پروفایل نویسنده | روانک",
+      description: "پروفایل نویسنده در روانک.",
     };
   }
 
@@ -40,20 +40,20 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
   if (!author) {
     return {
-      title: "نویسنده یافت نشد | روانیک",
-      description: "پروفایل نویسنده مورد نظر در روانیک موجود نیست.",
+      title: "نویسنده یافت نشد | روانک",
+      description: "پروفایل نویسنده مورد نظر در روانک موجود نیست.",
     };
   }
 
   const canonical = buildCanonical(`/authors/${authorId}`);
-  const description = author.bio?.slice(0, 160) || `${author.name ?? "نویسنده"} در روانیک فعال است.`;
+  const description = author.bio?.slice(0, 160) || `${author.name ?? "نویسنده"} در روانک فعال است.`;
 
   return {
-    title: `${author.name ?? "نویسنده"} | روانیک`,
+    title: `${author.name ?? "نویسنده"} | روانک`,
     description,
     ...(canonical ? { alternates: { canonical } } : {}),
     openGraph: {
-      title: `${author.name ?? "نویسنده"} | روانیک`,
+      title: `${author.name ?? "نویسنده"} | روانک`,
       description,
       url: canonical,
       type: "profile",
@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     },
     twitter: {
       card: "summary_large_image",
-      title: author.name ?? "نویسنده روانیک",
+      title: author.name ?? "نویسنده روانک",
       description,
     },
   };
@@ -131,7 +131,7 @@ const AuthorProfilePage = async ({ params }: { params: { id: string } }) => {
   const canonical = buildCanonical(`/authors/${author.id}`);
   const profileUrl = canonical || (siteUrl ? `${siteUrl}/authors/${author.id}` : `/authors/${author.id}`);
   const personSchema = personJsonLd({
-    name: author.name ?? "نویسنده روانیک",
+    name: author.name ?? "نویسنده روانک",
     url: profileUrl,
     image: author.avatarUrl,
     description: author.bio ? toPlainText(author.bio) : undefined,

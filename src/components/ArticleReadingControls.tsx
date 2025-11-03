@@ -61,7 +61,7 @@ export const ArticleReadingControls = ({
   });
 
   useEffect(() => {
-    const stored = localStorage.getItem('revanic_reading_mode');
+    const stored = localStorage.getItem('revanac_reading_mode');
     if (stored === '1') {
       setReadingMode(true);
       document.body.classList.add('reading-mode');
@@ -75,10 +75,10 @@ export const ArticleReadingControls = ({
     setReadingMode(value);
     if (value) {
       document.body.classList.add('reading-mode');
-      localStorage.setItem('revanic_reading_mode', '1');
+      localStorage.setItem('revanac_reading_mode', '1');
     } else {
       document.body.classList.remove('reading-mode');
-      localStorage.removeItem('revanic_reading_mode');
+      localStorage.removeItem('revanac_reading_mode');
     }
   };
 

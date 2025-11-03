@@ -1,5 +1,5 @@
 // src/lib/offline-cache.ts
-const DB_NAME = 'revanic-offline';
+const DB_NAME = 'revanac-offline';
 const STORE_NAME = 'articles';
 const VERSION = 1;
 

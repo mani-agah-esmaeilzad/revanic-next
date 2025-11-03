@@ -16,11 +16,11 @@ export function buildCanonical(pathname: string): string | undefined {
 }
 
 export function organizationJsonLd() {
-  const url = getDeploymentUrl() || "https://revanic.example";
+  const url = getDeploymentUrl() || "https://revanac.example";
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "روانیک",
+    name: "روانک",
     url,
     logo: `${url}/icons/icon-512x512.png`,
     sameAs: ["https://www.instagram.com", "https://www.linkedin.com"],
@@ -28,11 +28,11 @@ export function organizationJsonLd() {
 }
 
 export function webSiteJsonLd() {
-  const url = getDeploymentUrl() || "https://revanic.example";
+  const url = getDeploymentUrl() || "https://revanac.example";
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "مجله روانیک",
+    name: "مجله روانک",
     url,
     potentialAction: {
       "@type": "SearchAction",
@@ -82,7 +82,7 @@ export function articleJsonLd(params: {
       : undefined,
     publisher: {
       "@type": "Organization",
-      name: "روانیک",
+      name: "روانک",
       logo: {
         "@type": "ImageObject",
         url: `${getDeploymentUrl() || url}/icons/icon-512x512.png`,

@@ -20,7 +20,7 @@ export const ArticleStatusEmail: React.FC<Readonly<ArticleStatusEmailProps>> = (
   return (
     <Html lang="fa" dir="rtl">
       <Heading as="h1">
-        وضعیت مقاله شما در روانیک به‌روزرسانی شد
+        وضعیت مقاله شما در روانک به‌روزرسانی شد
       </Heading>
       <Text>سلام {authorName || 'نویسنده عزیز'}،</Text>
       <Text>
@@ -58,7 +58,7 @@ export const ArticleStatusEmail: React.FC<Readonly<ArticleStatusEmailProps>> = (
       </Button>
       <Hr />
       <Text>با احترام،</Text>
-      <Text>تیم مدیریت محتوای روانیک</Text>
+      <Text>تیم مدیریت محتوای روانک</Text>
     </Html>
   );
 };

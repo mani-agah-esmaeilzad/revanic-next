@@ -36,10 +36,10 @@ const EditorialGuidePage = async () => {
               راهنمای نویسندگان
             </Badge>
             <h1 className="text-4xl md:text-5xl font-bold text-journal leading-tight">
-              لحن، ساختار و تقویم انتشار در روانیک
+              لحن، ساختار و تقویم انتشار در روانک
             </h1>
             <p className="text-lg text-journal-light leading-relaxed">
-              این راهنما برای همسویی با ارزش‌های جامعه روانیک تدوین شده است تا هر نویسنده‌ای بتواند
+              این راهنما برای همسویی با ارزش‌های جامعه روانک تدوین شده است تا هر نویسنده‌ای بتواند
               روایت خود را با کیفیتی حرفه‌ای و لحن فارسی روان منتشر کند.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -170,7 +170,7 @@ const EditorialGuidePage = async () => {
           <div className="max-w-4xl mx-auto bg-gradient-to-br from-journal-green to-journal rounded-3xl text-white p-10 space-y-4 shadow-medium">
             <h2 className="text-3xl font-bold">چطور با تیم سردبیری همکاری کنیم؟</h2>
             <p className="text-base leading-relaxed opacity-95">
-              اگر برای موضوع، انتخاب منابع یا برنامه‌ریزی انتشار به راهنمایی بیشتری نیاز دارید، تیم سردبیری روانیک با کمال میل کنار شماست.
+              اگر برای موضوع، انتخاب منابع یا برنامه‌ریزی انتشار به راهنمایی بیشتری نیاز دارید، تیم سردبیری روانک با کمال میل کنار شماست.
               کافی است از طریق پشتیبانی پیام دهید یا در رویدادهای ماهانه حضور پیدا کنید.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">

@@ -35,7 +35,7 @@ export const CommunitySpotlight = ({ stories }: CommunitySpotlightProps) => {
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center mb-12 space-y-4">
           <Badge className="bg-journal-green text-white px-4 py-1 rounded-full text-sm">صدای جامعه</Badge>
-          <h2 className="text-3xl font-bold text-journal">داستان‌های موفقیت اعضای روانیک</h2>
+          <h2 className="text-3xl font-bold text-journal">داستان‌های موفقیت اعضای روانک</h2>
           <p className="text-journal-light text-lg">
             روایت‌هایی از نویسندگانی که با اشتراک تجربه، موجی از همکاری و یادگیری ساختند.
           </p>
@@ -99,7 +99,7 @@ export const CommunitySpotlight = ({ stories }: CommunitySpotlightProps) => {
           <div>
             <h3 className="text-xl font-semibold text-journal mb-1">شما هم تجربه‌ای الهام‌بخش دارید؟</h3>
             <p className="text-sm text-journal-light">
-              داستان خود را برای ما بفرستید تا در ویترین جامعه روانیک منتشر شود.
+              داستان خود را برای ما بفرستید تا در ویترین جامعه روانک منتشر شود.
             </p>
           </div>
           <div className="flex items-center gap-3">

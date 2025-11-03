@@ -75,9 +75,9 @@ export async function PATCH(req: Request) {
         // --- ارسال ایمیل وضعیت اشتراک ---
         try {
             await resend.emails.send({
-                from: 'Revanic <alerts@resend.dev>',
+                from: 'Revanac <alerts@resend.dev>',
                 to: [subscription.user.email],
-                subject: 'وضعیت اشتراک دانشجویی شما در روانیک',
+                subject: 'وضعیت اشتراک دانشجویی شما در روانک',
                 react: SubscriptionStatusEmail({
                     userName: subscription.user.name || '',
                     status: status

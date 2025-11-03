@@ -13,8 +13,8 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const vazirmatn = Vazirmatn({ subsets: ["arabic"] });
 
 export const metadata: Metadata = {
-  title: "Revanic - پلتفرم تولید محتوا",
-  description: "جدیدترین مقالات و مطالب را در Revanic بخوانید و منتشر کنید.",
+  title: "Revanac - پلتفرم تولید محتوا",
+  description: "جدیدترین مقالات و مطالب را در Revanac بخوانید و منتشر کنید.",
   manifest: "/manifest.json",
 };
 

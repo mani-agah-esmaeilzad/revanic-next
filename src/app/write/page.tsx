@@ -51,7 +51,7 @@ interface Publication {
     name: string;
 }
 
-const DRAFT_KEY = 'revanic_article_draft'; // کلید برای ذخیره پیش‌نویس در localStorage
+const DRAFT_KEY = 'revanac_article_draft'; // کلید برای ذخیره پیش‌نویس در localStorage
 
 // تابع برای دریافت انتشارات کاربر (برای React Query)
 const fetchUserPublications = async (): Promise<Publication[]> => {

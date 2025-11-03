@@ -63,9 +63,9 @@ export async function POST(req: Request) {
     // --- ارسال ایمیل خوش‌آمدگویی ---
     try {
       await resend.emails.send({
-        from: 'Revanic <onboarding@resend.dev>',
+        from: 'Revanac <onboarding@resend.dev>',
         to: [user.email],
-        subject: 'به روانیک خوش آمدید!',
+        subject: 'به روانک خوش آمدید!',
         react: WelcomeEmail({ name: user.name || '' }),
       });
     } catch (emailError) {

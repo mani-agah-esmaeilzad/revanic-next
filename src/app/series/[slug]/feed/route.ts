@@ -42,7 +42,7 @@ export async function GET(_: Request, { params }: { params: { slug: string } }) 
     <channel>
       <title>${escapeXml(series.title)}</title>
       <link>${escapeXml(seriesUrl)}</link>
-      <description>${escapeXml(series.description ?? 'سری مقالات در روانیک')}</description>
+      <description>${escapeXml(series.description ?? 'سری مقالات در روانک')}</description>
       <language>fa-IR</language>
       <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
       <atom:link href="${escapeXml(feedUrl)}" rel="self" type="application/rss+xml" />

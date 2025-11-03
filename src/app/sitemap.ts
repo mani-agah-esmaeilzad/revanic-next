@@ -5,7 +5,7 @@ import { getDeploymentUrl } from "@/lib/seo";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getDeploymentUrl();
-  const origin = baseUrl ? baseUrl.replace(/\/$/, "") : "https://revanic.example";
+  const origin = baseUrl ? baseUrl.replace(/\/$/, "") : "https://revanac.example";
 
   let articles: Array<{ slug: string; updatedAt: Date }> = [];
   let series: Array<{ slug: string; updatedAt: Date }> = [];

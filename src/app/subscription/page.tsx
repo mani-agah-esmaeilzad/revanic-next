@@ -204,11 +204,11 @@ const Subscription = () => {
             </CardHeader>
             <CardContent className="text-center">
               <p className="text-journal-light mb-4">
-                ما در روانیک معتقدیم که دانش باید برای همه در دسترس باشه. اگر توانایی مالی برای تهیه اشتراک رو نداری، هیچ اشکالی نداره. کافیه به آیدی تلگرام ما یک پیام بدی و ما یک اکانت رایگان برات فعال می‌کنیم.
+                ما در روانک معتقدیم که دانش باید برای همه در دسترس باشه. اگر توانایی مالی برای تهیه اشتراک رو نداری، هیچ اشکالی نداره. کافیه به آیدی تلگرام ما یک پیام بدی و ما یک اکانت رایگان برات فعال می‌کنیم.
               </p>
               <Button variant="link" asChild>
-                <a href="https://t.me/RevanicSupport" target="_blank" rel="noopener noreferrer" className="text-lg text-journal-orange">
-                  ارسال پیام به تلگرام: @RevanicSupport
+                <a href="https://t.me/RevanacSupport" target="_blank" rel="noopener noreferrer" className="text-lg text-journal-orange">
+                  ارسال پیام به تلگرام: @RevanacSupport
                 </a>
               </Button>
             </CardContent>
