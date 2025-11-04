@@ -8,6 +8,7 @@ import { generateArticleSlug } from "@/lib/article-slug";
 import { requireEditorAccess } from "@/lib/articles/permissions";
 import { calculateReadTime } from "@/lib/utils";
 import { notifyArticleSubmission } from "@/lib/telegram";
+import { translateArticleToEnglish, GeminiTranslationError } from "@/lib/gemini";
 
 interface JwtPayload {
   userId: number;
@@ -57,6 +58,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       categoryIds?: unknown;
       coverImageUrl?: unknown;
       publicationId?: unknown;
+      translateToEnglish?: unknown;
     };
 
     const {
@@ -67,6 +69,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       categoryIds,
       coverImageUrl,
       publicationId,
+      translateToEnglish,
     } = body;
 
     const data: Prisma.ArticleUpdateInput = {};
@@ -140,6 +143,46 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     if (typeof published === "boolean") {
       nextStatus = published ? "PENDING" : "DRAFT";
       data.status = nextStatus;
+    }
+
+    const resolvedTitle =
+      typeof title === "string" && title.trim() ? title : existingArticle.title;
+    const resolvedContent =
+      typeof content === "string" ? content : existingArticle.content;
+
+    let translationResult:
+      | {
+          title: string;
+          content: string;
+        }
+      | null
+      | undefined = undefined;
+
+    if (typeof translateToEnglish === "boolean") {
+      if (translateToEnglish) {
+        try {
+          translationResult = await translateArticleToEnglish({
+            title: resolvedTitle,
+            content: resolvedContent,
+          });
+        } catch (error) {
+          if (error instanceof GeminiTranslationError) {
+            const statusCode = error.status ?? 502;
+            return NextResponse.json({ message: error.message }, { status: statusCode });
+          }
+          throw error;
+        }
+      } else {
+        translationResult = null;
+      }
+    }
+
+    if (translationResult !== undefined) {
+      data.translatedTitle = translationResult?.title ?? null;
+      data.translatedContent = translationResult?.content ?? null;
+      data.translationProvider = translationResult ? "GEMINI" : null;
+      data.translationUpdatedAt = translationResult ? new Date() : null;
+      data.isBilingual = Boolean(translationResult);
     }
 
     if (Object.keys(data).length === 0) {

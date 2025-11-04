@@ -4,6 +4,14 @@ import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 import { ProfileClient } from "@/components/ProfileClient";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "پروفایل کاربری روانک",
+  description: "پروفایل خود در مجله روانک را مدیریت کنید، پیشرفت نگارش و اشتراک خود را ببینید.",
+  path: "/profile",
+  keywords: ["پروفایل روانک", "حساب کاربری روانک"],
+});
 
 const ProfilePage = async () => {
   const cookieStore = cookies();

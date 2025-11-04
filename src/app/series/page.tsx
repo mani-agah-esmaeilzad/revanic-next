@@ -5,6 +5,14 @@ import SeriesCard from "@/components/SeriesCard";
 import { Button } from "@/components/ui/button";
 import { getUserIdFromSessionCookie } from "@/lib/auth-session";
 import { getPublishedSeriesList } from "@/lib/series";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "سری‌های داستانی روانک",
+  description: "سری‌های دنباله‌دار روانک را مرور کنید و در موضوعات تخصصی به‌صورت مرحله‌به‌مرحله مطالعه کنید.",
+  path: "/series",
+  keywords: ["سری مقالات", "سری‌های روانک", "مقالات دنباله‌دار"],
+});
 
 const SeriesPage = async () => {
   const userId = await getUserIdFromSessionCookie();

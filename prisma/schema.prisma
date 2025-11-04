@@ -54,6 +54,11 @@ model Article {
   slug            String  @unique
   title           String
   content         String
+  translatedTitle     String?
+  translatedContent   String?
+  translationProvider String?
+  translationUpdatedAt DateTime?
+  isBilingual         Boolean @default(false)
   readTimeMinutes Int?
   coverImageUrl   String?
   status          String  @default("PENDING")

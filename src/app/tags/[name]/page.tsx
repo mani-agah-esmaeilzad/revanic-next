@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import ArticleCard from "@/components/ArticleCard";
 import { Pagination } from "@/components/Pagination"; // <-- ایمپورت کامپوننت
+import type { Metadata } from "next";
+import { buildCanonical } from "@/lib/seo";
 
 const ARTICLES_PER_PAGE = 10; // <-- تعداد مقالات در هر صفحه
 
@@ -13,6 +15,41 @@ interface TagPageProps {
     searchParams: {
         page?: string;
     };
+}
+
+export async function generateMetadata({ params }: { params: { name: string } }): Promise<Metadata> {
+  const tagName = decodeURIComponent(params.name);
+  const tag = await prisma.tag.findUnique({
+    where: { name: tagName },
+    select: { name: true },
+  });
+
+  if (!tag) {
+    return {
+      title: "تگ یافت نشد | روانک",
+      description: "تگ مورد نظر در مجله روانک پیدا نشد.",
+    };
+  }
+
+  const canonical = buildCanonical(`/tags/${encodeURIComponent(tag.name)}`);
+  const description = `آخرین مقالات مرتبط با تگ «${tag.name}» را در مجله روانک دنبال کنید.`;
+
+  return {
+    title: `مقالات «${tag.name}» | روانک`,
+    description,
+    ...(canonical ? { alternates: { canonical } } : {}),
+    openGraph: {
+      title: `مقالات «${tag.name}» | روانک`,
+      description,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: `مقالات «${tag.name}»`,
+      description,
+    },
+  };
 }
 
 const TagPage = async ({ params, searchParams }: TagPageProps) => {

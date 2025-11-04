@@ -11,6 +11,15 @@ import {
   getEditorialCalendarEntries,
 } from "@/lib/editorial-guide";
 import Link from "next/link";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "راهنمای سردبیری روانک",
+  description:
+    "با ارزش‌ها، تقویم انتشار و استانداردهای سردبیری مجله روانک آشنا شوید تا محتوایی هم‌سو با جامعه منتشر کنید.",
+  path: "/editorial-guide",
+  keywords: ["راهنمای سردبیری روانک", "سیاست‌های انتشار روانک", "تقویم سردبیری"],
+});
 
 const EditorialGuidePage = async () => {
   await ensureEditorialCalendarEntries();

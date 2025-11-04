@@ -1,9 +1,17 @@
-'use-client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, Users, Target, Award, Heart, Lightbulb } from "lucide-react";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "درباره مجله روانک",
+  description:
+    "با داستان شکل‌گیری، ارزش‌ها و تیم مجله روانک آشنا شوید؛ خانه‌ای برای نویسندگان و خوانندگان فارسی‌زبان.",
+  path: "/about",
+  keywords: ["درباره روانک", "مجله روانک", "معرفی روانک"],
+});
 
 const About = () => {
     const values = [

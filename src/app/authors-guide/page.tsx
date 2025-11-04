@@ -1,5 +1,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { PenTool, BookOpen, Users, Star } from "lucide-react";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "راهنمای نویسندگان روانک",
+  description: "با استانداردهای نگارش، فرآیند انتشار و نکات حرفه‌ای برای نویسندگان مجله روانک آشنا شوید.",
+  path: "/authors-guide",
+  keywords: ["راهنمای نویسندگان روانک", "قوانین انتشار روانک", "آموزش نویسندگی"],
+});
 
 const AuthorsGuide = () => {
     return (

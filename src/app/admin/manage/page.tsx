@@ -1,5 +1,13 @@
 // src/app/admin/manage/page.tsx
-import { AdminDashboard } from '@/components/AdminDashboard';
+import { AdminDashboard } from "@/components/AdminDashboard";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "مدیریت پیشرفته روانک",
+  description: "ماژول‌های مدیریت داده و بررسی جزئیات محتوای مجله روانک.",
+  path: "/admin/manage",
+  keywords: ["مدیریت محتوا", "ادمین روانک"],
+});
 
 const AdminManagePage = () => {
     return (

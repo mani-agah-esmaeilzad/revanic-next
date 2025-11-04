@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { calculateReadTime } from "@/lib/utils";
 import { generateArticleSlug } from "@/lib/article-slug";
 import { notifyArticleSubmission } from "@/lib/telegram";
+import { translateArticleToEnglish, GeminiTranslationError } from "@/lib/gemini";
 
 export async function POST(req: Request) {
   const token = cookies().get("token")?.value;
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
       coverImageUrl,
       publicationId,
       published,
+      translateToEnglish,
     } = await req.json();
 
     if (!title || !content) {
@@ -52,6 +54,26 @@ export async function POST(req: Request) {
 
     const status = published ? "PENDING" : "DRAFT";
 
+    const shouldTranslate = Boolean(translateToEnglish);
+    let translation:
+      | {
+          title: string;
+          content: string;
+        }
+      | null = null;
+
+    if (shouldTranslate) {
+      try {
+        translation = await translateArticleToEnglish({ title, content });
+      } catch (error) {
+        if (error instanceof GeminiTranslationError) {
+          const statusCode = error.status ?? 502;
+          return NextResponse.json({ message: error.message }, { status: statusCode });
+        }
+        throw error;
+      }
+    }
+
     const newArticle = await prisma.article.create({
       data: {
         slug,
@@ -62,6 +84,11 @@ export async function POST(req: Request) {
         authorId: userId,
         publicationId: publicationId,
         status,
+        translatedTitle: translation?.title ?? null,
+        translatedContent: translation?.content ?? null,
+        translationProvider: translation ? "GEMINI" : null,
+        translationUpdatedAt: translation ? new Date() : null,
+        isBilingual: Boolean(translation),
         tags: {
           create: tags?.map((tagName: string) => ({
             tag: {

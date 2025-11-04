@@ -10,6 +10,8 @@ import { Pagination } from "@/components/Pagination";
 import Link from "next/link";
 import { Users, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { Metadata } from "next";
+import { buildCanonical } from "@/lib/seo";
 
 const ARTICLES_PER_PAGE = 10;
 
@@ -20,6 +22,43 @@ interface PublicationPageProps {
     searchParams: {
         page?: string;
     };
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const slug = decodeURIComponent(params.slug);
+  const publication = await prisma.publication.findUnique({
+    where: { slug },
+    select: { name: true, description: true },
+  });
+
+  if (!publication) {
+    return {
+      title: "نشریه یافت نشد | روانک",
+      description: "نشریه مورد نظر در مجله روانک پیدا نشد.",
+    };
+  }
+
+  const canonical = buildCanonical(`/publications/${slug}`);
+  const description =
+    publication.description?.slice(0, 160) ||
+    `همه مقالات و اعضای نشریه ${publication.name} در مجله روانک را دنبال کنید.`;
+
+  return {
+    title: `${publication.name} | انتشارات روانک`,
+    description,
+    ...(canonical ? { alternates: { canonical } } : {}),
+    openGraph: {
+      title: `${publication.name} | انتشارات روانک`,
+      description,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: publication.name,
+      description,
+    },
+  };
 }
 
 const PublicationPage = async ({ params, searchParams }: PublicationPageProps) => {

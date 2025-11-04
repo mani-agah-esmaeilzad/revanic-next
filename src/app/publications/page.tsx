@@ -6,6 +6,14 @@ import { Users, FileText, Sparkles } from "lucide-react";
 import { ensureCommunityStories, getStoriesGroupedByPublication } from "@/lib/community";
 import { formatDistanceToNow } from "date-fns";
 import { faIR } from "date-fns/locale";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "انتشارات روانک",
+  description: "نشریات تخصصی روانک را مرور کنید و به تیم‌های نویسندگی فعال برای انتشار حرفه‌ای محتوا بپیوندید.",
+  path: "/publications",
+  keywords: ["انتشارات روانک", "نشریات محتوا", "تیم‌های نویسندگی"],
+});
 
 const PublicationsPage = async () => {
   const publications = await prisma.publication.findMany({

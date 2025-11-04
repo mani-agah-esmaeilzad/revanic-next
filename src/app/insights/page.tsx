@@ -6,6 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "گزارش رشد روانک",
+  description: "شاخص‌های رشد نویسندگان و خوانندگان روانک در ۳۰ روز اخیر را مرور کنید و برای برنامه‌ریزی محتوا الهام بگیرید.",
+  path: "/insights",
+  keywords: ["گزارش رشد روانک", "آمار مجله روانک", "تحلیل محتوا"],
+});
 
 const InsightsPage = async () => {
   const now = new Date();

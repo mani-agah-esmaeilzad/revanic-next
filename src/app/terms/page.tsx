@@ -1,8 +1,16 @@
-'use-client';
+"use client";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { FileText } from "lucide-react";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "شرایط استفاده روانک",
+  description: "قوانین و مقررات استفاده از مجله روانک و تعهدات کاربران و ناشر را بخوانید.",
+  path: "/terms",
+  keywords: ["شرایط استفاده روانک", "قوانین سایت روانک", "قوانین مجله"],
+});
 
 const Terms = () => {
   return (

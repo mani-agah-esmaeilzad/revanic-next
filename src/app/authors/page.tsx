@@ -17,6 +17,14 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "نویسندگان مجله روانک",
+  description: "فهرست نویسندگان فعال مجله روانک را مرور کنید و نویسندگان مورد علاقه خود را دنبال کنید.",
+  path: "/authors",
+  keywords: ["نویسندگان روانک", "نویسنده مجله", "مجله روانک"],
+});
 
 const AUTHORS_PER_PAGE = 9;
 

@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 import ArticleCard from "@/components/ArticleCard";
-import { ArticleContent } from "@/components/ArticleContent";
+import { ArticleLanguageSwitcher } from "@/components/ArticleLanguageSwitcher";
 import { ClapButton } from "@/components/ClapButton";
 import { BookmarkButton } from "@/components/BookmarkButton";
 import { CommentsSection } from "@/components/CommentsSection";
@@ -298,6 +298,11 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
                 <h1 className="text-3xl font-extrabold leading-tight text-foreground md:text-4xl">
                   {article.title}
                 </h1>
+                {article.isBilingual && article.translatedTitle ? (
+                  <p className="text-base text-muted-foreground">
+                    ترجمه انگلیسی: {article.translatedTitle}
+                  </p>
+                ) : null}
 
                 {article.categories.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
@@ -337,7 +342,14 @@ const ArticlePage = async ({ params }: { params: { slug: string } }) => {
                 </div>
               </header>
 
-              <ArticleContent content={article.content} articleId={article.id} />
+              <ArticleLanguageSwitcher
+                articleId={article.id}
+                persianContent={article.content}
+                englishContent={article.translatedContent}
+                persianTitle={article.title}
+                englishTitle={article.translatedTitle ?? undefined}
+                translationProvider={article.translationProvider ?? undefined}
+              />
 
               <div className="mt-8 flex flex-wrap gap-2">
                 {article.tags.map(({ tag }) => (

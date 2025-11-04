@@ -1,3 +1,11 @@
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "حالت آفلاین روانک",
+  description: "برای استفاده کامل از مجله روانک به اینترنت متصل شوید و صفحه را پس از اتصال تازه‌سازی کنید.",
+  path: "/offline",
+});
+
 const OfflinePage = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-journal-cream/40 text-center px-6">

@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 interface ArticleContentProps {
   articleId: number;
   content: string;
+  enableHighlights?: boolean;
 }
 
 interface Highlight {
@@ -46,7 +47,7 @@ const fetchHighlights = async (articleId: number): Promise<Highlight[]> => {
     return response.json();
 };
 
-export const ArticleContent = ({ articleId, content }: ArticleContentProps) => {
+export const ArticleContent = ({ articleId, content, enableHighlights = true }: ArticleContentProps) => {
   const router = useRouter();
   const { toast } = useToast();
   
@@ -66,11 +67,11 @@ export const ArticleContent = ({ articleId, content }: ArticleContentProps) => {
   const { data: savedHighlights } = useQuery<Highlight[]>({
     queryKey: ['highlights', articleId],
     queryFn: () => fetchHighlights(articleId),
-    enabled: !!editor,
+    enabled: enableHighlights && !!editor,
   });
 
   useEffect(() => {
-    if (editor && savedHighlights && savedHighlights.length > 0) {
+    if (enableHighlights && editor && savedHighlights && savedHighlights.length > 0) {
       const { tr } = editor.state;
       let highlightsApplied = false;
 
@@ -130,6 +131,9 @@ export const ArticleContent = ({ articleId, content }: ArticleContentProps) => {
   }
 
   const handleHighlight = () => {
+    if (!enableHighlights) {
+      return;
+    }
     const { from, to } = editor.state.selection;
     const selectedText = editor.state.doc.textBetween(from, to);
     
@@ -145,7 +149,7 @@ export const ArticleContent = ({ articleId, content }: ArticleContentProps) => {
 
   return (
     <>
-      {editor && (
+      {enableHighlights && editor && (
           <BubbleMenu 
             editor={editor} 
             tippyOptions={{ duration: 100 }}

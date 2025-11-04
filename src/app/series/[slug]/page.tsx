@@ -12,9 +12,46 @@ import { getUserIdFromSessionCookie } from "@/lib/auth-session";
 import { getSeriesDetail } from "@/lib/series";
 
 import { CheckCircle2, Circle, Clock } from "lucide-react";
+import type { Metadata } from "next";
+import { buildCanonical } from "@/lib/seo";
 
 interface SeriesDetailPageProps {
   params: { slug: string };
+}
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const slug = decodeURIComponent(params.slug);
+  const series = await getSeriesDetail(slug);
+
+  if (!series) {
+    return {
+      title: "سری یافت نشد | روانک",
+      description: "سری مورد نظر در مجله روانک پیدا نشد.",
+    };
+  }
+
+  const canonical = buildCanonical(`/series/${slug}`);
+  const description =
+    series.description?.slice(0, 160) ||
+    `در سری «${series.title}» از مجله روانک با ${series.articles.length} قسمت همراه شوید.`;
+  const title = `${series.title} | سری‌های روانک`;
+
+  return {
+    title,
+    description,
+    ...(canonical ? { alternates: { canonical } } : {}),
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
+  };
 }
 
 const formatDate = (value: string) =>

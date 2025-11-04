@@ -1,6 +1,13 @@
-'use-client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield } from "lucide-react";
+import { buildStaticMetadata } from "@/lib/page-metadata";
+
+export const metadata = buildStaticMetadata({
+  title: "سیاست حفظ حریم خصوصی روانک",
+  description: "از نحوه جمع‌آوری، استفاده و حفاظت از داده‌های شخصی کاربران در مجله روانک مطلع شوید.",
+  path: "/privacy",
+  keywords: ["حریم خصوصی روانک", "سیاست حفظ حریم خصوصی", "حفاظت از داده"],
+});
 
 const Privacy = () => {
   return (
