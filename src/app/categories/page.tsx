@@ -53,22 +53,26 @@ const Categories = async () => {
     },
   });
 
-  const categories: CategoryWithStats[] = categoriesFromDb.map((category) => {
-    const { color, description, icon } = resolveCategoryDefinition(category.name);
+  const categories: CategoryWithStats[] = categoriesFromDb
+    .map((category) => {
+      const { color, description, icon } = resolveCategoryDefinition(category.name);
 
-    return {
-      id: category.id,
-      name: category.name,
-      description,
-      icon,
-      color,
-      articleCount: category.articles.length,
-    };
-  });
+      return {
+        id: category.id,
+        name: category.name,
+        description,
+        icon,
+        color,
+        articleCount: category.articles.length,
+      };
+    })
+    .filter((category) => category.articleCount > 0);
 
   const featuredCategories = [...categories]
     .sort((a, b) => b.articleCount - a.articleCount)
     .slice(0, 4);
+
+  const hasCategories = categories.length > 0;
 
   const deploymentUrl = getDeploymentUrl();
   const categoryJsonLd = deploymentUrl
@@ -120,36 +124,42 @@ const Categories = async () => {
               پربازدیدترین موضوعات این هفته
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-              {featuredCategories.map((category) => (
-                <Link
-                  href={`/articles?categoryId=${category.id}`}
-                  key={category.id}
-                >
-                  <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
-                    <CardContent className="p-6 text-center">
-                      <div className="flex justify-center mb-4">
-                        <div className={`p-4 ${category.color} text-white rounded-xl`}>
-                          <category.icon className="h-8 w-8" />
+            {hasCategories ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+                {featuredCategories.map((category) => (
+                  <Link
+                    href={`/articles?categoryId=${category.id}`}
+                    key={category.id}
+                  >
+                    <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
+                      <CardContent className="p-6 text-center">
+                        <div className="flex justify-center mb-4">
+                          <div className={`p-4 ${category.color} text-white rounded-xl`}>
+                            <category.icon className="h-8 w-8" />
+                          </div>
                         </div>
-                      </div>
-                      <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2">
-                        {category.name}
-                      </h3>
-                      <p className="text-journal-light text-sm leading-relaxed mb-4 line-clamp-3">
-                        {category.description}
-                      </p>
-                      <Badge
-                        variant="secondary"
-                        className="bg-journal-cream text-journal-green"
-                      >
-                        {category.articleCount.toLocaleString("fa-IR")} مقاله
-                      </Badge>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+                        <h3 className="font-bold text-lg text-journal group-hover:text-journal-green transition-colors mb-2">
+                          {category.name}
+                        </h3>
+                        <p className="text-journal-light text-sm leading-relaxed mb-4 line-clamp-3">
+                          {category.description}
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className="bg-journal-cream text-journal-green"
+                        >
+                          {category.articleCount.toLocaleString("fa-IR")} مقاله
+                        </Badge>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">
+                هنوز هیچ دسته‌بندی دارای مقاله تایید شده نیست.
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -162,40 +172,46 @@ const Categories = async () => {
               همه موضوعات موجود
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((category) => (
-                <Link
-                  href={`/articles?categoryId=${category.id}`}
-                  key={category.id}
-                >
-                  <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
-                    <CardContent className="p-6">
-                      <div className="flex items-start gap-4">
-                        <div className={`p-3 ${category.color} text-white rounded-lg flex-shrink-0`}>
-                          <category.icon className="h-6 w-6" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-journal group-hover:text-journal-green transition-colors mb-2">
-                            {category.name}
-                          </h3>
-                          <p className="text-journal-light text-sm leading-relaxed mb-3 line-clamp-2">
-                            {category.description}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <Badge
-                              variant="secondary"
-                              className="bg-journal-cream text-journal-green text-xs"
-                            >
-                              {category.articleCount.toLocaleString("fa-IR")} مقاله
-                            </Badge>
+            {hasCategories ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categories.map((category) => (
+                  <Link
+                    href={`/articles?categoryId=${category.id}`}
+                    key={category.id}
+                  >
+                    <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className={`p-3 ${category.color} text-white rounded-lg flex-shrink-0`}>
+                            <category.icon className="h-6 w-6" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-journal group-hover:text-journal-green transition-colors mb-2">
+                              {category.name}
+                            </h3>
+                            <p className="text-journal-light text-sm leading-relaxed mb-3 line-clamp-2">
+                              {category.description}
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <Badge
+                                variant="secondary"
+                                className="bg-journal-cream text-journal-green text-xs"
+                              >
+                                {category.articleCount.toLocaleString("fa-IR")} مقاله
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                </Link>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground">
+                در حال حاضر مقاله تایید شده‌ای ثبت نشده تا دسته‌بندی‌ها نمایش داده شوند.
+              </p>
+            )}
           </div>
         </div>
       </section>
