@@ -52,7 +52,7 @@ export const ArticleLanguageSwitcher = ({
       </TabsList>
 
       <TabsContent value="fa" className="outline-none">
-        <ArticleContent articleId={articleId} content={persianContent} />
+        <ArticleContent key={`article-${articleId}-fa`} articleId={articleId} content={persianContent} />
       </TabsContent>
 
       <TabsContent value="en" className="outline-none">
@@ -62,7 +62,7 @@ export const ArticleLanguageSwitcher = ({
               {englishTitle ?? persianTitle}
             </h2>
           </div>
-          <ArticleContent articleId={articleId} content={englishContent ?? ""} enableHighlights={false} />
+          <TranslatedArticle content={englishContent ?? ""} />
           <Alert className="border-journal-cream/60 bg-journal-cream/30">
             <Globe2 className="h-5 w-5 text-journal-green" />
             <AlertTitle>ترجمه خودکار</AlertTitle>
@@ -77,3 +77,13 @@ export const ArticleLanguageSwitcher = ({
 };
 
 export default ArticleLanguageSwitcher;
+
+const TranslatedArticle = ({ content }: { content: string }) => {
+  return (
+    <div
+      className="prose max-w-none text-left text-foreground dark:prose-invert"
+      dir="ltr"
+      dangerouslySetInnerHTML={{ __html: content }}
+    />
+  );
+};
