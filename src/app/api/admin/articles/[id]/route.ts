@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminSession } from "@/lib/admin-auth";
 
-export async function PUT(
-    req: Request,
-    { params }: { params: { id: string } }
+async function updateArticleStatus(
+  req: Request,
+  { params }: { params: { id: string } },
 ) {
     const adminSession = await requireAdminSession();
     if (!adminSession) {
@@ -49,6 +49,20 @@ export async function PUT(
         console.error("UPDATE_ARTICLE_STATUS_ERROR", error);
         return NextResponse.json({ message: "خطای داخلی سرور" }, { status: 500 });
     }
+}
+
+export async function PUT(
+  req: Request,
+  context: { params: { id: string } },
+) {
+  return updateArticleStatus(req, context);
+}
+
+export async function PATCH(
+  req: Request,
+  context: { params: { id: string } },
+) {
+  return updateArticleStatus(req, context);
 }
 
 export async function DELETE(
