@@ -202,7 +202,6 @@ const Categories = async () => {
                             </div>
                           </div>
                         </div>
-                      </div>
                     </CardContent>
                   </Card>
                 ))}
