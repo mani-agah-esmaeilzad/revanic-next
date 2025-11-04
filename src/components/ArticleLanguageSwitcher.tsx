@@ -51,7 +51,7 @@ export const ArticleLanguageSwitcher = ({
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="fa" className="outline-none">
+      <TabsContent value="fa" className="outline-none" forceMount>
         <ArticleContent key={`article-${articleId}-fa`} articleId={articleId} content={persianContent} />
       </TabsContent>
 
