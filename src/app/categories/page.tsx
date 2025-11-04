@@ -8,14 +8,22 @@ import { LucideIcon } from "lucide-react";
 import { ensureDefaultCategories, resolveCategoryDefinition } from "@/lib/categories";
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { buildCanonical, getDeploymentUrl, itemListJsonLd } from "@/lib/seo";
 
 const canonicalCategories = buildCanonical("/categories");
 
 export const metadata: Metadata = {
   title: "دسته‌بندی‌های مقالات روانک",
-  description: "تمام موضوعات فعال روانک را مرور کنید و به سرعت به مقالات مرتبط در هر زمینه دسترسی پیدا کنید.",
+  description:
+    "تمام موضوعات فعال روانک را مرور کنید و به سرعت به مقالات مرتبط در هر زمینه دسترسی پیدا کنید.",
   ...(canonicalCategories ? { alternates: { canonical: canonicalCategories } } : {}),
   openGraph: {
     title: "دسته‌بندی‌های مقالات روانک",
@@ -56,7 +64,6 @@ const Categories = async () => {
   const categories: CategoryWithStats[] = categoriesFromDb
     .map((category) => {
       const { color, description, icon } = resolveCategoryDefinition(category.name);
-
       return {
         id: category.id,
         name: category.name,
@@ -97,6 +104,7 @@ const Categories = async () => {
                 {JSON.stringify(categoryJsonLd)}
               </Script>
             ) : null}
+
             <Breadcrumb className="mb-6">
               <BreadcrumbList>
                 <BreadcrumbItem>
@@ -108,6 +116,7 @@ const Categories = async () => {
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
+
             <h1 className="text-4xl font-bold text-journal mb-4">دسته‌بندی مقالات</h1>
             <p className="text-xl text-journal-light mb-8">
               موضوعات مختلف مجله روانک را با داده‌های زنده جست‌وجو کنید
@@ -127,10 +136,7 @@ const Categories = async () => {
             {hasCategories ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
                 {featuredCategories.map((category) => (
-                  <Link
-                    href={`/articles?categoryId=${category.id}`}
-                    key={category.id}
-                  >
+                  <Link href={`/articles?categoryId=${category.id}`} key={category.id}>
                     <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
                       <CardContent className="p-6 text-center">
                         <div className="flex justify-center mb-4">
@@ -175,14 +181,13 @@ const Categories = async () => {
             {hasCategories ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categories.map((category) => (
-                  <Link
-                    href={`/articles?categoryId=${category.id}`}
-                    key={category.id}
-                  >
+                  <Link href={`/articles?categoryId=${category.id}`} key={category.id}>
                     <Card className="group hover:shadow-medium transition-all duration-300 border-0 shadow-soft h-full">
                       <CardContent className="p-6">
                         <div className="flex items-start gap-4">
-                          <div className={`p-3 ${category.color} text-white rounded-lg flex-shrink-0`}>
+                          <div
+                            className={`p-3 ${category.color} text-white rounded-lg flex-shrink-0`}
+                          >
                             <category.icon className="h-6 w-6" />
                           </div>
                           <div className="flex-1">
@@ -202,8 +207,9 @@ const Categories = async () => {
                             </div>
                           </div>
                         </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
             ) : (
