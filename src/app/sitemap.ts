@@ -2,6 +2,7 @@
 import type { MetadataRoute } from "next";
 import path from "path";
 import { promises as fs } from "fs";
+import { headers } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
 import { getDeploymentUrl } from "@/lib/seo";
@@ -20,6 +21,33 @@ const STATIC_ROUTE_OVERRIDES: Record<
   "/categories": { changeFrequency: "weekly", priority: 0.6 },
 };
 
+const FALLBACK_STATIC_PATHS = [
+  "/",
+  "/about",
+  "/admin",
+  "/admin/manage",
+  "/articles",
+  "/authors",
+  "/authors-guide",
+  "/categories",
+  "/contact",
+  "/editorial-guide",
+  "/insights",
+  "/login",
+  "/offline",
+  "/privacy",
+  "/profile",
+  "/publications",
+  "/publications/new",
+  "/register",
+  "/search",
+  "/series",
+  "/subscription",
+  "/support",
+  "/terms",
+  "/write",
+];
+
 const DEFAULT_STATIC_ROUTE_CONFIG: { changeFrequency: ChangeFrequency; priority: number } = {
   changeFrequency: "weekly",
   priority: 0.5,
@@ -37,56 +65,87 @@ const sanitizeSegment = (segment: string) => {
 const isIgnorableSegment = (segment: string) =>
   segment.startsWith("_") || segment.includes("[") || segment === "api";
 
-async function collectStaticRoutes(origin: string): Promise<MetadataRoute.Sitemap> {
-  const appDir = path.join(process.cwd(), "src/app");
-  const routes = new Map<
-    string,
-    { changeFrequency: ChangeFrequency; priority: number }
-  >();
+const isLocalLike = (url?: string) => (url ? /^https?:\/\/(localhost|127\.0\.0\.1)/i.test(url) : false);
 
-  const stack: Array<{ dir: string; segments: string[] }> = [{ dir: appDir, segments: [] }];
+async function directoryExists(directory: string) {
+  try {
+    await fs.access(directory);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-  while (stack.length > 0) {
-    const { dir, segments } = stack.pop()!;
-    let hasPageFile = false;
-
-    const dirents = await fs.readdir(dir, { withFileTypes: true });
-
-    for (const dirent of dirents) {
-      if (dirent.isFile() && PAGE_FILE_PATTERN.test(dirent.name)) {
-        hasPageFile = true;
-        continue;
-      }
-
-      if (dirent.isDirectory()) {
-        const segment = dirent.name;
-        if (isIgnorableSegment(segment)) {
-          continue;
-        }
-
-        stack.push({
-          dir: path.join(dir, segment),
-          segments: [...segments, segment],
-        });
-      }
-    }
-
-    if (!hasPageFile || segments.some((segment) => segment.includes("["))) {
-      continue;
-    }
-
-    const cleanSegments = segments
-      .map(sanitizeSegment)
-      .filter(Boolean)
-      .map((segment) => segment.replace(/\/+/g, ""));
-
-    const pathname = cleanSegments.length > 0 ? `/${cleanSegments.join("/")}` : "/";
+const buildFallbackStaticRoutes = (origin: string): MetadataRoute.Sitemap =>
+  FALLBACK_STATIC_PATHS.map((pathname) => {
     const normalized = pathname === "/" ? pathname : pathname.replace(/\/+$/, "");
-
     const override = STATIC_ROUTE_OVERRIDES[normalized];
     const config = override ?? DEFAULT_STATIC_ROUTE_CONFIG;
 
-    routes.set(normalized, config);
+    return {
+      url: `${origin}${normalized}`,
+      changeFrequency: config.changeFrequency,
+      priority: config.priority,
+    };
+  });
+
+async function collectStaticRoutes(origin: string): Promise<MetadataRoute.Sitemap> {
+  const appDir = path.join(process.cwd(), "src/app");
+  const routes = new Map<string, { changeFrequency: ChangeFrequency; priority: number }>();
+  const hasSourceDirectory = await directoryExists(appDir);
+
+  if (!hasSourceDirectory) {
+    return buildFallbackStaticRoutes(origin);
+  }
+
+  const stack: Array<{ dir: string; segments: string[] }> = [{ dir: appDir, segments: [] }];
+
+  try {
+    while (stack.length > 0) {
+      const { dir, segments } = stack.pop()!;
+      let hasPageFile = false;
+
+      const dirents = await fs.readdir(dir, { withFileTypes: true });
+
+      for (const dirent of dirents) {
+        if (dirent.isFile() && PAGE_FILE_PATTERN.test(dirent.name)) {
+          hasPageFile = true;
+          continue;
+        }
+
+        if (dirent.isDirectory()) {
+          const segment = dirent.name;
+          if (isIgnorableSegment(segment)) {
+            continue;
+          }
+
+          stack.push({
+            dir: path.join(dir, segment),
+            segments: [...segments, segment],
+          });
+        }
+      }
+
+      if (!hasPageFile || segments.some((segment) => segment.includes("["))) {
+        continue;
+      }
+
+      const cleanSegments = segments
+        .map(sanitizeSegment)
+        .filter(Boolean)
+        .map((segment) => segment.replace(/\/+/g, ""));
+
+      const pathname = cleanSegments.length > 0 ? `/${cleanSegments.join("/")}` : "/";
+      const normalized = pathname === "/" ? pathname : pathname.replace(/\/+$/, "");
+
+      const override = STATIC_ROUTE_OVERRIDES[normalized];
+      const config = override ?? DEFAULT_STATIC_ROUTE_CONFIG;
+
+      routes.set(normalized, config);
+    }
+  } catch (error) {
+    console.error("SITEMAP_STATIC_ROUTE_DISCOVERY_ERROR", error);
+    return buildFallbackStaticRoutes(origin);
   }
 
   return Array.from(routes.entries()).map(([pathname, config]) => ({
@@ -98,7 +157,20 @@ async function collectStaticRoutes(origin: string): Promise<MetadataRoute.Sitema
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getDeploymentUrl();
-  const origin = baseUrl ? baseUrl.replace(/\/$/, "") : "https://revanac.example";
+  const headerList = headers();
+  const forwardedProto = headerList.get("x-forwarded-proto");
+  const forwardedHost = headerList.get("x-forwarded-host") ?? headerList.get("host");
+  const hostValue = forwardedHost?.split(",")[0]?.trim();
+  const protoValue = forwardedProto?.split(",")[0]?.trim();
+
+  const requestOrigin = hostValue ? `${protoValue || "https"}://${hostValue}` : undefined;
+
+  const normalizedConfiguredBase =
+    baseUrl && !isLocalLike(baseUrl) ? baseUrl.replace(/\/$/, "") : undefined;
+  const normalizedRequestOrigin = requestOrigin ? requestOrigin.replace(/\/$/, "") : undefined;
+  const normalizedBase = baseUrl ? baseUrl.replace(/\/$/, "") : undefined;
+
+  const origin = normalizedConfiguredBase ?? normalizedRequestOrigin ?? normalizedBase ?? "https://revanac.example";
 
   let articles: Array<{ slug: string; updatedAt: Date }> = [];
   let series: Array<{ slug: string; updatedAt: Date }> = [];
