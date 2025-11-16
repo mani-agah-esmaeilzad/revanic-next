@@ -11,6 +11,48 @@ import Script from "next/script";
 import { buildCanonical, organizationJsonLd, webSiteJsonLd } from "@/lib/seo";
 
 const canonicalHome = buildCanonical("/");
+const EXCERPT_LIMIT = 200;
+const persianNumberFormatter = new Intl.NumberFormat("fa-IR");
+
+const stripHtml = (html: string) =>
+  html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+const buildExcerpt = (html: string) => {
+  const text = stripHtml(html);
+  if (!text) return "";
+  return text.length > EXCERPT_LIMIT ? `${text.slice(0, EXCERPT_LIMIT).trimEnd()}…` : text;
+};
+
+const estimateReadTime = (stored: number | null | undefined, plainText: string) => {
+  if (stored && stored > 0) return stored;
+  const words = plainText.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+};
+
+const formatRelativeDate = (date: Date) => {
+  const diffMs = Date.now() - date.getTime();
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const week = 7 * day;
+
+  if (diffMs < hour) {
+    const minutes = Math.max(1, Math.round(diffMs / minute));
+    return `${persianNumberFormatter.format(minutes)} دقیقه پیش`;
+  }
+
+  if (diffMs < day) {
+    const hours = Math.max(1, Math.round(diffMs / hour));
+    return `${persianNumberFormatter.format(hours)} ساعت پیش`;
+  }
+
+  if (diffMs < week) {
+    const days = Math.max(1, Math.round(diffMs / day));
+    return `${persianNumberFormatter.format(days)} روز پیش`;
+  }
+
+  return new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" }).format(date);
+};
 
 export const metadata: Metadata = {
   title: "مجله روانک | جایی برای اشتراک دانش و تجربه",
@@ -36,7 +78,7 @@ export const metadata: Metadata = {
 
 const Index = async () => {
   const twentyFourHoursAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
-  const [articleCount, authorRecords, dailyReadersCount] = await Promise.all([
+  const [articleCount, authorRecords, dailyReadersCount, featuredArticleRecords] = await Promise.all([
     prisma.article.count({ where: { status: "APPROVED" } }),
     prisma.article.findMany({
       where: { status: "APPROVED" },
@@ -44,51 +86,49 @@ const Index = async () => {
       distinct: ["authorId"],
     }),
     prisma.articleView.count({ where: { viewedAt: { gte: twentyFourHoursAgo } } }),
+    prisma.article.findMany({
+      where: { status: "APPROVED" },
+      orderBy: [
+        { claps: { _count: "desc" } },
+        { comments: { _count: "desc" } },
+        { createdAt: "desc" },
+      ],
+      take: 3,
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        content: true,
+        coverImageUrl: true,
+        createdAt: true,
+        readTimeMinutes: true,
+        author: { select: { name: true, avatarUrl: true } },
+        categories: { select: { name: true } },
+        _count: { select: { claps: true, comments: true } },
+      },
+    }),
   ]);
   const authorCount = authorRecords.length;
 
-  // Sample articles data
-  const featuredArticles: ArticleCardProps[] = [
-    {
-      id: "1",
-      slug: "ai-future-outlook",
-      title: "هوش مصنوعی و آینده‌ای که در انتظار ماست",
-      excerpt: "بررسی تأثیرات هوش مصنوعی بر جامعه، اقتصاد و زندگی روزمره انسان‌ها. چگونه این فناوری جهان را تغییر خواهد داد؟",
-      author: { name: "علی رضایی", avatar: "" },
-      readTime: 8,
-      publishDate: "۳ روز پیش",
-      claps: 124, // <-- تغییر از likes به claps
-      comments: 23,
-      category: "فناوری",
-      image: ""
-    },
-    {
-      id: "2",
-      slug: "ancient-iran-journey",
-      title: "سفری به دل تاریخ ایران باستان",
-      excerpt: "کاوش در اعماق تمدن ایرانی و بررسی دستاوردهای باستانیان که هنوز در زندگی امروز ما تأثیرگذار هستند.",
-      author: { name: "مریم احمدی", avatar: "" },
-      readTime: 12,
-      publishDate: "یک هفته پیش",
-      claps: 89, // <-- تغییر از likes به claps
-      comments: 15,
-      category: "تاریخ",
-      image: ""
-    },
-    {
-      id: "3",
-      slug: "psychology-of-color-in-modern-architecture",
-      title: "روان‌شناسی رنگ‌ها در معماری مدرن",
-      excerpt: "تأثیر رنگ‌ها بر روحیه انسان و چگونگی استفاده از این دانش در طراحی فضاهای زندگی و کار.",
-      author: { name: "محمد حسینی", avatar: "" },
-      readTime: 6,
-      publishDate: "۲ هفته پیش",
-      claps: 67, // <-- تغییر از likes به claps
-      comments: 8,
-      category: "هنر و معماری",
-      image: ""
-    }
-  ];
+  const featuredArticles: ArticleCardProps[] = featuredArticleRecords.map((article) => {
+    const plainText = stripHtml(article.content ?? "");
+    return {
+      id: article.id,
+      slug: article.slug,
+      title: article.title,
+      excerpt: buildExcerpt(article.content ?? ""),
+      author: {
+        name: article.author?.name ?? "ناشناس",
+        avatarUrl: article.author?.avatarUrl ?? "",
+      },
+      readTime: estimateReadTime(article.readTimeMinutes, plainText),
+      publishDate: formatRelativeDate(article.createdAt),
+      claps: article._count.claps,
+      comments: article._count.comments,
+      category: article.categories[0]?.name ?? "عمومی",
+      image: article.coverImageUrl ?? undefined,
+    };
+  });
 
   return (
     <>
@@ -142,19 +182,19 @@ const Index = async () => {
           <div className="mx-auto grid max-w-4xl grid-cols-1 gap-6 text-center sm:grid-cols-3">
             <div className="text-center">
               <div className="text-3xl font-bold text-journal-green mb-2">
-                {articleCount.toLocaleString("fa-IR")}
+                {persianNumberFormatter.format(articleCount)}
               </div>
               <p className="text-journal-light">مقاله منتشر شده</p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-journal-green mb-2">
-                {authorCount.toLocaleString("fa-IR")}
+                {persianNumberFormatter.format(authorCount)}
               </div>
               <p className="text-journal-light">نویسنده فعال</p>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-journal-green mb-2">
-                {dailyReadersCount.toLocaleString("fa-IR")}
+                {persianNumberFormatter.format(dailyReadersCount)}
               </div>
               <p className="text-journal-light">بازدید ۲۴ ساعت گذشته</p>
             </div>
@@ -173,22 +213,28 @@ const Index = async () => {
           </div>
 
           <div className="mx-auto max-w-4xl space-y-6">
-            {featuredArticles.map((article) => (
-              <ArticleCard
-                key={article.id}
-                id={article.id}
-                slug={article.slug}
-                title={article.title}
-                excerpt={article.excerpt}
-                author={article.author}
-                readTime={article.readTime}
-                publishDate={article.publishDate}
-                claps={article.claps}
-                comments={article.comments}
-                category={article.category}
-                image={article.image}
-              />
-            ))}
+            {featuredArticles.length > 0 ? (
+              featuredArticles.map((article) => (
+                <ArticleCard
+                  key={article.id}
+                  id={article.id}
+                  slug={article.slug}
+                  title={article.title}
+                  excerpt={article.excerpt}
+                  author={article.author}
+                  readTime={article.readTime}
+                  publishDate={article.publishDate}
+                  claps={article.claps}
+                  comments={article.comments}
+                  category={article.category}
+                  image={article.image}
+                />
+              ))
+            ) : (
+              <div className="rounded-2xl border border-dashed border-journal-orange/60 p-8 text-center text-journal-light">
+                هنوز مقاله‌ای برای نمایش در این بخش وجود ندارد. به زودی با اولین مقالات تاییدشده تکمیل می‌شود.
+              </div>
+            )}
           </div>
 
           <div className="mt-10 text-center sm:mt-12">
