@@ -215,6 +215,8 @@ const ArticleStatusBadge = ({ status }: { status: ArticleStatus }) => {
 const getSubscriptionText = (subscription: Subscription | null): string => {
   if (!subscription) return "رایگان";
   switch (subscription.tier) {
+    case 'FOUNDER':
+      return "پریمیوم (هدیه)";
     case 'STUDENT':
       if (subscription.status === 'ACTIVE') return "دانشجویی";
       if (subscription.status === 'PENDING_VERIFICATION') return "در انتظار تایید";

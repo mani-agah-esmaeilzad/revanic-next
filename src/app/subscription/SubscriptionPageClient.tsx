@@ -11,13 +11,25 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 
 type PlanTier = "TRIAL" | "MONTHLY" | "YEARLY" | "STUDENT";
+type SubscriptionInfo = {
+  tier: string;
+  status: string;
+  endDate: string | null;
+};
 
-export const SubscriptionPageClient = () => {
+interface SubscriptionPageClientProps {
+  initialSubscription: SubscriptionInfo | null;
+  userName?: string | null;
+}
+
+export const SubscriptionPageClient = ({ initialSubscription, userName }: SubscriptionPageClientProps) => {
   const [isLoading, setIsLoading] = useState<PlanTier | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [studentFile, setStudentFile] = useState<File | null>(null);
   const router = useRouter();
+  const hasComplimentaryPremium =
+    initialSubscription?.tier === "FOUNDER" && initialSubscription?.status === "ACTIVE";
 
   const handleSubscribe = async (tier: PlanTier) => {
     setIsLoading(tier);
@@ -78,6 +90,8 @@ export const SubscriptionPageClient = () => {
     }
   };
 
+  const disableActions = hasComplimentaryPremium || !!isLoading;
+
   return (
     <div className="min-h-screen bg-background">
       <section className="bg-journal-cream/30 py-16">
@@ -87,6 +101,29 @@ export const SubscriptionPageClient = () => {
             <p className="mb-8 text-xl text-journal-light">
               با عضویت ویژه، به تمام مقالات دسترسی نامحدود داشته باشید و از نویسندگان حمایت کنید.
             </p>
+            {hasComplimentaryPremium ? (
+              <div className="mb-6 rounded-2xl border border-journal-green/40 bg-journal-green/10 p-6 text-right shadow-sm">
+                <p className="text-lg font-semibold text-journal">
+                  {userName ? `${userName} عزیز،` : "تبریک!"}
+                </p>
+                <p className="mt-2 text-base leading-relaxed text-journal">
+                  چون جزو اولین همراهان روانک هستید، اشتراک پریمیوم به صورت رایگان برای حساب شما فعال شد.
+                  از تمامی مقالات و امکانات ویژه لذت ببرید.
+                </p>
+                <div className="mt-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="rounded-full bg-white/90 px-4 py-2 text-sm font-medium text-journal-green">
+                    اشتراک فعال: پریمیوم هدیه کاربران اولیه
+                  </span>
+                  <Button
+                    variant="outline"
+                    className="border-journal-green text-journal-green hover:bg-journal-green/10"
+                    onClick={() => router.push("/profile")}
+                  >
+                    مشاهده پروفایل و مزایا
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             {message ? (
               <div
                 className={`mb-4 rounded-lg p-4 text-center ${
@@ -124,7 +161,7 @@ export const SubscriptionPageClient = () => {
                 </ul>
                 <Button
                   onClick={() => handleSubscribe("TRIAL")}
-                  disabled={!!isLoading}
+                  disabled={disableActions}
                   className="mt-auto w-full bg-journal-orange hover:bg-journal-orange/90"
                 >
                   {isLoading === "TRIAL" ? <Loader2 className="animate-spin" /> : "شروع دوره ۷ روزه"}
@@ -159,7 +196,7 @@ export const SubscriptionPageClient = () => {
                 </ul>
                 <Button
                   onClick={() => handleSubscribe("MONTHLY")}
-                  disabled={!!isLoading}
+                  disabled={disableActions}
                   className="mt-auto w-full bg-journal-green hover:bg-journal-green/90"
                 >
                   {isLoading === "MONTHLY" ? <Loader2 className="animate-spin" /> : "انتخاب پلن ماهانه"}
@@ -187,7 +224,7 @@ export const SubscriptionPageClient = () => {
                 </ul>
                 <Button
                   onClick={() => handleSubscribe("YEARLY")}
-                  disabled={!!isLoading}
+                  disabled={disableActions}
                   className="mt-auto w-full bg-journal-orange hover:bg-journal-orange/90"
                 >
                   {isLoading === "YEARLY" ? <Loader2 className="animate-spin" /> : "انتخاب پلن سالانه"}
@@ -223,12 +260,13 @@ export const SubscriptionPageClient = () => {
                       id="student-card"
                       type="file"
                       accept="image/*"
+                      disabled={hasComplimentaryPremium}
                       onChange={(event) => setStudentFile(event.target.files?.[0] ?? null)}
                     />
                   </div>
                   <Button
                     onClick={() => handleSubscribe("STUDENT")}
-                    disabled={!!isLoading || isUploading}
+                    disabled={disableActions || isUploading}
                     className="w-full bg-journal hover:bg-journal/90"
                   >
                     {isLoading === "STUDENT" || isUploading ? <Upload className="animate-bounce" /> : "درخواست تخفیف"}

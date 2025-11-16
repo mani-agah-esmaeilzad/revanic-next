@@ -53,6 +53,20 @@ export async function POST(req: Request) {
       },
     });
 
+    // به کاربران اولیه یک اشتراک پریمیوم هدیه داده می‌شود
+    try {
+      await prisma.subscription.create({
+        data: {
+          userId: user.id,
+          tier: "FOUNDER",
+          status: "ACTIVE",
+          endDate: null,
+        },
+      });
+    } catch (subscriptionError) {
+      console.error("COMPLIMENTARY_SUBSCRIPTION_ERROR", subscriptionError);
+    }
+
     await logServerEvent({
       name: 'registration_completed',
       userId: user.id,
