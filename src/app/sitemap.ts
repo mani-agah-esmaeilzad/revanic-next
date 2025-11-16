@@ -6,6 +6,8 @@ import { promises as fs } from "fs";
 import { prisma } from "@/lib/prisma";
 import { getDeploymentUrl } from "@/lib/seo";
 
+export const dynamic = "force-dynamic"; // always rebuild the sitemap so new URLs show up immediately
+
 type ChangeFrequency = MetadataRoute.Sitemap[number]["changeFrequency"];
 
 const STATIC_ROUTE_OVERRIDES: Record<
